@@ -87,11 +87,15 @@ def generate_letter():
     location     = (data.get("location")     or "").strip()
     keywords_raw = (data.get("matched_keywords") or "").strip()
     mode         = (data.get("mode")         or "specific").strip()
+    gen_mode     = (data.get("gen_mode")     or "ai").strip()  # 'ai' or 'template'
     availability = (data.get("availability") or "1 October 2026").strip()
     ref          = (data.get("ref")          or "").strip()
 
     if mode not in ("general", "specific"):
         mode = "specific"
+    
+    if gen_mode not in ("ai", "template"):
+        gen_mode = "ai"
 
     keywords = [k.strip() for k in keywords_raw.split(",") if k.strip()]
 
@@ -122,7 +126,7 @@ def generate_letter():
         return jsonify({"error": "Could not determine job title or company. Provide them manually."}), 400
 
     output_dir = _ROOT
-    result = generate(job, mode, availability, ref, output_dir)
+    result = generate(job, mode, availability, ref, output_dir, use_ai=(gen_mode == "ai"))
 
     text = result["txt"].read_text(encoding="utf-8")
 

@@ -5,6 +5,10 @@ Matches job keywords against CV entries, fills a fixed template,
 and outputs:
   - Plain .txt  (ATS-safe, copy-paste ready)
   - LaTeX .tex  (compile with pdflatex for a PDF submission)
+
+Supports two modes:
+  - 'ai' (default): AI-powered generation with job analysis
+  - 'template': Legacy template-based generation
 """
 
 from __future__ import annotations
@@ -15,6 +19,12 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple, Optional
+
+try:
+    from ai_generator import generate_ai
+    AI_AVAILABLE = True
+except ImportError:
+    AI_AVAILABLE = False
 
 from cv_data import (
     PERSONAL, EXPERIENCES, PROJECTS, SKILL_PHRASES,
@@ -360,12 +370,26 @@ def generate(
     availability: str,
     ref: str,
     output_dir: Path,
+    use_ai: bool = True,
 ) -> dict:
     """
     Generate cover letter files and return a dict of paths.
+    
+    Args:
+        job: Job information dict with title, company, description, keywords
+        mode: 'general' or 'specific' (used for template mode only)
+        availability: Availability date string
+        ref: Job reference number (optional)
+        output_dir: Output directory path
+        use_ai: If True and AI available, use AI generation; else use template
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Use AI generator if available and requested
+    if use_ai and AI_AVAILABLE:
+        return generate_ai(job, availability, ref, output_dir)
+    
+    # Fall back to template-based generation
     first_name = PERSONAL.get("name", "user").lower().split()[0]
     base_name  = f"cl_{first_name}"
 

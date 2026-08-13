@@ -197,6 +197,13 @@
     <!-- Options + generate bar (shared by both tabs) -->
     <div id="options-bar">
       <div class="opt-group">
+        <label>Generation Mode</label>
+        <select id="opt-gen-mode">
+          <option value="ai">AI-Powered (Recommended)</option>
+          <option value="template">Template-Based</option>
+        </select>
+      </div>
+      <div class="opt-group">
         <label>Length</label>
         <select id="opt-mode">
           <option value="specific">Specific (~380 words)</option>
@@ -406,13 +413,14 @@ function updateIndicator() {
 
 // ── Generate ───────────────────────────────────────────────────────────────
 async function generate() {
-  const url    = (document.getElementById('manual-url') || {value:''}).value.trim();
-  const mode   = document.getElementById('opt-mode').value;
-  const avail  = document.getElementById('opt-avail').value.trim() || '1 October 2026';
-  const ref    = document.getElementById('opt-ref').value.trim();
+  const url      = (document.getElementById('manual-url') || {value:''}).value.trim();
+  const gen_mode = document.getElementById('opt-gen-mode').value;
+  const mode     = document.getElementById('opt-mode').value;
+  const avail    = document.getElementById('opt-avail').value.trim() || '1 October 2026';
+  const ref      = document.getElementById('opt-ref').value.trim();
 
   // Build payload from selected job, URL tab job, or manual URL
-  let payload = { mode, availability: avail, ref };
+  let payload = { gen_mode, mode, availability: avail, ref };
 
   if (currentTab === 'url') {
     const rawUrl = document.getElementById('manual-url').value.trim();
@@ -461,7 +469,7 @@ async function generate() {
     letterEl.style.height = 'auto';   // auto-size textarea height
     letterEl.style.height = letterEl.scrollHeight + 'px';
 
-    let meta = `${mode} mode`;
+    let meta = gen_mode === 'ai' ? 'AI-powered' : `Template (${mode})`;
     if (data.saved_txt) meta += ' · saved as .txt / .tex';
     if (data.saved_pdf) meta += ' / .pdf';
     document.getElementById('result-meta').textContent = meta;

@@ -65,7 +65,7 @@ from scorer    import rank_listings, score_label, is_relevant
 from cv_parser import parse_cv
 
 # ── Cover letter imports ───────────────────────────────────────────────────
-from generator   import render_text, render_latex, compile_pdf
+from generator   import generate, render_text, render_latex, compile_pdf
 from job_fetcher import fetch_job
 
 # ── Log / tracker imports ──────────────────────────────────────────────────
@@ -77,9 +77,10 @@ from tracker import (
 
 app = Flask(__name__)
 
-_CV_PATH  = str(_ROOT / "main.tex")
-_LOG_FILE = _ROOT / "log" / "applications.json"
-_CL_TEX   = _ROOT / "cl_sahil.tex"   # canonical cover letter file
+_CV_PATH   = str(_ROOT / "main.tex")
+_LOG_FILE  = _ROOT / "log" / "applications.json"
+_SKIP_FILE = _ROOT / "log" / "skipped.json"   # "not interested" blacklist
+_CL_TEX    = _ROOT / "cl_sahil.tex"   # canonical cover letter file
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -118,6 +119,36 @@ def _is_applied(job: dict, applied_urls: set, applied_keys: set) -> bool:
     co = (job.get("company") or "").strip().lower()
     ti = re.sub(r'\s*\([mfwd\/]+\)', '', (job.get("title") or "").strip().lower())
     return bool(co and ti and (co, ti) in applied_keys)
+
+
+def _skip_set() -> tuple:
+    """Return (skip_urls, skip_keys) from the skipped.json blacklist."""
+    skip_urls: set = set()
+    skip_keys: set = set()
+    if not _SKIP_FILE.exists():
+        return skip_urls, skip_keys
+    try:
+        for e in json.loads(_SKIP_FILE.read_text(encoding="utf-8")):
+            u = (e.get("url") or "").strip()
+            if u:
+                skip_urls.add(u)
+            co = (e.get("company") or "").strip().lower()
+            ti = re.sub(r'\s*\([mfwd\/]+\)', '',
+                        (e.get("title") or "").strip().lower())
+            if co and ti:
+                skip_keys.add((co, ti))
+    except Exception:
+        pass
+    return skip_urls, skip_keys
+
+
+def _is_skipped(job: dict, skip_urls: set, skip_keys: set) -> bool:
+    url = (job.get("url") or "").strip()
+    if url and url in skip_urls:
+        return True
+    co = (job.get("company") or "").strip().lower()
+    ti = re.sub(r'\s*\([mfwd\/]+\)', '', (job.get("title") or "").strip().lower())
+    return bool(co and ti and (co, ti) in skip_keys)
 
 
 def _job_out(j, rank: int) -> dict:
@@ -170,9 +201,10 @@ def api_jobs():
             job = {k: row.get(k, "") for k in [
                 "rank", "score", "match_quality", "title", "company",
                 "location", "source", "job_type", "date_posted",
-                "salary", "matched_keywords", "url",
+                "salary", "applicants", "matched_keywords", "url",
             ]}
             job["rank"]    = job["rank"] or i
+            job["applicants"] = int(job.get("applicants") or 0) if str(job.get("applicants", "")).isdigit() else 0
             job["applied"] = _is_applied(job, applied_urls, applied_keys)
             jobs.append(job)
     return jsonify(jobs)
@@ -187,6 +219,9 @@ def api_search():
     top_n     = int(data.get("top_n", 40))
     per_term  = int(data.get("per_term", 15))
     hours_old = int(data.get("hours_old", 504))
+    max_applicants = data.get("max_applicants")  # Optional: filter by max applicant count
+    if max_applicants is not None:
+        max_applicants = int(max_applicants)
     sites     = data.get("sites") or ["linkedin", "indeed", "google", "stepstone", "xing"]
 
     if region not in REGIONS:
@@ -240,11 +275,23 @@ def api_search():
 
         listings       = deduplicate_by_title(listings_raw)
         applied_urls, applied_keys = _applied_set()
+        skip_urls, skip_keys       = _skip_set()
         fresh          = [j for j in listings
-                          if not _is_applied(j.to_dict(), applied_urls, applied_keys)]
+                          if not _is_applied(j.to_dict(), applied_urls, applied_keys)
+                          and not _is_skipped(j.to_dict(), skip_urls, skip_keys)]
         applied_excl   = len(listings) - len(fresh)
+        
+        # Filter by max applicants if specified
+        applicants_excluded = 0
+        if max_applicants is not None:
+            listings_before_filter = len(fresh)
+            fresh = [j for j in fresh if j.applicants == 0 or j.applicants <= max_applicants]
+            applicants_excluded = listings_before_filter - len(fresh)
+        
         relevant       = [j for j in fresh if is_relevant(j)]
-        excl           = f" ({applied_excl} applied excluded)" if applied_excl else ""
+        excl           = f" ({applied_excl} applied/skipped excluded)" if applied_excl else ""
+        if applicants_excluded:
+            excl += f" ({applicants_excluded} too many applicants)"
         yield _send("status", {"text": f"Scoring {len(relevant)}/{len(fresh)} relevant{excl}…"})
 
         ranked = rank_listings(fresh, cv, top_n=top_n)
@@ -270,6 +317,9 @@ def api_search_company():
     company_name = (data.get("company") or "").strip()
     region       = data.get("region", "Germany")
     top_n        = int(data.get("top_n", 40))
+    max_applicants = data.get("max_applicants")  # Optional: filter by max applicant count
+    if max_applicants is not None:
+        max_applicants = int(max_applicants)
     sites        = data.get("sites") or ["linkedin", "indeed", "google", "stepstone", "xing"]
 
     if not company_name:
@@ -292,13 +342,30 @@ def api_search_company():
             yield _send("error", {"text": str(e)}); return
 
         applied_urls, applied_keys = _applied_set()
+        skip_urls, skip_keys       = _skip_set()
         fresh      = [j for j in listings
-                      if not _is_applied(j.to_dict(), applied_urls, applied_keys)]
+                      if not _is_applied(j.to_dict(), applied_urls, applied_keys)
+                      and not _is_skipped(j.to_dict(), skip_urls, skip_keys)]
         applied_excl = len(listings) - len(fresh)
+        
+        # Filter by max applicants if specified
+        applicants_excluded = 0
+        if max_applicants is not None:
+            listings_before_filter = len(fresh)
+            fresh = [j for j in fresh if j.applicants == 0 or j.applicants <= max_applicants]
+            applicants_excluded = listings_before_filter - len(fresh)
+        
         excl         = f" ({applied_excl} excluded)" if applied_excl else ""
+        if applicants_excluded:
+            excl += f" ({applicants_excluded} too many applicants)"
         yield _send("progress", {"text": f"Found {len(fresh)} fresh listings{excl} — scoring…"})
 
-        ranked = rank_listings(fresh, cv, top_n=top_n)
+        # Company search: score all roles (skip is_relevant filter — the user
+        # explicitly chose this company so all open roles are worth showing)
+        from scorer import score_listing
+        scored = [score_listing(j, cv) for j in fresh]
+        scored.sort(key=lambda j: j.score, reverse=True)
+        ranked = scored[:top_n]
         yield _send("done", {
             "jobs":             [_job_out(j, i) for i, j in enumerate(ranked, 1)],
             "total":            len(listings),
@@ -394,8 +461,10 @@ def api_search_robotics_companies():
 
         listings     = deduplicate_by_title(all_listings)
         applied_urls, applied_keys = _applied_set()
+        skip_urls, skip_keys       = _skip_set()
         fresh        = [j for j in listings
-                        if not _is_applied(j.to_dict(), applied_urls, applied_keys)]
+                        if not _is_applied(j.to_dict(), applied_urls, applied_keys)
+                        and not _is_skipped(j.to_dict(), skip_urls, skip_keys)]
         applied_excl = len(listings) - len(fresh)
         relevant     = [j for j in fresh if is_relevant(j)]
         excl         = f" ({applied_excl} excluded)" if applied_excl else ""
@@ -425,17 +494,27 @@ def api_generate():
     company      = (data.get("company")          or "").strip()
     location     = (data.get("location")         or "").strip()
     keywords_raw = (data.get("matched_keywords") or "").strip()
+    manual_desc  = (data.get("description")      or "").strip()
     mode         = (data.get("mode")             or "specific").strip()
+    gen_mode     = (data.get("gen_mode")         or "ai").strip()  # 'ai' or 'template'
     availability = (data.get("availability")     or "1 October 2026").strip()
     ref          = (data.get("ref")              or "").strip()
 
     if mode not in ("general", "specific"):
         mode = "specific"
+    
+    if gen_mode not in ("ai", "template"):
+        gen_mode = "ai"
 
     keywords = [k.strip() for k in keywords_raw.split(",") if k.strip()]
+    # If no explicit keywords, extract from the manually-pasted description
+    if not keywords and manual_desc:
+        from job_fetcher import extract_keywords as _extract_kw
+        keywords = _extract_kw(manual_desc)
+
     job = {
         "title": title, "company": company, "location": location,
-        "keywords": keywords, "description": "", "url": url,
+        "keywords": keywords, "description": manual_desc, "url": url,
     }
 
     if url:
@@ -446,7 +525,7 @@ def api_generate():
                 if not company:  job["company"]     = fetched.get("company", company)
                 if not location: job["location"]    = fetched.get("location", location)
                 if not keywords: job["keywords"]    = fetched.get("keywords", [])
-                job["description"] = fetched.get("description", "")
+                if not job["description"]: job["description"] = fetched.get("description", "")
         except Exception:
             pass
 
@@ -455,8 +534,25 @@ def api_generate():
                                  "Provide them manually."}), 400
 
     # Generate content but do NOT write to disk — leave that to /api/save-letter
-    text = render_text(job, mode, availability, ref)
-    tex  = render_latex(job, mode, availability, ref)
+    # Use AI mode if requested and available
+    use_ai = (gen_mode == "ai")
+    if use_ai:
+        try:
+            # Use the new generate function with AI support
+            # For preview, we need to generate to a temp dir or extract text
+            import tempfile
+            with tempfile.TemporaryDirectory() as tmpdir:
+                result = generate(job, mode, availability, ref, Path(tmpdir), use_ai=True)
+                text = result["txt"].read_text(encoding="utf-8")
+                tex = result["tex"].read_text(encoding="utf-8")
+        except Exception as e:
+            # Fall back to template mode if AI fails
+            text = render_text(job, mode, availability, ref)
+            tex  = render_latex(job, mode, availability, ref)
+    else:
+        # Template mode
+        text = render_text(job, mode, availability, ref)
+        tex  = render_latex(job, mode, availability, ref)
 
     return jsonify({
         "text":    text,
@@ -468,15 +564,59 @@ def api_generate():
 
 @app.route("/api/save-letter", methods=["POST"])
 def api_save_letter():
-    data        = request.json or {}
-    tex_content = data.get("tex", "")
+    data         = request.json or {}
+    tex_content  = data.get("tex",  "")
+    text_content = data.get("text", "")
     if not tex_content:
         return jsonify({"error": "No LaTeX content provided"}), 400
+
+    # If the user edited the plain text, sync those edits back into the LaTeX
+    # body so the compiled PDF also reflects their changes.
+    if text_content:
+        m = re.search(
+            r'Dear Hiring Team,\s*\n+(.*?)\n+Sincerely,',
+            text_content, re.DOTALL
+        )
+        if m:
+            body_plain = m.group(1).strip()
+            paragraphs = [p.strip() for p in body_plain.split('\n\n') if p.strip()]
+
+            def _tex_esc(s: str) -> str:
+                for old, new in [
+                    ("\\", r"\textbackslash{}"),
+                    ("&",  r"\&"), ("%", r"\%"), ("$", r"\$"),
+                    ("#",  r"\#"), ("_", r"\_"), ("{", r"\{"),
+                    ("}",  r"\}"), ("~", r"\textasciitilde{}"),
+                    ("^",  r"\textasciicircum{}"), ("\u2013", "--"), ("\u2014", "---"),
+                ]:
+                    s = s.replace(old, new)
+                return s
+
+            escaped_body = "\n\n".join(_tex_esc(para) for para in paragraphs)
+
+            def _replace_body(match):
+                return match.group(1) + escaped_body + match.group(2)
+
+            updated_tex = re.sub(
+                r'(Dear Hiring Team,\s*\n+)(.*?)(\n+\\vspace)',
+                _replace_body,
+                tex_content,
+                flags=re.DOTALL,
+            )
+            if updated_tex != tex_content:
+                tex_content = updated_tex
 
     try:
         _CL_TEX.write_text(tex_content, encoding="utf-8")
     except Exception as e:
         return jsonify({"error": f"Could not write {_CL_TEX.name}: {e}"}), 500
+
+    # Save the plain-text version too
+    if text_content:
+        try:
+            _CL_TEX.with_suffix(".txt").write_text(text_content, encoding="utf-8")
+        except Exception:
+            pass
 
     pdf = compile_pdf(_CL_TEX)
     return jsonify({
@@ -491,6 +631,67 @@ def api_save_letter():
 @app.route("/api/statuses")
 def api_statuses():
     return jsonify([{"value": s, "emoji": STATUS_EMOJI.get(s, "")} for s in STATUSES])
+
+
+# ── Not-interested / skip list ─────────────────────────────────────────────
+
+@app.route("/api/skip-job", methods=["POST"])
+def api_skip_job():
+    """Add a job to the 'not interested' blacklist."""
+    data = request.json or {}
+    title   = (data.get("title")   or "").strip()
+    company = (data.get("company") or "").strip()
+    url     = (data.get("url")     or "").strip()
+    if not title and not url:
+        return jsonify({"error": "title or url required"}), 400
+    _SKIP_FILE.parent.mkdir(parents=True, exist_ok=True)
+    skipped = []
+    if _SKIP_FILE.exists():
+        try:
+            skipped = json.loads(_SKIP_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            skipped = []
+    # Avoid duplicates
+    for e in skipped:
+        if (url and e.get("url") == url) or \
+           (title and company and
+            e.get("title","").lower() == title.lower() and
+            e.get("company","").lower() == company.lower()):
+            return jsonify({"ok": True, "duplicate": True})
+    entry = {"title": title, "company": company, "url": url,
+             "date": __import__("datetime").date.today().isoformat()}
+    skipped.append(entry)
+    _SKIP_FILE.write_text(json.dumps(skipped, ensure_ascii=False, indent=2),
+                          encoding="utf-8")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/skip-job", methods=["DELETE"])
+def api_unskip_job():
+    """Remove a job from the 'not interested' blacklist (undo)."""
+    data = request.json or {}
+    url     = (data.get("url")     or "").strip()
+    title   = (data.get("title")   or "").strip()
+    company = (data.get("company") or "").strip()
+    if not _SKIP_FILE.exists():
+        return jsonify({"ok": True})
+    try:
+        skipped = json.loads(_SKIP_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return jsonify({"ok": True})
+    before = len(skipped)
+    skipped = [
+        e for e in skipped
+        if not (
+            (url and e.get("url") == url) or
+            (title and company and
+             e.get("title","").lower() == title.lower() and
+             e.get("company","").lower() == company.lower())
+        )
+    ]
+    _SKIP_FILE.write_text(json.dumps(skipped, ensure_ascii=False, indent=2),
+                          encoding="utf-8")
+    return jsonify({"ok": True, "removed": before - len(skipped)})
 
 
 @app.route("/api/export-csv", methods=["POST"])
@@ -611,9 +812,15 @@ def api_fetch_job():
         return jsonify({"error": "URL required"}), 400
     try:
         result = fetch_job(url, _ROOT)
-        if result:
+        if result and result.get("bot_challenge"):
+            return jsonify({"error": (
+                "This site blocks automated access (Cloudflare / bot protection). "
+                "Open the job page in your browser, copy the full job description, "
+                "and paste it into the Description field below."
+            )}), 403
+        if result and result.get("title"):
             return jsonify(result)
-        return jsonify({"error": "Could not fetch job info. Fill manually."}), 404
+        return jsonify({"error": "Could not fetch job info — fill fields manually."}), 404
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 

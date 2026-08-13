@@ -78,12 +78,21 @@ def build_parser() -> argparse.ArgumentParser:
     # ── Letter settings
     letter = p.add_argument_group("Letter settings")
     letter.add_argument(
+        "--mode", "-m",
+        choices=["ai", "template"],
+        default="ai",
+        help=(
+            "ai       = AI-powered generation (analyzes job, creates personalized content)\n"
+            "template = Legacy template-based generation"
+        ),
+    )
+    letter.add_argument(
         "--length", "-l",
         choices=["general", "specific"],
         default=None,
         help=(
-            "general  = shorter (~250 words), 1 experience + 1 project\n"
-            "specific = detailed (~380 words), 2 experiences + 2 projects"
+            "general  = shorter (~250 words), 1 experience + 1 project (template mode only)\n"
+            "specific = detailed (~380 words), 2 experiences + 2 projects (template mode only)"
         ),
     )
     letter.add_argument("--available", "-a",
@@ -125,6 +134,10 @@ def prompt_missing(job: dict, args: argparse.Namespace) -> dict:
 
 
 def choose_length(args: argparse.Namespace) -> str:
+    # If using AI mode, length doesn't matter
+    if args.mode == "ai":
+        return "specific"  # Dummy value, not used in AI mode
+    
     if args.length:
         return args.length
     if sys.stdin.isatty():
@@ -187,12 +200,13 @@ def main():
     mode = choose_length(args)
 
     # ── Confirm settings ──────────────────────────────────────────────────
+    gen_mode_display = "AI-powered" if args.mode == "ai" else f"Template ({mode})"
     console.print(Panel(
         f"[bold cyan]{job['title']}[/bold cyan]\n"
         f"Company:      {job['company']}\n"
         f"Location:     {job.get('location') or '—'}\n"
         f"Keywords:     {', '.join(job.get('keywords', [])[:8]) or '(none — generic matching)'}\n"
-        f"Mode:         [bold]{mode}[/bold]\n"
+        f"Generation:   [bold]{gen_mode_display}[/bold]\n"
         f"Available:    {args.available}\n"
         f"Ref:          {args.ref or '(none)'}",
         title="[bold]Cover Letter Settings[/bold]",
@@ -207,6 +221,7 @@ def main():
         availability=args.available,
         ref=args.ref,
         output_dir=output_dir,
+        use_ai=(args.mode == "ai"),
     )
 
     # ── Output summary ────────────────────────────────────────────────────
