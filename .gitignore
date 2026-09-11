@@ -50,3 +50,22 @@ Thumbs.db
 _fix_git.sh
 job_search/_install_gh.sh
 _gitcmd.sh
+
+# New account-based application and local archives
+/personal-archive/
+/legacy/
+**/.env
+**/.env.*
+!**/.env.example
+**/node_modules/
+**/.next/
+**/out/
+**/*.tsbuildinfo
+app/public/sw.js
+app/public/sw.js.map
+app/public/swe-worker-*.js
+app/public/swe-worker-*.js.map
+app/test-results/
+app/playwright-report/
+.vercel
+.env*

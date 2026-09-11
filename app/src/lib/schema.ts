@@ -1,0 +1,66 @@
+import { z } from "zod";
+import { jobTypes } from "./matching.ts";
+
+const terms = z.array(z.string().trim().min(1).max(100)).min(1).max(25);
+export const profileSchema = z.object({
+  fullName: z.string().trim().min(2).max(120),
+  headline: z.string().trim().max(160),
+  summary: z.string().trim().min(20).max(3000),
+  experience: z.string().trim().max(12000),
+  education: z.string().trim().max(5000),
+  skills: terms,
+  fields: terms,
+  regions: terms,
+  jobTypes: z.array(z.enum(jobTypes)).min(1).max(5),
+  remote: z.boolean(),
+  dailyChecks: z.boolean(),
+  emailDigest: z.boolean(),
+  cvText: z.string().max(60000),
+  cvName: z.string().max(255),
+});
+export type Profile = z.infer<typeof profileSchema>;
+export const statuses = [
+  "saved",
+  "applied",
+  "interview",
+  "offer",
+  "rejected",
+  "withdrawn",
+] as const;
+export const applicationSchema = z.object({
+  id: z.uuid(),
+  status: z.enum(statuses),
+  notes: z.string().max(10000),
+  letter: z.string().max(15000),
+  followUp: z.union([z.literal(""), z.iso.date()]),
+});
+export const safeJobUrl = z
+  .url()
+  .refine(
+    (value) => new URL(value).protocol === "https:",
+    "Use an HTTPS job link",
+  );
+export const manualJobSchema = z.object({
+  title: z.string().trim().min(2).max(200),
+  company: z.string().trim().min(1).max(200),
+  location: z.string().trim().min(1).max(200),
+  url: safeJobUrl,
+  description: z.string().trim().max(20000),
+});
+export const emptyProfile: Profile = {
+  fullName: "",
+  headline: "",
+  summary: "",
+  experience: "",
+  education: "",
+  skills: [],
+  fields: [],
+  regions: [],
+  jobTypes: ["full-time"],
+  remote: true,
+  dailyChecks: true,
+  emailDigest: false,
+  cvText: "",
+  cvName: "",
+};
+export type ActionResult = { error?: string; success?: string };

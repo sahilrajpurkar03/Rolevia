@@ -1,0 +1,108 @@
+import { expect, test } from "@playwright/test";
+
+test("search, save, draft and update an application", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(
+    page.getByRole("heading", { name: "Your next move, Alex." }),
+  ).toBeVisible();
+  await expect(page.locator(".job-card")).toHaveCount(6);
+  await page.getByRole("textbox", { name: "Search matches" }).fill("Forma");
+  await expect(page.locator(".job-card")).toHaveCount(1);
+  await page.getByRole("textbox", { name: "Search matches" }).fill("");
+  await page
+    .getByRole("combobox", { name: "Employment type filter" })
+    .selectOption("working-student");
+  await expect(page.locator(".job-card")).toHaveCount(1);
+  await page
+    .getByRole("combobox", { name: "Employment type filter" })
+    .selectOption("all");
+  await page
+    .getByRole("button", { name: "Save job", exact: true })
+    .first()
+    .click();
+  await page.getByRole("button", { name: "Applications", exact: true }).click();
+  await expect(page.locator(".table-row")).toHaveCount(3);
+  await page
+    .getByRole("button", { name: /Product Designer Morrow Studio/ })
+    .click();
+  await page.getByRole("button", { name: "Draft from profile" }).click();
+  await expect(
+    page.getByRole("textbox", { name: "Cover letter text" }),
+  ).toHaveValue(/student-led community platform/);
+  await page
+    .getByRole("combobox", { name: "Status", exact: true })
+    .selectOption("applied");
+  await page
+    .getByRole("textbox", { name: "Follow-up date" })
+    .fill("2026-09-21");
+  await page
+    .getByRole("textbox", { name: "Notes", exact: true })
+    .fill("Follow up with the team.");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.locator(".table-row").last()).toContainText("applied");
+  await expect(page.locator(".table-row").last()).toContainText("21 Sept");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("profile preferences remain editable and preview uploads are private", async ({
+  page,
+}) => {
+  await page.goto("/demo");
+  await page
+    .getByRole("button", { name: "Profile & preferences", exact: true })
+    .click();
+  await page
+    .getByRole("textbox", { name: "Professional headline" })
+    .fill("Updated sample designer");
+  await page.getByRole("button", { name: "3 Your preferences" }).click();
+  await page
+    .getByRole("textbox", { name: "Fields and role keywords" })
+    .fill("Design, Product designer");
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "Sample profile updated",
+  );
+  await page.getByRole("button", { name: "1 Your CV" }).click();
+  await page.getByLabel("Upload CV").setInputFiles({
+    name: "sample.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-sample"),
+  });
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Sign in to import" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("empty filtering and private endpoints fail safely", async ({
+  page,
+  request,
+}) => {
+  await page.goto("/demo");
+  await page
+    .getByRole("textbox", { name: "Search matches" })
+    .fill("no-such-role");
+  await expect(
+    page.getByRole("heading", { name: "No matches with these filters" }),
+  ).toBeVisible();
+  expect((await request.get("/api/cron/daily")).status()).toBe(401);
+  expect((await request.post("/api/cv")).status()).toBe(401);
+  await page.goto("/auth/callback?code=invalid");
+  await expect(
+    page.getByRole("alert").filter({ hasText: "expired" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
