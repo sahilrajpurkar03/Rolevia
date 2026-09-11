@@ -3,6 +3,7 @@ import { z } from "zod";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "./supabase/server";
+import { recoveryErrorDetails } from "./recovery-errors";
 import type { ActionResult } from "./schema";
 
 const credentials = z.object({
@@ -26,11 +27,14 @@ export async function authAction(
       const { error } = await client.auth.resetPasswordForEmail(email, {
         redirectTo: callbackUrl(true),
       });
-      if (error)
-        return {
-          error:
-            "Recovery email could not be requested. Please try again later.",
-        };
+      if (error) {
+        const details = recoveryErrorDetails(error);
+        console.warn("Recovery email request failed", {
+          reason: details.reason,
+          status: error.status,
+        });
+        return { error: details.message };
+      }
       return {
         success:
           "If this email has an account, a recovery link is on its way. Open it in this browser.",
