@@ -1,2 +1,59 @@
 @import "tailwindcss";
 @import "./workspace.css";
+
+.site-notice {
+  position: relative;
+  padding: 12px 24px;
+  border-bottom: 1px solid #dbc585;
+  background: #fff5d8;
+  color: #433b25;
+  overflow-wrap: anywhere;
+}
+.site-notice nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-top: 6px;
+}
+.site-notice a,
+.legal-page a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+body:has(.app-shell) > .site-notice {
+  margin-left: 224px;
+}
+.legal-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+  overflow-wrap: anywhere;
+}
+.legal-page h1 {
+  margin: 24px 0 12px;
+}
+.legal-page h2 {
+  margin: 28px 0 8px;
+}
+.legal-page p,
+.legal-page ul {
+  margin: 12px 0;
+}
+.legal-page ul {
+  padding-left: 24px;
+  list-style: disc;
+}
+.legal-draft {
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  color: var(--danger);
+}
+@media (max-width: 760px) {
+  body:has(.app-shell) > .site-notice {
+    margin-left: 0;
+  }
+  .site-notice {
+    padding: 12px 16px;
+  }
+}

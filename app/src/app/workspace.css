@@ -1438,6 +1438,7 @@ legend {
   }
   .nav-item {
     width: auto;
+    flex-shrink: 0;
     min-width: 44px;
     min-height: 44px;
     padding: 8px 12px;
