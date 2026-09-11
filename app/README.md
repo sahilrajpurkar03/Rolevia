@@ -13,6 +13,7 @@ Open http://localhost:3000. Without account configuration, `/demo` uses fictiona
 
 - `npm run check`: lint, TypeScript, unit tests, production webpack build.
 - `npm run test:e2e`: desktop/mobile Playwright tests; first run `npx playwright install chromium`.
+- `npm run test:performance -- all`: bounded local HTTP load and ten-minute soak after a production build; see [results and limitations](../docs/PERFORMANCE.md).
 - `npm run assets`: regenerate the original bitmap brand and PWA icons.
 - `npm run format`: format application source and tests.
 

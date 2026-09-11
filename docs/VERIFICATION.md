@@ -26,7 +26,7 @@ Verified on Windows with Node 24.19.0 on 2026-09-11.
 
 ## Not Yet Verified
 
-- Performance/load testing and long-duration endurance (soak) testing have not been performed. Functional browser tests are not evidence of concurrent-user capacity or sustained stability.
+- Bounded local HTTP load and a ten-minute soak passed; see [measured results and scope](PERFORMANCE.md). Multi-hour endurance and authenticated/database-backed load remain untested. These results do not establish production concurrent-user capacity.
 - Real two-account RLS enforcement, persistent cross-device records, and authenticated CV upload through a hosted route.
 - Actual confirmation/recovery emails, expired/reused recovery links with real sessions, or production SMTP delivery.
 - A real account's scheduled job sync and digest email.

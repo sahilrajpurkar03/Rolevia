@@ -1,0 +1,666 @@
+{
+  "startedAt": "2026-09-11T17:40:05.450Z",
+  "mode": "all",
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "win32",
+    "cpu": "13th Gen Intel(R) Core(TM) i7-13850HX",
+    "logicalCpus": 28,
+    "totalMemoryGiB": 31.692127227783203
+  },
+  "scope": "Loopback production Next.js HTTP only; client and server share the host. No authenticated records, email, job feeds, or remote Supabase. Not browser rendering or multi-hour endurance certification.",
+  "limits": {
+    "p975Ms": 500,
+    "p99Ms": 1000,
+    "minimumRateFraction": 0.9,
+    "maxRssGrowthMiB": 128,
+    "maxLateP975IncreaseMs": 100
+  },
+  "phases": [
+    {
+      "name": "warmup",
+      "path": "/login",
+      "expectedStatus": 200,
+      "seconds": 5.05,
+      "connections": 2,
+      "targetRequestsPerSecond": 10,
+      "requests": 51,
+      "requestsPerSecond": 10.2,
+      "latencyMs": {
+        "average": 10.43,
+        "mean": 10.43,
+        "stddev": 8,
+        "min": 1,
+        "max": 44,
+        "p0_001": 1,
+        "p0_01": 1,
+        "p0_1": 1,
+        "p1": 1,
+        "p2_5": 1,
+        "p10": 2,
+        "p25": 5,
+        "p50": 9,
+        "p75": 13,
+        "p90": 20,
+        "p97_5": 34,
+        "p99": 40,
+        "p99_9": 44,
+        "p99_99": 44,
+        "p99_999": 44,
+        "totalCount": 856
+      },
+      "throughputBytesPerSecond": 94099.2,
+      "errors": 0,
+      "timeouts": 0,
+      "unexpectedStatuses": 0,
+      "statusCounts": {
+        "200": {
+          "count": 51
+        }
+      },
+      "memorySamples": [
+        {
+          "seconds": 2.39,
+          "rssMiB": 131.98828125,
+          "cpuPercent": 0
+        },
+        {
+          "seconds": 8.556,
+          "rssMiB": 168.11328125,
+          "cpuPercent": 10.166666666666666
+        }
+      ],
+      "minuteWindows": [
+        {
+          "minute": 0,
+          "requests": 51,
+          "p975Ms": 43.4827
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "demo-20rps",
+      "path": "/demo",
+      "expectedStatus": 200,
+      "seconds": 20.18,
+      "connections": 5,
+      "targetRequestsPerSecond": 20,
+      "requests": 400,
+      "requestsPerSecond": 20,
+      "latencyMs": {
+        "average": 5.19,
+        "mean": 5.19,
+        "stddev": 3.47,
+        "min": 1,
+        "max": 23,
+        "p0_001": 1,
+        "p0_01": 1,
+        "p0_1": 1,
+        "p1": 1,
+        "p2_5": 1,
+        "p10": 1,
+        "p25": 3,
+        "p50": 5,
+        "p75": 7,
+        "p90": 9,
+        "p97_5": 14,
+        "p99": 17,
+        "p99_9": 21,
+        "p99_99": 23,
+        "p99_999": 23,
+        "totalCount": 3226
+      },
+      "throughputBytesPerSecond": 817408,
+      "errors": 0,
+      "timeouts": 0,
+      "unexpectedStatuses": 0,
+      "statusCounts": {
+        "200": {
+          "count": 400
+        }
+      },
+      "memorySamples": [
+        {
+          "seconds": 0.95,
+          "rssMiB": 168.11328125,
+          "cpuPercent": 0
+        },
+        {
+          "seconds": 22.258,
+          "rssMiB": 124.109375,
+          "cpuPercent": 4.968181818181818
+        }
+      ],
+      "minuteWindows": [
+        {
+          "minute": 0,
+          "requests": 400,
+          "p975Ms": 17.9684
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "login-20rps",
+      "path": "/login",
+      "expectedStatus": 200,
+      "seconds": 20.18,
+      "connections": 5,
+      "targetRequestsPerSecond": 20,
+      "requests": 400,
+      "requestsPerSecond": 20,
+      "latencyMs": {
+        "average": 17.77,
+        "mean": 17.77,
+        "stddev": 11.66,
+        "min": 1,
+        "max": 65,
+        "p0_001": 1,
+        "p0_01": 1,
+        "p0_1": 1,
+        "p1": 1,
+        "p2_5": 1,
+        "p10": 4,
+        "p25": 8,
+        "p50": 16,
+        "p75": 25,
+        "p90": 33,
+        "p97_5": 45,
+        "p99": 54,
+        "p99_9": 63,
+        "p99_99": 65,
+        "p99_999": 65,
+        "totalCount": 12769
+      },
+      "throughputBytesPerSecond": 184512,
+      "errors": 0,
+      "timeouts": 0,
+      "unexpectedStatuses": 0,
+      "statusCounts": {
+        "200": {
+          "count": 400
+        }
+      },
+      "memorySamples": [
+        {
+          "seconds": 1.03,
+          "rssMiB": 124.109375,
+          "cpuPercent": 0
+        },
+        {
+          "seconds": 22.185,
+          "rssMiB": 223.6953125,
+          "cpuPercent": 15.02857142857143
+        }
+      ],
+      "minuteWindows": [
+        {
+          "minute": 0,
+          "requests": 400,
+          "p975Ms": 60.5651
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "unauthorized-cron-20rps",
+      "path": "/api/cron/daily",
+      "expectedStatus": 401,
+      "seconds": 20.17,
+      "connections": 5,
+      "targetRequestsPerSecond": 20,
+      "requests": 400,
+      "requestsPerSecond": 20,
+      "latencyMs": {
+        "average": 4.67,
+        "mean": 4.67,
+        "stddev": 3.42,
+        "min": 1,
+        "max": 26,
+        "p0_001": 1,
+        "p0_01": 1,
+        "p0_1": 1,
+        "p1": 1,
+        "p2_5": 1,
+        "p10": 1,
+        "p25": 2,
+        "p50": 4,
+        "p75": 6,
+        "p90": 9,
+        "p97_5": 13,
+        "p99": 17,
+        "p99_9": 24,
+        "p99_99": 26,
+        "p99_999": 26,
+        "totalCount": 2565
+      },
+      "throughputBytesPerSecond": 9940,
+      "errors": 0,
+      "timeouts": 0,
+      "unexpectedStatuses": 0,
+      "statusCounts": {
+        "401": {
+          "count": 400
+        }
+      },
+      "memorySamples": [
+        {
+          "seconds": 1.494,
+          "rssMiB": 223.6953125,
+          "cpuPercent": 0
+        },
+        {
+          "seconds": 22.704,
+          "rssMiB": 128.36328125,
+          "cpuPercent": 4.404545454545454
+        }
+      ],
+      "minuteWindows": [
+        {
+          "minute": 0,
+          "requests": 400,
+          "p975Ms": 14.7036
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "demo-100rps",
+      "path": "/demo",
+      "expectedStatus": 200,
+      "seconds": 20.33,
+      "connections": 25,
+      "targetRequestsPerSecond": 100,
+      "requests": 2000,
+      "requestsPerSecond": 100,
+      "latencyMs": {
+        "average": 15.68,
+        "mean": 15.68,
+        "stddev": 9.58,
+        "min": 1,
+        "max": 49,
+        "p0_001": 1,
+        "p0_01": 1,
+        "p0_1": 1,
+        "p1": 1,
+        "p2_5": 1,
+        "p10": 3,
+        "p25": 8,
+        "p50": 15,
+        "p75": 23,
+        "p90": 29,
+        "p97_5": 34,
+        "p99": 38,
+        "p99_9": 45,
+        "p99_99": 47,
+        "p99_999": 49,
+        "totalCount": 54952
+      },
+      "throughputBytesPerSecond": 4086784,
+      "errors": 0,
+      "timeouts": 0,
+      "unexpectedStatuses": 0,
+      "statusCounts": {
+        "200": {
+          "count": 2000
+        }
+      },
+      "memorySamples": [
+        {
+          "seconds": 0.998,
+          "rssMiB": 128.36328125,
+          "cpuPercent": 0
+        },
+        {
+          "seconds": 22.4,
+          "rssMiB": 187.85546875,
+          "cpuPercent": 12.647619047619049
+        }
+      ],
+      "minuteWindows": [
+        {
+          "minute": 0,
+          "requests": 2000,
+          "p975Ms": 42.7731
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "login-100rps",
+      "path": "/login",
+      "expectedStatus": 200,
+      "seconds": 20.16,
+      "connections": 25,
+      "targetRequestsPerSecond": 100,
+      "requests": 2003,
+      "requestsPerSecond": 100.15,
+      "latencyMs": {
+        "average": 56.66,
+        "mean": 56.66,
+        "stddev": 34.28,
+        "min": 1,
+        "max": 177,
+        "p0_001": 1,
+        "p0_01": 1,
+        "p0_1": 1,
+        "p1": 2,
+        "p2_5": 3,
+        "p10": 11,
+        "p25": 28,
+        "p50": 55,
+        "p75": 83,
+        "p90": 103,
+        "p97_5": 123,
+        "p99": 135,
+        "p99_9": 161,
+        "p99_99": 174,
+        "p99_999": 176,
+        "totalCount": 217093
+      },
+      "throughputBytesPerSecond": 923750.4,
+      "errors": 0,
+      "timeouts": 0,
+      "unexpectedStatuses": 0,
+      "statusCounts": {
+        "200": {
+          "count": 2003
+        }
+      },
+      "memorySamples": [
+        {
+          "seconds": 1.063,
+          "rssMiB": 187.85546875,
+          "cpuPercent": 0
+        },
+        {
+          "seconds": 22.269,
+          "rssMiB": 370.30859375,
+          "cpuPercent": 50.44761904761904
+        }
+      ],
+      "minuteWindows": [
+        {
+          "minute": 0,
+          "requests": 2003,
+          "p975Ms": 153.2542
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "unauthorized-cron-100rps",
+      "path": "/api/cron/daily",
+      "expectedStatus": 401,
+      "seconds": 20.13,
+      "connections": 25,
+      "targetRequestsPerSecond": 100,
+      "requests": 2001,
+      "requestsPerSecond": 100.05,
+      "latencyMs": {
+        "average": 15.69,
+        "mean": 15.69,
+        "stddev": 10.21,
+        "min": 1,
+        "max": 84,
+        "p0_001": 0,
+        "p0_01": 1,
+        "p0_1": 1,
+        "p1": 1,
+        "p2_5": 1,
+        "p10": 3,
+        "p25": 7,
+        "p50": 15,
+        "p75": 23,
+        "p90": 29,
+        "p97_5": 37,
+        "p99": 43,
+        "p99_9": 58,
+        "p99_99": 79,
+        "p99_999": 84,
+        "totalCount": 52461
+      },
+      "throughputBytesPerSecond": 49732.8,
+      "errors": 0,
+      "timeouts": 0,
+      "unexpectedStatuses": 0,
+      "statusCounts": {
+        "401": {
+          "count": 2001
+        }
+      },
+      "memorySamples": [
+        {
+          "seconds": 1.107,
+          "rssMiB": 370.30859375,
+          "cpuPercent": 0
+        },
+        {
+          "seconds": 22.329,
+          "rssMiB": 358.84375,
+          "cpuPercent": 12.35909090909091
+        }
+      ],
+      "minuteWindows": [
+        {
+          "minute": 0,
+          "requests": 2001,
+          "p975Ms": 45.07
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "soak",
+      "path": "/login",
+      "expectedStatus": 200,
+      "seconds": 600.4,
+      "connections": 10,
+      "targetRequestsPerSecond": 50,
+      "requests": 29800,
+      "requestsPerSecond": 50,
+      "latencyMs": {
+        "average": 21.3,
+        "mean": 21.3,
+        "stddev": 13.89,
+        "min": 1,
+        "max": 121,
+        "p0_001": 1,
+        "p0_01": 1,
+        "p0_1": 1,
+        "p1": 1,
+        "p2_5": 1,
+        "p10": 4,
+        "p25": 10,
+        "p50": 20,
+        "p75": 30,
+        "p90": 39,
+        "p97_5": 54,
+        "p99": 61,
+        "p99_9": 83,
+        "p99_99": 108,
+        "p99_999": 120,
+        "totalCount": 1154970
+      },
+      "throughputBytesPerSecond": 461185.94,
+      "errors": 0,
+      "timeouts": 0,
+      "unexpectedStatuses": 0,
+      "statusCounts": {
+        "200": {
+          "count": 29800
+        }
+      },
+      "memorySamples": [
+        {
+          "seconds": 1.059,
+          "rssMiB": 358.84375,
+          "cpuPercent": 0
+        },
+        {
+          "seconds": 32.244,
+          "rssMiB": 398.58984375,
+          "cpuPercent": 24.34516129032258
+        },
+        {
+          "seconds": 62.033,
+          "rssMiB": 401.40625,
+          "cpuPercent": 22.44666666666667
+        },
+        {
+          "seconds": 92.178,
+          "rssMiB": 406.734375,
+          "cpuPercent": 21.823333333333334
+        },
+        {
+          "seconds": 122.159,
+          "rssMiB": 408.37109375,
+          "cpuPercent": 21.82
+        },
+        {
+          "seconds": 152.127,
+          "rssMiB": 416.734375,
+          "cpuPercent": 21.046666666666667
+        },
+        {
+          "seconds": 182.243,
+          "rssMiB": 399.359375,
+          "cpuPercent": 25.52
+        },
+        {
+          "seconds": 212.23,
+          "rssMiB": 407.82421875,
+          "cpuPercent": 19.843333333333334
+        },
+        {
+          "seconds": 242.077,
+          "rssMiB": 414.17578125,
+          "cpuPercent": 19.580000000000002
+        },
+        {
+          "seconds": 272.741,
+          "rssMiB": 420.3046875,
+          "cpuPercent": 19.53333333333333
+        },
+        {
+          "seconds": 302.32,
+          "rssMiB": 442.14453125,
+          "cpuPercent": 19.116666666666667
+        },
+        {
+          "seconds": 332.245,
+          "rssMiB": 440.40625,
+          "cpuPercent": 19.53
+        },
+        {
+          "seconds": 362.211,
+          "rssMiB": 427.0703125,
+          "cpuPercent": 18.8
+        },
+        {
+          "seconds": 392.246,
+          "rssMiB": 435.4140625,
+          "cpuPercent": 18.64666666666667
+        },
+        {
+          "seconds": 422.179,
+          "rssMiB": 441.26171875,
+          "cpuPercent": 17.136666666666667
+        },
+        {
+          "seconds": 452.205,
+          "rssMiB": 444.7734375,
+          "cpuPercent": 19.583333333333332
+        },
+        {
+          "seconds": 482.182,
+          "rssMiB": 426.9921875,
+          "cpuPercent": 18.54
+        },
+        {
+          "seconds": 512.33,
+          "rssMiB": 440.57421875,
+          "cpuPercent": 18.906666666666666
+        },
+        {
+          "seconds": 542.154,
+          "rssMiB": 440.81640625,
+          "cpuPercent": 18.54
+        },
+        {
+          "seconds": 572.56,
+          "rssMiB": 431.20703125,
+          "cpuPercent": 30.263333333333335
+        }
+      ],
+      "minuteWindows": [
+        {
+          "minute": 0,
+          "requests": 2950,
+          "p975Ms": 55.4954
+        },
+        {
+          "minute": 1,
+          "requests": 2970,
+          "p975Ms": 51.3412
+        },
+        {
+          "minute": 2,
+          "requests": 2980,
+          "p975Ms": 58.3945
+        },
+        {
+          "minute": 3,
+          "requests": 3000,
+          "p975Ms": 51.5004
+        },
+        {
+          "minute": 4,
+          "requests": 2950,
+          "p975Ms": 51.9457
+        },
+        {
+          "minute": 5,
+          "requests": 3000,
+          "p975Ms": 52.1735
+        },
+        {
+          "minute": 6,
+          "requests": 2950,
+          "p975Ms": 51.5575
+        },
+        {
+          "minute": 7,
+          "requests": 3000,
+          "p975Ms": 48.6393
+        },
+        {
+          "minute": 8,
+          "requests": 2951,
+          "p975Ms": 53.4803
+        },
+        {
+          "minute": 9,
+          "requests": 2999,
+          "p975Ms": 81.7682
+        },
+        {
+          "minute": 10,
+          "requests": 50,
+          "p975Ms": 83.9837
+        }
+      ],
+      "passed": true,
+      "soak": {
+        "baselineRssMiB": 406.734375,
+        "endingRssMiB": 440.57421875,
+        "rssGrowthMiB": 33.83984375,
+        "firstSettledP975Ms": 51.3412,
+        "lateP975Ms": 53.4803
+      }
+    }
+  ],
+  "passed": true,
+  "finishedAt": "2026-09-11T17:52:31.301Z"
+}
