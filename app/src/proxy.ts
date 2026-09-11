@@ -6,8 +6,12 @@ export async function proxy(request: NextRequest) {
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  )
+  ) {
+    if (request.nextUrl.pathname.startsWith("/workspace"))
+      response = NextResponse.redirect(new URL("/login", request.url));
+    response.headers.set("Cache-Control", "private, no-store");
     return response;
+  }
   const client = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
