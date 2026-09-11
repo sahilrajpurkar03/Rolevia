@@ -10,6 +10,13 @@
 - Application tracking, notes, follow-ups, and data export.
 - Responsive, installable web app for desktop and mobile.
 
+## Install on your phone
+
+Open [Rolevia](https://rolevia-alpha.vercel.app/), or scan the QR code below.
+
+- **Android:** Open the website in Chrome > **Install app**.
+- **iPhone:** Open the website in Safari > **Share** > **Add to Home Screen**.
+
 ## QR Code
 
 [![Open Rolevia](docs/rolevia-qr.png)](https://rolevia-alpha.vercel.app)
