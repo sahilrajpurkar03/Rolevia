@@ -4,6 +4,7 @@
 
 - Private accounts with cloud-saved profiles.
 - PDF/DOCX CV import and editable profile details.
+- One-page and two-page CV editor with photos, inline wording suggestions, and PDF/Word/text exports.
 - Job matches by field, region, employment type, and remote preference.
 - Manual job checks and configurable daily checks and email digests.
 - Editable cover-letter drafts and downloads.

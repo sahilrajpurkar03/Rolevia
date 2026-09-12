@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./workspace.css";
+@import "./cv-editor.css";
 
 .site-notice {
   position: relative;

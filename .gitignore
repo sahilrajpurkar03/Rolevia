@@ -1,3 +1,4 @@
+app/public/cv-assets/
 # ── LaTeX build artifacts ──────────────────────────────────────────────────
 *.aux
 *.fdb_latexmk

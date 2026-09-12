@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
@@ -30,6 +31,11 @@ import {
   X,
 } from "lucide-react";
 import { ProfileForm } from "./profile-form";
+import type { CvDrafts } from "@/lib/cv-editor";
+const CvEditor = dynamic(
+  () => import("./cv-editor").then((module) => module.CvEditor),
+  { ssr: false },
+);
 import {
   addApplication,
   checkNow,
@@ -47,9 +53,12 @@ import type {
   MatchRecord,
 } from "@/lib/automation";
 
-type View = "matches" | "applications" | "letters" | "activity" | "profile";
+type View =
+  "matches" | "applications" | "letters" | "activity" | "profile" | "cv";
 type Props = {
   profile: Profile | null;
+  cvDrafts?: CvDrafts;
+  cvRevision?: string | null;
   matches: MatchRecord[];
   applications: ApplicationRecord[];
   checks: CheckRecord[];
@@ -70,6 +79,7 @@ const navigation = [
   { id: "matches", label: "Matches", icon: Compass },
   { id: "applications", label: "Applications", icon: BriefcaseBusiness },
   { id: "letters", label: "Cover letters", icon: FileText },
+  { id: "cv", label: "CV editor", icon: FileText },
   { id: "activity", label: "Activity", icon: Clock3 },
   { id: "profile", label: "Profile & preferences", icon: Settings2 },
 ] as const;
@@ -92,6 +102,7 @@ function download(text: string, name: string, type = "text/plain") {
 export function Workspace(props: Props) {
   const router = useRouter();
   const [view, setView] = useState<View>("matches");
+  const [cvOpened, setCvOpened] = useState(false);
   const [sampleProfile, setSampleProfile] = useState(props.profile);
   const [sampleMatches, setSampleMatches] = useState(props.matches);
   const [sampleApplications, setSampleApplications] = useState(
@@ -193,6 +204,7 @@ export function Workspace(props: Props) {
               key={id}
               onClick={() => {
                 setView(id);
+                if (id === "cv") setCvOpened(true);
                 setSearch("");
                 setMessage({});
               }}
@@ -348,7 +360,7 @@ export function Workspace(props: Props) {
                   </div>
                 </>
               )}
-              {view !== "matches" && (
+              {view !== "matches" && view !== "cv" && (
                 <div className="section-heading">
                   <div>
                     <p className="eyebrow">
@@ -382,6 +394,18 @@ export function Workspace(props: Props) {
                       Add application
                     </button>
                   )}
+                </div>
+              )}
+              {cvOpened && (
+                <div hidden={view !== "cv"}>
+                  <h1>CV editor</h1>
+                  <CvEditor
+                    profile={profile}
+                    email={props.email}
+                    initialDrafts={props.cvDrafts}
+                    initialRevision={props.cvRevision}
+                    demo={props.demo}
+                  />
                 </div>
               )}
               {(message.error || message.success) && (

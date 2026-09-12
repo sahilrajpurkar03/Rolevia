@@ -19,7 +19,8 @@ export default function DataSharingPage() {
         </li>
         <li>
           <strong>Supabase:</strong> authentication, stored profiles, matches,
-          applications, and job-check activity.
+          applications, job-check activity, and saved CV editor drafts including
+          optional resized portraits.
         </li>
         <li>
           <strong>Email delivery:</strong> Supabase&apos;s configured mail
@@ -37,8 +38,10 @@ export default function DataSharingPage() {
       <p>
         Opening an external job listing connects your browser to that site under
         its own privacy terms. Downloads and exports create copies on your
-        device. Sending a cover letter or application yourself shares it with
-        the recipient you choose; Rolevia does not automatically apply for jobs.
+        device. CV preview and PDF/Word exports are generated in the browser;
+        saving CV drafts sends them through Vercel to your Supabase account.
+        Sending a cover letter or application yourself shares it with the
+        recipient you choose; Rolevia does not automatically apply for jobs.
       </p>
       <h2>What the app does not implement</h2>
       <p>
@@ -56,7 +59,7 @@ export default function DataSharingPage() {
         permission to share your data. Optional email settings do not authorize
         unrelated uses.
       </p>
-      <p>Last updated: 11 September 2026.</p>
+      <p>Last updated: 12 September 2026.</p>
     </>
   );
 }

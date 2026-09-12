@@ -27,7 +27,8 @@ export default function PrivacyPage() {
         </li>
         <li>
           CV text, file name, name, professional history, education, skills, and
-          job preferences you supply.
+          job preferences you supply. Saved CV editor drafts include contact
+          details, custom sections, layout settings, and an optional portrait.
         </li>
         <li>
           Job matches, saved applications, status, notes, follow-up dates, and
@@ -55,6 +56,16 @@ export default function PrivacyPage() {
         profile details are stored when you save them. Do not include
         identification numbers, health information, or other sensitive data that
         is unnecessary for a job search.
+      </p>
+      <p>
+        The CV editor processes photos in your browser, crops them to a
+        portrait, and re-encodes them as a resized JPEG without the original
+        metadata. The resulting photo is stored as part of your CV drafts when
+        you select Save CVs. Removing a photo and saving updates the active
+        version; the other version may still contain its own copy. Preview,
+        PDF/Word generation, and wording suggestions run in your browser without
+        an external AI service. Unsaved edits stay in memory, not browser local
+        storage. Demo edits and photos are not saved to an account.
       </p>
       <p>
         Account records are stored in Supabase with per-user access policies.
@@ -106,7 +117,7 @@ export default function PrivacyPage() {
         changes will be described in updated notices; a mechanism for separately
         notifying existing account holders has not yet been implemented.
       </p>
-      <p>Last updated: 11 September 2026.</p>
+      <p>Last updated: 12 September 2026.</p>
     </>
   );
 }

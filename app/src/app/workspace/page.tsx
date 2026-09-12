@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Workspace } from "@/components/workspace";
 import { createClient, isConfigured } from "@/lib/supabase/server";
 import { profileSchema } from "@/lib/schema";
+import { cvDraftsSchema } from "@/lib/cv-editor";
 import { refreshMatches } from "@/lib/matching";
 import type {
   ApplicationRecord,
@@ -50,12 +51,15 @@ export default async function Page() {
     );
   const parsed = profileSchema.safeParse(profileResult.data?.data);
   const profile = parsed.success ? parsed.data : null;
+  const cvDrafts = cvDraftsSchema.safeParse(profileResult.data?.data?.cvEditor);
   const matches = profile
     ? refreshMatches(matchResult.data as MatchRecord[], profile)
     : [];
   return (
     <Workspace
       profile={profile}
+      cvDrafts={cvDrafts.success ? cvDrafts.data : undefined}
+      cvRevision={profileResult.data?.data?.cvEditorRevision ?? null}
       matches={matches}
       applications={applicationResult.data as ApplicationRecord[]}
       checks={checkResult.data as CheckRecord[]}

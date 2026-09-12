@@ -10,6 +10,7 @@ import {
 } from "./schema";
 import { draftLetter, type Job } from "./matching";
 import { runCheck } from "./automation";
+import { writeProfileChange } from "./profile-storage";
 
 function failure(error: unknown): ActionResult {
   return {
@@ -25,18 +26,9 @@ export async function saveProfile(input: unknown): Promise<ActionResult> {
   try {
     const profile = profileSchema.parse(input);
     const { client, user } = await requireUser();
-    const { error } = await client
-      .from("profiles")
-      .upsert({
-        id: user.id,
-        data: profile,
-        updated_at: new Date().toISOString(),
-      });
-    if (error) return { error: "Your profile could not be saved." };
-    revalidatePath("/workspace");
-    return {
-      success: "Profile saved. Your next check will use these preferences.",
-    };
+    const result = await writeProfileChange(client, user.id, { profile });
+    if (!result.error) revalidatePath("/workspace");
+    return result;
   } catch (error) {
     return failure(error);
   }

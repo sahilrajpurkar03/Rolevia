@@ -7,7 +7,9 @@
     "node": "24.x"
   },
   "scripts": {
+    "predev": "node scripts/cv-assets.mjs",
     "dev": "next dev --webpack",
+    "prebuild": "node scripts/cv-assets.mjs",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
@@ -22,14 +24,17 @@
   "dependencies": {
     "@fontsource/dm-sans": "5.3.0",
     "@fontsource/space-grotesk": "5.3.0",
+    "@react-pdf/renderer": "4.9.0",
     "@serwist/next": "9.4.1",
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.116.0",
+    "docx": "9.7.1",
     "html-to-text": "10.0.1",
     "lucide-react": "1.44.0",
     "mammoth": "1.12.2",
     "next": "16.3.4",
     "pdf-parse": "2.4.5",
+    "pdfjs-dist": "6.3.289",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "0.0.1",
