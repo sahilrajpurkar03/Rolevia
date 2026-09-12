@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { BetaNotice } from "@/components/beta-notice";
 import "@fontsource/dm-sans/400.css";
 import "@fontsource/dm-sans/500.css";
 import "@fontsource/dm-sans/600.css";
@@ -22,20 +22,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en">
       <body>
-        <aside className="site-notice" aria-label="Beta testing notice">
-          <p>
-            <strong>Rolevia is in beta testing.</strong> Errors and
-            interruptions are possible. Keep your own copies and avoid sensitive
-            personal data.
-          </p>
-          <nav aria-label="Legal and security">
-            <Link href="/imprint">Imprint</Link>
-            <Link href="/privacy">Privacy policy</Link>
-            <Link href="/data-sharing">Data sharing</Link>
-            <Link href="/security">Security</Link>
-          </nav>
-        </aside>
-        {children}
+        <BetaNotice>{children}</BetaNotice>
       </body>
     </html>
   );

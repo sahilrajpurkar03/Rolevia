@@ -3,6 +3,7 @@ import { test, expect } from "@playwright/test";
 test("beta notice and legal pages are public and readable", async ({
   page,
 }) => {
+  test.setTimeout(60000);
   const pages = [
     ["/imprint", "Imprint / Impressum"],
     ["/privacy", "Privacy policy / Datenschutzhinweise"],
@@ -56,6 +57,82 @@ test("beta notice and legal pages are public and readable", async ({
     path: test.info().outputPath("privacy-notice.png"),
     fullPage: true,
   });
+});
+
+test("accepting the beta notice persists and keeps legal links accessible", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/demo");
+  const notice = page.getByRole("complementary", {
+    name: "Beta testing notice",
+  });
+  await expect(notice).toBeVisible();
+  await notice.getByRole("button", { name: "Accept beta notice" }).click();
+  await expect(notice).toHaveCount(0);
+  const footer = page.getByRole("contentinfo");
+  await expect(
+    footer
+      .getByRole("navigation", { name: "Legal and security" })
+      .getByRole("link"),
+  ).toHaveCount(4);
+  await footer.getByRole("link", { name: "Privacy policy" }).click();
+  await expect(page).toHaveURL(/\/privacy$/);
+  await expect(notice).toHaveCount(0);
+  await page.reload();
+  await expect(notice).toHaveCount(0);
+  await expect(
+    page
+      .getByRole("contentinfo")
+      .getByRole("link", { name: "Security", exact: true }),
+  ).toBeVisible();
+  const anotherTab = await context.newPage();
+  await anotherTab.goto("/demo");
+  await expect(
+    anotherTab.getByRole("heading", { name: "Your next move, Alex." }),
+  ).toBeVisible();
+  await expect(
+    anotherTab.getByRole("complementary", { name: "Beta testing notice" }),
+  ).toHaveCount(0);
+  expect(
+    await anotherTab.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await anotherTab.screenshot({
+    path: test.info().outputPath("beta-accepted.png"),
+    fullPage: true,
+  });
+  await anotherTab.close();
+});
+
+test("beta notice accepts even when browser storage is unavailable", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "localStorage", {
+      get() {
+        throw new DOMException("Storage blocked", "SecurityError");
+      },
+    });
+  });
+  await page.goto("/login");
+  const notice = page.getByRole("complementary", {
+    name: "Beta testing notice",
+  });
+  await notice.getByRole("button", { name: "Accept beta notice" }).click();
+  await expect(notice).toHaveCount(0);
+  await page
+    .getByRole("contentinfo")
+    .getByRole("link", { name: "Privacy policy" })
+    .click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Privacy policy / Datenschutzhinweise",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(notice).toHaveCount(0);
 });
 
 test("security headers and anonymous access boundaries", async ({

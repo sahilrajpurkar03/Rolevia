@@ -90,6 +90,15 @@ export default function PrivacyPage() {
         or optional analytics integration is implemented in the application
         code. Provider infrastructure logs are separate from app analytics.
       </p>
+      <p>
+        Selecting Accept on the beta notice stores the notice version in this
+        browser&apos;s local storage so the banner stays dismissed. This
+        preference contains no account or CV data and is not consent to data
+        processing or acceptance of legal terms. Legal links remain available in
+        the footer. Clearing site data, using another browser, or a revised
+        notice may show the banner again. When browser storage is blocked,
+        dismissal lasts only until the page is reloaded.
+      </p>
       <h2>Retention and deletion</h2>
       <p>
         There is currently no implemented automatic expiry schedule for saved
