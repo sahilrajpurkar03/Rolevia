@@ -11,6 +11,7 @@
     "dev": "next dev --webpack",
     "prebuild": "node scripts/cv-assets.mjs",
     "build": "next build --webpack",
+    "postbuild": "node scripts/check-cv-trace.mjs",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
