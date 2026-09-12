@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useActionState } from "react";
-import { ArrowRight, Compass, LoaderCircle } from "lucide-react";
+import { useActionState, useId, useState } from "react";
+import { ArrowRight, Compass, Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { authAction } from "@/lib/auth-actions";
 
 export function AuthForm({
@@ -17,6 +17,10 @@ export function AuthForm({
     authAction.bind(null, mode),
     {},
   );
+  const [showPassword, setShowPassword] = useState(false);
+  const [capsLock, setCapsLock] = useState(false);
+  const passwordId = useId();
+  const emailId = useId();
   const titles = {
     login: "Welcome back.",
     signup: "Your next chapter.",
@@ -56,35 +60,80 @@ export function AuthForm({
             <Link href="/forgot-password">Request a new recovery link</Link>.
           </p>
         )}
-        <form action={action}>
+        <form action={action} aria-busy={pending}>
           {mode !== "reset" && (
-            <label>
-              Email
+            <div className="auth-field">
+              <label htmlFor={emailId}>Email</label>
               <input
+                id={emailId}
                 type="email"
                 name="email"
                 autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
                 required
                 maxLength={254}
                 placeholder="you@example.com"
               />
-            </label>
+            </div>
           )}
           {mode !== "forgot" && (
-            <label>
-              Password
-              <input
-                type="password"
-                name="password"
-                autoComplete={
-                  mode === "login" ? "current-password" : "new-password"
-                }
-                minLength={10}
-                maxLength={128}
-                required
-                placeholder="At least 10 characters"
-              />
-            </label>
+            <div className="auth-field">
+              <label htmlFor={passwordId}>
+                {mode === "reset" ? "New password" : "Password"}
+              </label>
+              <div className="password-control">
+                <input
+                  id={passwordId}
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  spellCheck={false}
+                  autoCapitalize="none"
+                  onKeyUp={(event) =>
+                    setCapsLock(event.getModifierState("CapsLock"))
+                  }
+                  onKeyDown={(event) =>
+                    setCapsLock(event.getModifierState("CapsLock"))
+                  }
+                  onBlur={() => setCapsLock(false)}
+                  aria-describedby={capsLock ? `${passwordId}-caps` : undefined}
+                  autoComplete={
+                    mode === "login" ? "current-password" : "new-password"
+                  }
+                  minLength={mode === "login" ? 1 : 10}
+                  maxLength={128}
+                  required
+                  placeholder={
+                    mode === "login"
+                      ? "Your password"
+                      : "At least 10 characters"
+                  }
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  title={showPassword ? "Hide password" : "Show password"}
+                  aria-controls={passwordId}
+                  onClick={() => setShowPassword((visible) => !visible)}
+                >
+                  {showPassword ? (
+                    <EyeOff size={18} aria-hidden="true" />
+                  ) : (
+                    <Eye size={18} aria-hidden="true" />
+                  )}
+                </button>
+              </div>
+              {capsLock && (
+                <p
+                  id={`${passwordId}-caps`}
+                  className="password-hint"
+                  role="status"
+                >
+                  Caps Lock is on.
+                </p>
+              )}
+            </div>
           )}
           {state.error && (
             <p role="alert" className="notice error">

@@ -1279,6 +1279,40 @@ legend {
 .auth-form > .muted {
   margin: 14px 0 30px;
 }
+.auth-field {
+  margin-bottom: 20px;
+}
+.auth-form .auth-field label {
+  margin-bottom: 7px;
+}
+.password-control {
+  position: relative;
+}
+.password-control input {
+  padding-right: 52px;
+  min-height: 46px;
+}
+.password-toggle {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  bottom: 1px;
+  width: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+.password-toggle:hover {
+  background: var(--green-soft);
+  color: var(--green);
+}
+.password-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--danger);
+}
 .auth-links {
   display: flex;
   justify-content: space-between;

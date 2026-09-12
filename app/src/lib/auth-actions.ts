@@ -59,7 +59,11 @@ export async function authAction(
         };
       store.delete("rolevia-recovery");
     } else {
-      const values = credentials.parse(Object.fromEntries(form));
+      const values = (
+        mode === "login"
+          ? credentials.extend({ password: z.string().min(1).max(128) })
+          : credentials
+      ).parse(Object.fromEntries(form));
       if (mode === "signup") {
         const { data, error } = await client.auth.signUp({
           ...values,

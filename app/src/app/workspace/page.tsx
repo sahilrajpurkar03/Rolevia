@@ -4,6 +4,7 @@ import { createClient, isConfigured } from "@/lib/supabase/server";
 import { profileSchema } from "@/lib/schema";
 import { cvDraftsSchema } from "@/lib/cv-editor";
 import { refreshMatches } from "@/lib/matching";
+import { workspaceFailures } from "@/lib/workspace-errors";
 import type {
   ApplicationRecord,
   CheckRecord,
@@ -41,14 +42,18 @@ export default async function Page() {
         .order("created_at", { ascending: false })
         .limit(30),
     ]);
-  if (
-    [profileResult, matchResult, applicationResult, checkResult].some(
-      (result) => result.error,
-    )
-  )
+  const failures = workspaceFailures({
+    profiles: profileResult,
+    matches: matchResult,
+    applications: applicationResult,
+    check_runs: checkResult,
+  });
+  if (failures.length) {
+    console.error("Workspace data queries failed", { failures });
     throw new Error(
       "Your workspace could not be loaded. Check the database setup and try again.",
     );
+  }
   const parsed = profileSchema.safeParse(profileResult.data?.data);
   const profile = parsed.success ? parsed.data : null;
   const cvDrafts = cvDraftsSchema.safeParse(profileResult.data?.data?.cvEditor);
