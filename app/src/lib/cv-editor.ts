@@ -83,7 +83,13 @@ export function createCvDrafts(profile: Profile, email = ""): CvDrafts {
     id: crypto.randomUUID(),
     title,
     page,
-    entries: [{ ...newCvEntry(), description }],
+    entries: Array.from(
+      { length: Math.max(1, Math.ceil(description.length / 3000)) },
+      (_, index) => ({
+        ...newCvEntry(),
+        description: description.slice(index * 3000, (index + 1) * 3000),
+      }),
+    ),
   });
   const base: CvDocument = {
     fullName: profile.fullName,

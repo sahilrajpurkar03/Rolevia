@@ -3,9 +3,13 @@
 The workspace's **CV editor** contains independent one-page and two-page A4
 drafts. The layouts are inspired by the supplied compact and extended CVs;
 no personal CV text, contact details, photos, or source files are included in
-the repository. New drafts use the signed-in user's saved profile. Existing
-PDF/DOCX profile import remains available in Profile & preferences; it extracts
-text, not the original document layout. LaTeX import is not implemented.
+the repository. The editor is available before onboarding is complete. New
+drafts initially use available profile fields, including an unfinished profile
+in the current tab. Select One page or Two pages and choose New CV for a blank
+version, or Use profile to replace the selected version with profile fields.
+Existing saved versions open for editing. Import PDF / DOCX extracts text into
+the selected format, not the original document layout. Replacement asks for
+confirmation and supports undo. LaTeX import is not implemented.
 
 ## Editing and Saving
 
@@ -46,6 +50,8 @@ PDF/DOCX formatting are not reproduced automatically.
 ## Storage and Verification
 
 Drafts live in the existing RLS-protected `profiles.data.cvEditor` field.
+Saving before onboarding creates a document-only record, not a completed
+job-search profile. Job matching still requires valid profile preferences.
 `cvEditorRevision` rejects stale CV saves. Profile and CV writes preserve each
 other's data and compare `updated_at` to reject concurrent writes. All account
 mutations use `requireUser`; no new migration, service role, external AI key,

@@ -32,6 +32,11 @@ import {
 } from "lucide-react";
 import { ProfileForm } from "./profile-form";
 import type { CvDrafts } from "@/lib/cv-editor";
+import type { LetterDrafts } from "@/lib/letter-editor";
+const LetterEditor = dynamic(
+  () => import("./letter-editor").then((module) => module.LetterEditor),
+  { ssr: false },
+);
 const CvEditor = dynamic(
   () => import("./cv-editor").then((module) => module.CvEditor),
   { ssr: false },
@@ -46,7 +51,12 @@ import {
 } from "@/lib/actions";
 import { logout } from "@/lib/auth-actions";
 import { draftLetter, type Job } from "@/lib/matching";
-import { statuses, type ActionResult, type Profile } from "@/lib/schema";
+import {
+  emptyProfile,
+  statuses,
+  type ActionResult,
+  type Profile,
+} from "@/lib/schema";
 import type {
   ApplicationRecord,
   CheckRecord,
@@ -59,6 +69,8 @@ type Props = {
   profile: Profile | null;
   cvDrafts?: CvDrafts;
   cvRevision?: string | null;
+  letterDrafts?: LetterDrafts;
+  letterRevision?: string | null;
   matches: MatchRecord[];
   applications: ApplicationRecord[];
   checks: CheckRecord[];
@@ -103,6 +115,8 @@ export function Workspace(props: Props) {
   const router = useRouter();
   const [view, setView] = useState<View>("matches");
   const [cvOpened, setCvOpened] = useState(false);
+  const [lettersOpened, setLettersOpened] = useState(false);
+  const [onboardingDraft, setOnboardingDraft] = useState(emptyProfile);
   const [sampleProfile, setSampleProfile] = useState(props.profile);
   const [sampleMatches, setSampleMatches] = useState(props.matches);
   const [sampleApplications, setSampleApplications] = useState(
@@ -205,6 +219,7 @@ export function Workspace(props: Props) {
               onClick={() => {
                 setView(id);
                 if (id === "cv") setCvOpened(true);
+                if (id === "letters") setLettersOpened(true);
                 setSearch("");
                 setMessage({});
               }}
@@ -285,15 +300,42 @@ export function Workspace(props: Props) {
           </div>
         </header>
         <main id="main" className="workspace-main">
+          {lettersOpened && (
+            <div hidden={view !== "letters"}>
+              <LetterEditor
+                profile={profile ?? onboardingDraft}
+                email={props.email}
+                initialDrafts={props.letterDrafts}
+                initialRevision={props.letterRevision}
+                demo={props.demo}
+                applications={applications}
+              />
+            </div>
+          )}
+          {cvOpened && (
+            <div hidden={view !== "cv"}>
+              <h1>CV editor</h1>
+              <CvEditor
+                profile={profile ?? onboardingDraft}
+                email={props.email}
+                initialDrafts={props.cvDrafts}
+                initialRevision={props.cvRevision}
+                demo={props.demo}
+              />
+            </div>
+          )}
           {!profile ? (
-            <ProfileForm
-              onboarding
-              demo={props.demo}
-              onSave={(next) => {
-                setSampleProfile(next);
-                router.refresh();
-              }}
-            />
+            <div hidden={view === "cv" || view === "letters"}>
+              <ProfileForm
+                onboarding
+                demo={props.demo}
+                onDraftChange={setOnboardingDraft}
+                onSave={(next) => {
+                  setSampleProfile(next);
+                  router.refresh();
+                }}
+              />
+            </div>
           ) : (
             <>
               {view === "matches" && (
@@ -360,17 +402,15 @@ export function Workspace(props: Props) {
                   </div>
                 </>
               )}
-              {view !== "matches" && view !== "cv" && (
+              {view !== "matches" && view !== "cv" && view !== "letters" && (
                 <div className="section-heading">
                   <div>
                     <p className="eyebrow">
                       {view === "applications"
                         ? "KEEP THINGS MOVING"
-                        : view === "letters"
-                          ? "MAKE IT PERSONAL"
-                          : view === "activity"
-                            ? "BEHIND YOUR INBOX"
-                            : "YOUR SEARCH, YOUR TERMS"}
+                        : view === "activity"
+                          ? "BEHIND YOUR INBOX"
+                          : "YOUR SEARCH, YOUR TERMS"}
                     </p>
                     <h1>
                       {navigation.find((item) => item.id === view)?.label}
@@ -378,11 +418,9 @@ export function Workspace(props: Props) {
                     <p className="muted">
                       {view === "applications"
                         ? "Every opportunity, from first save to next step."
-                        : view === "letters"
-                          ? "A thoughtful introduction for every opportunity."
-                          : view === "activity"
-                            ? "Your recent checks and source status."
-                            : "A profile that grows with you."}
+                        : view === "activity"
+                          ? "Your recent checks and source status."
+                          : "A profile that grows with you."}
                     </p>
                   </div>
                   {view === "applications" && (
@@ -394,18 +432,6 @@ export function Workspace(props: Props) {
                       Add application
                     </button>
                   )}
-                </div>
-              )}
-              {cvOpened && (
-                <div hidden={view !== "cv"}>
-                  <h1>CV editor</h1>
-                  <CvEditor
-                    profile={profile}
-                    email={props.email}
-                    initialDrafts={props.cvDrafts}
-                    initialRevision={props.cvRevision}
-                    demo={props.demo}
-                  />
                 </div>
               )}
               {(message.error || message.success) && (
@@ -798,6 +824,7 @@ export function Workspace(props: Props) {
               )}
               {view === "letters" && (
                 <div className="letters-list">
+                  {applications.length > 0 && <h2>Application letters</h2>}
                   {applications.map((application) => (
                     <article className="letter-row" key={application.id}>
                       <div className="letter-symbol">
@@ -821,13 +848,6 @@ export function Workspace(props: Props) {
                       </button>
                     </article>
                   ))}
-                  {!applications.length && (
-                    <Empty
-                      icon="letter"
-                      title="Your introduction starts here"
-                      text="Save an opportunity first, then create its cover letter."
-                    />
-                  )}
                 </div>
               )}
               {view === "activity" && (

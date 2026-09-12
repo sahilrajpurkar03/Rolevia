@@ -5,14 +5,20 @@ import {
   demoMatches,
   demoProfile,
 } from "@/lib/demo";
-export default function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ start?: string }>;
+}) {
+  const blank = (await searchParams).start === "blank";
   return (
     <Workspace
+      key={blank ? "blank" : "sample"}
       demo
-      profile={demoProfile}
-      matches={demoMatches}
-      applications={demoApplications}
-      checks={demoChecks}
+      profile={blank ? null : demoProfile}
+      matches={blank ? [] : demoMatches}
+      applications={blank ? [] : demoApplications}
+      checks={blank ? [] : demoChecks}
     />
   );
 }

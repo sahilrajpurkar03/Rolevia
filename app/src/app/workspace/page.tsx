@@ -3,6 +3,7 @@ import { Workspace } from "@/components/workspace";
 import { createClient, isConfigured } from "@/lib/supabase/server";
 import { profileSchema } from "@/lib/schema";
 import { cvDraftsSchema } from "@/lib/cv-editor";
+import { letterDraftsSchema } from "@/lib/letter-editor";
 import { refreshMatches } from "@/lib/matching";
 import { workspaceFailures } from "@/lib/workspace-errors";
 import type {
@@ -57,6 +58,9 @@ export default async function Page() {
   const parsed = profileSchema.safeParse(profileResult.data?.data);
   const profile = parsed.success ? parsed.data : null;
   const cvDrafts = cvDraftsSchema.safeParse(profileResult.data?.data?.cvEditor);
+  const letterDrafts = letterDraftsSchema.safeParse(
+    profileResult.data?.data?.letterDrafts,
+  );
   const matches = profile
     ? refreshMatches(matchResult.data as MatchRecord[], profile)
     : [];
@@ -65,6 +69,8 @@ export default async function Page() {
       profile={profile}
       cvDrafts={cvDrafts.success ? cvDrafts.data : undefined}
       cvRevision={profileResult.data?.data?.cvEditorRevision ?? null}
+      letterDrafts={letterDrafts.success ? letterDrafts.data : undefined}
+      letterRevision={profileResult.data?.data?.letterRevision ?? null}
       matches={matches}
       applications={applicationResult.data as ApplicationRecord[]}
       checks={checkResult.data as CheckRecord[]}

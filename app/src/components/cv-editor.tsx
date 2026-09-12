@@ -31,7 +31,8 @@ import {
   type CvVersion,
 } from "@/lib/cv-editor";
 import { saveCvDrafts } from "@/lib/cv-actions";
-import type { Profile } from "@/lib/schema";
+import { emptyProfile, type Profile } from "@/lib/schema";
+import { suggestProfile } from "@/lib/cv-profile";
 
 type Props = {
   profile: Profile;
@@ -141,6 +142,7 @@ export function CvEditor({
   const [retry, setRetry] = useState(0);
   const photoInput = useRef<HTMLInputElement>(null);
   const importInput = useRef<HTMLInputElement>(null);
+  const cvInput = useRef<HTMLInputElement>(null);
   const document = drafts[version];
   const serialized = JSON.stringify(drafts);
   const source = `${version}:${JSON.stringify(document)}`;
@@ -340,6 +342,59 @@ export function CvEditor({
       );
     }
   }
+  function replaceVersion(seed: Profile) {
+    if (
+      !window.confirm(
+        "Replace this CV version? The other version is unchanged, and you can undo this edit.",
+      )
+    )
+      return;
+    commit({ ...drafts, [version]: createCvDrafts(seed, email)[version] });
+  }
+  async function importCv(file?: File) {
+    if (!file) return;
+    if (demo) {
+      setError("Sign in to import a personal CV.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Choose a PDF or DOCX up to 5 MB.");
+      return;
+    }
+    if (
+      !window.confirm(
+        "Import into this CV version? Existing content will be replaced; you can undo this edit.",
+      )
+    )
+      return;
+    setBusy(true);
+    setError("");
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const response = await fetch("/api/cv", { method: "POST", body: form });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      const seed = {
+        ...emptyProfile,
+        ...suggestProfile(result.text),
+        cvText: result.text,
+        cvName: result.filename,
+      };
+      commit({ ...drafts, [version]: createCvDrafts(seed, email)[version] });
+      setMessage(
+        "CV imported into the selected format. Review the extracted fields before saving; original layout is not retained.",
+      );
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "Import failed. Please retry.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
   async function exportDocument() {
     setBusy(true);
     setError("");
@@ -391,6 +446,43 @@ export function CvEditor({
 
   return (
     <section className="cv-editor" aria-label="CV editor">
+      <div className="cv-toolbar">
+        <button
+          className="button"
+          disabled={busy || photoBusy}
+          onClick={() => replaceVersion(emptyProfile)}
+        >
+          <Plus size={16} />
+          New CV
+        </button>
+        <button
+          className="button"
+          disabled={busy || photoBusy}
+          onClick={() => replaceVersion(profile)}
+        >
+          <Pencil size={16} />
+          Use profile
+        </button>
+        <button
+          className="button"
+          disabled={busy || photoBusy}
+          onClick={() => cvInput.current?.click()}
+        >
+          <Upload size={16} />
+          Import PDF / DOCX
+        </button>
+        <input
+          ref={cvInput}
+          hidden
+          type="file"
+          accept=".pdf,.docx"
+          aria-label="Import CV document"
+          onChange={(event) => {
+            void importCv(event.target.files?.[0]);
+            event.target.value = "";
+          }}
+        />
+      </div>
       <div className="cv-toolbar">
         <div className="cv-segment" role="group" aria-label="CV version">
           <button

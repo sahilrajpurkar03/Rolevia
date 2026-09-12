@@ -1,5 +1,5 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -27,11 +27,13 @@ export function ProfileForm({
   onboarding = false,
   demo = false,
   onSave,
+  onDraftChange,
 }: {
   initial?: Profile | null;
   onboarding?: boolean;
   demo?: boolean;
   onSave?: (profile: Profile) => void;
+  onDraftChange?: (profile: Profile) => void;
 }) {
   const [profile, setProfile] = useState<Profile>(initial ?? emptyProfile);
   const [step, setStep] = useState(onboarding ? 0 : 1);
@@ -39,6 +41,9 @@ export function ProfileForm({
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
   const [uploading, setUploading] = useState(false);
+  useEffect(() => {
+    onDraftChange?.(profile);
+  }, [profile, onDraftChange]);
   function update<Key extends keyof Profile>(key: Key, value: Profile[Key]) {
     setProfile((current) => ({ ...current, [key]: value }));
   }

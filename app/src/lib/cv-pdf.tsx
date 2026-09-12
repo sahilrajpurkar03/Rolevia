@@ -8,6 +8,7 @@ import {
   pdf,
 } from "@react-pdf/renderer";
 import { cvColors, type CvDocument, type CvVersion } from "./cv-editor";
+import type { LetterDocument } from "./letter-editor";
 
 Font.register({
   family: "CvSans",
@@ -207,6 +208,71 @@ function CvPdf({
 }
 
 let queue: Promise<unknown> = Promise.resolve();
+export function buildLetterPdf(document: LetterDocument): Promise<Blob> {
+  const modern = document.format === "modern";
+  const result = queue.then(() =>
+    pdf(
+      <Document title={document.title} author={document.fullName} language="en">
+        <Page
+          size="A4"
+          style={{
+            padding: 48,
+            paddingBottom: 54,
+            fontFamily: "CvSans",
+            fontSize: 11,
+            lineHeight: 1.5,
+            color: "#243331",
+          }}
+        >
+          <View
+            style={{
+              marginBottom: 20,
+              borderBottomWidth: modern ? 2 : 0,
+              borderBottomColor: "#17675f",
+              paddingBottom: 12,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: modern ? 22 : 15,
+                fontWeight: 700,
+                color: modern ? "#17675f" : "#243331",
+              }}
+            >
+              {document.fullName}
+            </Text>
+            <Text>{document.address}</Text>
+            <Text>
+              {[document.email, document.phone].filter(Boolean).join(" | ")}
+            </Text>
+          </View>
+          <Text style={{ marginBottom: 12 }}>{document.recipient}</Text>
+          <Text style={{ marginBottom: 18, textAlign: "right" }}>
+            {document.date}
+          </Text>
+          <Text
+            minPresenceAhead={45}
+            style={{ fontWeight: 700, marginBottom: 18 }}
+          >
+            {document.subject}
+          </Text>
+          <Text minPresenceAhead={30} style={{ marginBottom: 12 }}>
+            {document.salutation}
+          </Text>
+          <Text orphans={3} widows={3} style={{ marginBottom: 20 }}>
+            {document.body}
+          </Text>
+          <View wrap={false}>
+            <Text>{document.closing}</Text>
+            <Text style={{ marginTop: 16 }}>{document.fullName}</Text>
+          </View>
+        </Page>
+      </Document>,
+    ).toBlob(),
+  );
+  queue = result.catch(() => undefined);
+  return result;
+}
 export function buildCvPdf(
   document: CvDocument,
   version: CvVersion,
