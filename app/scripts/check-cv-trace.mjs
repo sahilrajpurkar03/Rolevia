@@ -8,6 +8,10 @@ const trace = JSON.parse(
   ),
 );
 const files = trace.files.map((file) => file.replaceAll("\\", "/"));
+assert(
+  files.some((file) => file.endsWith("/pdf-parse/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs")),
+  "CV deployment is missing the PDF parser's matching worker",
+);
 for (const filename of [
   "index.js",
   "js-binding.js",
