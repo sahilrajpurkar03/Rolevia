@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { legalOperator } from "@/lib/legal";
 
 export const metadata = { title: "Security and beta status | Rolevia" };
 
@@ -36,17 +37,18 @@ export default function SecurityPage() {
       </p>
       <h2>Reporting a problem</h2>
       <p>
-        A dedicated confidential security contact has not yet been provided. Do
-        not publish credentials, recovery links, CVs, or other people&apos;s
-        information in issue reports. The operator must publish a monitored
-        private reporting channel before broader use. Do not test against other
-        users&apos; data.
+        Report security concerns to{" "}
+        <a href={`mailto:${legalOperator.email}`}>{legalOperator.email}</a>.
+        Describe the affected feature without including credentials, recovery
+        links, CVs, or other people&apos;s information. A dedicated security
+        response process still needs to be established. Do not test against
+        other users&apos; data.
       </p>
       <p>
         See the <Link href="/privacy">privacy notice</Link> and{" "}
         <Link href="/imprint">operator information</Link> for the current gaps.
       </p>
-      <p>Last updated: 11 September 2026.</p>
+      <p>Last updated: 12 September 2026.</p>
     </>
   );
 }

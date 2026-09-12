@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { legalOperator } from "@/lib/legal";
 
 export const metadata = { title: "Privacy policy | Rolevia" };
 
@@ -7,17 +8,28 @@ export default function PrivacyPage() {
     <>
       <h1>Privacy policy / Datenschutzhinweise</h1>
       <p className="legal-draft">
-        <strong>Draft privacy notice.</strong> Controller identity, contact,
-        legal bases, retention periods, and provider transfer arrangements need
+        <strong>Draft privacy notice.</strong> The controller name and contact
+        email are published below. A complete postal address, legal bases,
+        retention periods, and provider transfer arrangements still need
         operator confirmation. This notice describes the implemented service; it
         is not a claim of GDPR compliance. Avoid uploading sensitive information
         while these details remain incomplete.
       </p>
       <h2>Who is responsible</h2>
       <p>
-        Rolevia is operated as a personal project in Germany. The responsible
-        person and privacy contact have not yet been published. See the{" "}
-        <Link href="/imprint">imprint</Link>.
+        Rolevia is operated as a personal project by {legalOperator.name}, the
+        controller responsible for the processing described here.
+      </p>
+      <ul>
+        <li>Location: {legalOperator.address}.</li>
+        <li>
+          Privacy contact:{" "}
+          <a href={`mailto:${legalOperator.email}`}>{legalOperator.email}</a>
+        </li>
+      </ul>
+      <p>
+        The street and house number for the postal address have not yet been
+        supplied. See the <Link href="/imprint">imprint</Link>.
       </p>
       <h2>Information processed</h2>
       <ul>
@@ -115,9 +127,9 @@ export default function PrivacyPage() {
         applicable legal basis and circumstances, GDPR provides rights of
         access, rectification, erasure, restriction, portability, objection, and
         withdrawal of consent where consent is used. You may complain to a
-        competent data protection supervisory authority. A working privacy
-        contact is still missing; the operator must provide one to handle
-        requests.
+        competent data protection supervisory authority. For privacy questions
+        or to exercise your rights, use the privacy contact above. Do not send
+        passwords or recovery links by email.
       </p>
       <h2>Decisions and changes</h2>
       <p>

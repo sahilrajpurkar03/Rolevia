@@ -59,6 +59,37 @@ test("beta notice and legal pages are public and readable", async ({
   });
 });
 
+test("legal pages publish operator details and retain the missing address warning", async ({
+  page,
+}) => {
+  for (const path of ["/imprint", "/privacy"]) {
+    const response = await page.goto(path);
+    expect(response?.status()).toBe(200);
+    const content = page.getByRole("main");
+    await expect(content).toContainText("Sahil Rajpurkar");
+    await expect(content).toContainText("M\u00f6nsheim, 71297, Germany");
+    await expect(
+      content.getByRole("link", {
+        name: "sahilrajpurkar1998@gmail.com",
+        exact: true,
+      }),
+    ).toHaveAttribute("href", "mailto:sahilrajpurkar1998@gmail.com");
+    await expect(content).toContainText("street and house number");
+    await expect(content).not.toContainText("contact is still missing");
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
+  await page.goto("/security");
+  await expect(
+    page
+      .getByRole("main")
+      .getByRole("link", { name: "sahilrajpurkar1998@gmail.com", exact: true }),
+  ).toHaveAttribute("href", "mailto:sahilrajpurkar1998@gmail.com");
+});
+
 test("accepting the beta notice persists and keeps legal links accessible", async ({
   page,
   context,

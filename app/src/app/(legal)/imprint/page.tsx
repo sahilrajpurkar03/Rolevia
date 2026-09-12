@@ -1,3 +1,5 @@
+import { legalOperator } from "@/lib/legal";
+
 export const metadata = { title: "Imprint | Rolevia" };
 
 export default function ImprintPage() {
@@ -9,17 +11,20 @@ export default function ImprintPage() {
         in public beta testing.
       </p>
       <p className="legal-draft">
-        <strong>Incomplete legal notice.</strong> The operator has not yet
-        supplied the required identification and contact details. This page is
-        not a completed statutory imprint.
+        <strong>Incomplete legal notice.</strong> The operator name and contact
+        email are published below. The address still lacks a street and house
+        number for service. This page is not a completed statutory imprint.
       </p>
       <h2>Operator information</h2>
       <ul>
         <li>Project: Rolevia.</li>
-        <li>Country: Germany.</li>
-        <li>Responsible operator&apos;s legal name: not yet published.</li>
-        <li>Address for service: not yet published.</li>
-        <li>Public contact email: not yet provided.</li>
+        <li>Responsible operator: {legalOperator.name}.</li>
+        <li>Location: {legalOperator.address}.</li>
+        <li>Address for service: street and house number not yet supplied.</li>
+        <li>
+          Contact email:{" "}
+          <a href={`mailto:${legalOperator.email}`}>{legalOperator.email}</a>
+        </li>
       </ul>
       <h2>Beta status</h2>
       <p>
@@ -28,7 +33,7 @@ export default function ImprintPage() {
         before using it. Beta status and noncommercial operation do not remove
         applicable legal obligations or your statutory rights.
       </p>
-      <p>Last updated: 11 September 2026.</p>
+      <p>Last updated: 12 September 2026.</p>
     </>
   );
 }
