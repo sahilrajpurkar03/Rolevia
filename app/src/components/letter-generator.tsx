@@ -131,8 +131,8 @@ export function LetterGenerator({
             />
           </label>
         </div>
-        <label htmlFor={`${prefix}-description`}>
-          Job description
+        <div className="cv-field">
+          <label htmlFor={`${prefix}-description`}>Job description</label>
           <textarea
             id={`${prefix}-description`}
             rows={5}
@@ -142,7 +142,7 @@ export function LetterGenerator({
               setInput({ ...input, description: event.target.value })
             }
           />
-        </label>
+        </div>
         <div className="form-grid">
           <label htmlFor={`${prefix}-availability`}>
             Availability (optional)

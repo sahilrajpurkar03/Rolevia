@@ -55,6 +55,10 @@ test("three search selections return matching jobs directly", async ({
 
 test("search, save, draft and update an application", async ({ page }) => {
   await page.goto("/demo");
+  await page
+    .getByRole("button", { name: "Cover letters", exact: true })
+    .click();
+  await page.getByRole("button", { name: /^Matches/ }).click();
   await expect(
     page.getByRole("heading", { name: "Your next move, Alex." }),
   ).toBeVisible();
@@ -82,6 +86,22 @@ test("search, save, draft and update an application", async ({ page }) => {
   await expect(
     page.getByRole("textbox", { name: "Cover letter text" }),
   ).toHaveValue(/student-led community platform/);
+  const modal = page.getByRole("dialog");
+  await modal
+    .locator("summary")
+    .filter({ hasText: "Generate with AI" })
+    .click();
+  const generator = modal.getByRole("region", {
+    name: "AI cover letter generator",
+  });
+  await generator
+    .getByLabel("Job description", { exact: true })
+    .fill(
+      "Develop software with the engineering team and validate research prototypes using Python and ROS2.",
+    );
+  await expect(
+    generator.getByLabel("Job description", { exact: true }),
+  ).toHaveValue(/Develop software/);
   await page
     .getByRole("combobox", { name: "Status", exact: true })
     .selectOption("applied");

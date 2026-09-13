@@ -21,6 +21,7 @@ const options = { auth: { persistSession: false, autoRefreshToken: false } };
 const admin = createClient(url, service, options);
 const accounts = [];
 let browser;
+let testPage;
 let stage = "document persistence";
 
 try {
@@ -40,6 +41,7 @@ try {
     channel: process.env.PLAYWRIGHT_CHANNEL ?? "msedge",
   });
   const page = await browser.newPage();
+  testPage = page;
   page.setDefaultTimeout(60000);
   await page.goto(`${site}/login`);
   await page.getByLabel("Email", { exact: true }).fill(accounts[0].email);
@@ -301,21 +303,41 @@ try {
       .first()
       .click();
     stage = "save result to log";
-    await page
-      .getByRole("status")
-      .filter({ hasText: "Saved to your applications" })
-      .waitFor();
+    try {
+      await page
+        .getByRole("status")
+        .filter({ hasText: "Saved to your applications" })
+        .waitFor();
+    } catch (error) {
+      const saved = await admin
+        .from("applications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", accounts[0].id);
+      console.log(
+        "Save diagnostic: stored application count",
+        saved.count ?? 0,
+      );
+      console.log(
+        "Save diagnostic: visible error",
+        (await page.getByRole("alert").allTextContents())
+          .join(" ")
+          .slice(0, 300),
+      );
+      throw error;
+    }
     if (process.argv.includes("--ai")) {
       stage = "application AI generation and exports";
       await page
         .getByRole("button", { name: "Applications", exact: true })
         .click();
       await page.locator(".table-row").first().click();
+      stage = "fill application letter";
       const modal = page.getByRole("dialog");
       const text = modal.getByRole("textbox", { name: "Cover letter text" });
       await text.fill(
         "Existing application letter must survive until confirmed replacement.",
       );
+      stage = "expand application AI section";
       await modal
         .locator("summary")
         .filter({ hasText: "Generate with AI" })
@@ -323,12 +345,14 @@ try {
       const generator = modal.getByRole("region", {
         name: "AI cover letter generator",
       });
+      stage = "fill application AI job description";
       await generator
         .getByLabel("Job description", { exact: true })
         .fill(
           "Develop robotics software using Python and ROS2. Collaborate with researchers and test engineering prototypes.",
         );
       await generator.getByRole("checkbox").check();
+      stage = "generate application letter";
       await generator
         .getByRole("button", { name: "Generate with AI", exact: true })
         .click();
@@ -345,6 +369,7 @@ try {
         .click();
       assert.match(await text.inputValue(), /Synthetic Research/);
       for (const format of ["pdf", "docx"]) {
+        stage = `application ${format} export`;
         await modal
           .getByLabel("Application letter export format")
           .selectOption(format);
@@ -355,6 +380,7 @@ try {
         assert.equal(await (await exported).failure(), null);
       }
       await modal.getByRole("button", { name: "Undo generated draft" }).click();
+      stage = "save application letter after Undo";
       assert.equal(
         await text.inputValue(),
         "Existing application letter must survive until confirmed replacement.",
@@ -363,7 +389,8 @@ try {
         .getByRole("button", { name: "Save changes", exact: true })
         .click();
       await modal.waitFor({ state: "hidden" });
-      await page.getByRole("button", { name: "Matches", exact: true }).click();
+      stage = "return to matches";
+      await page.getByRole("button", { name: /^Matches/ }).click();
       console.log(
         "PASS: application AI review, confirmed replacement, Undo and PDF/Word exports with mocked provider output.",
       );
@@ -434,6 +461,13 @@ try {
     "PASS: Second authenticated account cannot read or overwrite the first account's documents.",
   );
 } catch (error) {
+  if (testPage && stage.startsWith("fill application"))
+    await testPage
+      .screenshot({
+        path: "test-results/live-application-debug.png",
+        fullPage: true,
+      })
+      .catch(() => undefined);
   console.error(
     `Live verification failed at ${stage} (${error.name}); account content and provider details suppressed.`,
   );

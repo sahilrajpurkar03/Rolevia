@@ -97,11 +97,11 @@ export default function PrivacyPage() {
       <h2>Providers and international processing</h2>
       <p>
         Manual job searches send your saved role keywords and selected locations
-        to Bundesagentur fuer Arbeit and, through a separate Vercel worker, to
-        LinkedIn, Indeed, Google Jobs, StepStone and Xing. CV text, names and
-        email addresses are not sent to job sources. Arbeitnow and Remotive
-        provide public feeds without receiving your individual search
-        preferences.
+        to Bundesagentur fuer Arbeit and StepStone from the app, and through a
+        separate Vercel worker to LinkedIn, Indeed, Google Jobs and Xing. CV
+        text, names and email addresses are not sent to job sources. Arbeitnow
+        and Remotive provide public feeds without receiving your individual
+        search preferences.
       </p>
       <p>
         Vercel hosts the application; Supabase provides accounts and the
