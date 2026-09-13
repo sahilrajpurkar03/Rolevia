@@ -70,3 +70,4 @@ app/test-results/
 app/playwright-report/
 .vercel
 .env*
+/supabase/.temp/

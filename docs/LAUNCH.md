@@ -2,20 +2,26 @@
 
 ## Current Deployment
 
-Rolevia is live at https://rolevia-alpha.vercel.app in Vercel project `sparc1/rolevia`. The initial deployment was made directly from this workspace. The public Supabase connection and production site URL are configured.
+Rolevia is live at https://rolevia-alpha.vercel.app in Vercel project `sparc1/rolevia`. GitHub deployments from `main` are verified. The public Supabase connection and production site URL are configured.
 
 In Supabase Authentication > URL Configuration, set Site URL to `https://rolevia-alpha.vercel.app` and add both production redirects:
 
 - `https://rolevia-alpha.vercel.app/auth/callback`
 - `https://rolevia-alpha.vercel.app/auth/callback?next=reset`
 
-Retain the localhost redirects if local development is still needed. Scheduled checks require `SUPABASE_SERVICE_ROLE_KEY` and `CRON_SECRET`; email digests also require `RESEND_API_KEY` and `DIGEST_FROM`. These server credentials have not been configured in Vercel. Enter them directly in provider settings, never in chat. Redeploy after changing environment variables. Remaining real-account acceptance checks are listed below.
+Retain the localhost redirects if local development is still needed. As of 13 September 2026, `SUPABASE_SERVICE_ROLE_KEY` and a randomly generated `CRON_SECRET` are configured as sensitive production variables in Vercel. The production app was redeployed and an authenticated scheduler invocation returned HTTP 200 with zero completed and zero failed profiles. There were no eligible profiles; execution for an opted-in real profile and the next provider-scheduled invocation remain unverified.
+
+Email digests require `RESEND_API_KEY` and `DIGEST_FROM`, which remain unconfigured. The owner does not yet have a sending domain. Configure a verified sender and Supabase custom SMTP before relying on confirmation/recovery delivery or enabling digests. Enter secrets directly in provider settings or a terminal, never chat or Git. Redeploy after changing environment variables.
+
+Live verification on 13 September 2026 passed: all four private tables have RLS enabled; the transactional ownership SQL test passed and rolled back its fixtures; two temporary authenticated accounts verified CV/letter save and reload before onboarding, CV preservation after letter saves, and cross-account document access denial. Both accounts and their records were deleted afterward. These checks do not verify email delivery, recovery, or every account-isolation operation.
+
+`app/scripts/verify-live-account.mjs --run` repeats the account check against the explicitly named Rolevia production site. It requires `ROLEVIA_TEST_ANON_KEY` and `ROLEVIA_TEST_SERVICE_KEY` in its process environment; never put values in command arguments or files. It creates synthetic `example.invalid` users without sending email, then attempts cleanup even after failure. Review cleanup output before closing a failed run.
 
 ## 1. Create Supabase
 
-The owner should create a new Supabase project in a suitable region. Do not reuse another app's schema or credentials. Keep database passwords and service-role keys out of chat and Git.
+The existing Rolevia project is `qnuytqvbtcaeibcxyloq` in `eu-west-1`; its four application tables are present. Do not create another project or reuse another app's schema or credentials for this installation. Keep database passwords and service-role keys out of chat and Git.
 
-Apply `supabase/migrations/202609110001_initial.sql` in the Supabase SQL editor, or link the Supabase CLI and run `supabase db push` after reviewing the migration. The agent has not applied it. Enable email confirmations and configure production SMTP/rate limits/CAPTCHA as appropriate for public signup.
+For a new installation only, apply `supabase/migrations/202609110001_initial.sql` in the Supabase SQL editor, or link the Supabase CLI and run `supabase db push` after reviewing the migration. Do not reapply the initial migration to the existing Rolevia tables. Independent document storage needs no additional migration. Enable email confirmations and configure production SMTP/rate limits/CAPTCHA as appropriate for public signup.
 
 All four tables use RLS with `auth.uid()` ownership checks. The service role is used only by the authorized daily scheduler and must remain server-only. CV originals are not stored, so no public storage bucket is needed.
 
@@ -48,7 +54,7 @@ Confirm both callback variants are accepted by your project's redirect allowlist
 
 ## 4. GitHub and Vercel
 
-This workspace tracks `main` in the private repository https://github.com/sahilrajpurkar03/Rolevia, preserving its existing history. Vercel was deployed directly; automatic GitHub deployments are not yet verified. Keep local environment files, `.vercel/`, `personal-archive/`, and `legacy/` excluded. Moving files or making a repository private does not erase previously published Git history; audit the original remote separately and rotate any previously exposed secrets.
+This workspace tracks `main` in the private repository https://github.com/sahilrajpurkar03/Rolevia, preserving its existing history. Automatic GitHub deployments are verified. Keep local environment files, `.vercel/`, `supabase/.temp/`, `personal-archive/`, and `legacy/` excluded. Moving files or making a repository private does not erase previously published Git history; audit the original remote separately and rotate any previously exposed secrets.
 
 Commit only application code, lockfile, migrations, tests and documentation. Confirm the preferred name before renaming. Set repository visibility to private only with owner approval. Private source does not make a Vercel site private; user authentication protects the workspace.
 
@@ -59,7 +65,7 @@ Import into Vercel with:
 - Node: 24.x
 - Build: `npm run build` (uses webpack)
 - Install: `npm ci`
-- Production branch: the actual branch chosen by the owner; `master` if following the handoff
+- Production branch: `main`
 
 Set environment variables for the intended deployment environments. Set `NEXT_PUBLIC_SITE_URL` to the final HTTPS origin before the production build. Do not run production cron against a preview database by accident. `app/vercel.json` registers one daily check at 07:00 UTC. Confirm the cron is enabled in Vercel and inspect its execution logs. Free tiers have quotas and schedules can drift within the provider's allowed window.
 
