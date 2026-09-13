@@ -17,8 +17,9 @@ export const demoProfile: Profile = {
   remote: true,
   dailyChecks: true,
   emailDigest: true,
-  cvText: "",
-  cvName: "",
+  cvText:
+    "Alex Morgan\nProduct designer\nalex@example.invalid\nSummary\nProduct designer focused on accessible digital experiences.\nProfessional Experience\nDesigned a student-led community platform.\nTechnical Skills\nFigma, User research, Design systems, Prototyping\nLanguages: English\nResearch & Achievements\nStudent design award\nSelected Projects & Publication\nPublished a fictional usability case study.\nEducation\nBA in Communication Design",
+  cvName: "Fictional sample resume",
 };
 const sampleJobs: Job[] = [
   {

@@ -50,6 +50,17 @@ export function classifyType(value: string): Job["type"] {
 
 export function matchJob(job: Job, preferences: Preferences, now = new Date()) {
   const text = `${job.title} ${job.description}`;
+  const roleIntent = preferences.fields.join(" ");
+  const commercial =
+    /\b(sales|marketing|business development|account manager|recruiter|vertrieb)\b/i;
+  if (
+    /\b(robotics|robotik|ros2|slam|software|firmware|embedded|engineer|developer|entwickler)\b/i.test(
+      roleIntent,
+    ) &&
+    !commercial.test(roleIntent) &&
+    commercial.test(job.title)
+  )
+    return null;
   const fields = preferences.fields.filter((field) =>
     containsTerm(text, field),
   );
@@ -63,7 +74,10 @@ export function matchJob(job: Job, preferences: Preferences, now = new Date()) {
   if (!regionMatch && !(preferences.remote && worldwideRemote)) return null;
   if (job.remote && !preferences.remote) return null;
   const skills = preferences.skills.filter((skill) =>
-    containsTerm(text, skill),
+    skill
+      .replace(/^[^:]{1,60}:\s*/, "")
+      .split("/")
+      .some((term) => containsTerm(text, term.trim())),
   );
   const titleMatch = preferences.fields.some((field) =>
     containsTerm(job.title, field),
@@ -72,14 +86,16 @@ export function matchJob(job: Job, preferences: Preferences, now = new Date()) {
     ? (now.getTime() - new Date(job.publishedAt).getTime()) / 86400000
     : null;
   const fresh = ageDays !== null && ageDays >= 0 && ageDays <= 7;
+  const skillPoints = Math.min(
+    40,
+    Math.round(
+      (40 * skills.length) /
+        Math.max(1, Math.min(10, preferences.skills.length)),
+    ),
+  );
   const score = Math.min(
     100,
-    40 +
-      (titleMatch ? 20 : 0) +
-      Math.round(
-        (30 * skills.length) / Math.max(1, preferences.skills.length),
-      ) +
-      (fresh ? 10 : 0),
+    20 + (titleMatch ? 20 : 0) + skillPoints + (fresh ? 10 : 0) + 10,
   );
   return {
     score,
@@ -89,6 +105,7 @@ export function matchJob(job: Job, preferences: Preferences, now = new Date()) {
       `Type: ${job.type}`,
       ...(skills.length ? [`Skills: ${skills.join(", ")}`] : []),
       ...(fresh ? ["Posted this week"] : []),
+      `Score: role 20 + title ${titleMatch ? 20 : 0} + skills ${skillPoints} + recency ${fresh ? 10 : 0} + location 10`,
     ],
   };
 }

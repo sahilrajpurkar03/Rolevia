@@ -1,5 +1,6 @@
 import { fromBuffer } from "yauzl";
 import mammoth from "mammoth";
+import { cleanCvText } from "./cv-text.ts";
 
 export async function validateDocx(buffer: Buffer) {
   await new Promise<void>((resolve, reject) => {
@@ -80,7 +81,7 @@ export async function extractCv(buffer: Buffer, filename: string) {
     throw new Error(
       "The file contents must be a PDF or DOCX, not just the filename.",
     );
-  text = text.replaceAll("\u0000", "").trim();
+  text = cleanCvText(text);
   if (text.length < 40)
     throw new Error(
       "No readable CV text found. For scanned PDFs, paste the text or enter your profile manually.",

@@ -70,7 +70,11 @@ export async function searchJobs(input: unknown): Promise<ActionResult> {
       .eq("id", user.id)
       .single();
     if (error) return { error: "Could not load your profile. Please retry." };
-    const profile = profileSchema.parse({ ...data?.data, ...preferences });
+    const profile = profileSchema.parse({
+      ...data?.data,
+      ...preferences,
+      fields: data?.data.fields,
+    });
     const saved = await writeProfileChange(client, user.id, { profile });
     if (saved.error) return saved;
     const fingerprint = createHash("sha256")
@@ -82,6 +86,8 @@ export async function searchJobs(input: unknown): Promise<ActionResult> {
             .sort(),
           jobTypes: [...preferences.jobTypes].sort(),
           remote: preferences.remote,
+          listSize: preferences.listSize,
+          resultsPerRequest: preferences.resultsPerRequest,
         }),
       )
       .digest("hex")
@@ -91,12 +97,17 @@ export async function searchJobs(input: unknown): Promise<ActionResult> {
       user.id,
       profile,
       `search:${Math.floor(Date.now() / 900000)}:${fingerprint}`,
+      undefined,
+      {
+        listSize: preferences.listSize,
+        resultsPerRequest: preferences.resultsPerRequest,
+      },
     );
     revalidatePath("/workspace");
     return {
       success: result.skipped
         ? "Showing results for these selections. This search already ran in the last 15 minutes."
-        : `Search complete. ${result.count} new matches added. ${result.message}`,
+        : `Search complete. ${result.message}`,
     };
   } catch (error) {
     revalidatePath("/workspace");

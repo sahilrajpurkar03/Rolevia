@@ -5,28 +5,32 @@ test("three search selections return matching jobs directly", async ({
 }) => {
   await page.goto("/demo");
   const form = page.getByRole("form", { name: "Find jobs" });
-  await form.getByLabel("1. Roles or keywords", { exact: true }).fill("Design");
+  await expect(
+    form.getByLabel("1. Roles or keywords", { exact: true }),
+  ).toHaveCount(0);
+  await form.getByLabel("List size", { exact: true }).selectOption("20");
   await form
-    .getByLabel("2. Countries or cities", { exact: true })
-    .fill("Netherlands");
+    .getByLabel("Results per request", { exact: true })
+    .selectOption("10");
+  await form.getByLabel("Country or city", { exact: true }).fill("Netherlands");
   await form.getByLabel("Full-time", { exact: true }).uncheck();
   await form.getByLabel("Working student", { exact: true }).uncheck();
   await form.getByRole("button", { name: "Search jobs", exact: true }).click();
   await expect(page.locator(".job-card")).toHaveCount(2);
-  await expect(page.getByRole("heading", { name: "Your matches 2" })).toBeFocused();
+  await expect(
+    page.getByRole("heading", { name: "Your matches 2" }),
+  ).toBeFocused();
   await expect(page.locator(".job-card").first()).toContainText("Netherlands");
   await expect(
     page.getByRole("status").filter({ hasText: "Search complete" }),
   ).toBeVisible();
-  await form
-    .getByLabel("2. Countries or cities", { exact: true })
-    .fill("Canada");
+  await form.getByLabel("Country or city", { exact: true }).fill("Canada");
   await form.getByRole("button", { name: "Search jobs", exact: true }).click();
   await expect(page.locator(".job-card")).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "No jobs match these selections yet" }),
   ).toBeVisible();
-  await form.getByLabel("1. Roles or keywords", { exact: true }).fill("");
+  await form.getByLabel("Country or city", { exact: true }).fill("");
   await form.getByRole("button", { name: "Search jobs", exact: true }).click();
   await expect(form.getByRole("alert")).toBeVisible();
   await expect(
@@ -37,6 +41,10 @@ test("three search selections return matching jobs directly", async ({
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
+  await expect(form.getByLabel("List size", { exact: true })).toHaveValue("20");
+  await expect(
+    form.getByLabel("Results per request", { exact: true }),
+  ).toHaveValue("10");
   await form.screenshot({ path: test.info().outputPath("job-search.png") });
 });
 
@@ -136,6 +144,23 @@ test("empty filtering and private endpoints fail safely", async ({
   ).toBeVisible();
   expect((await request.get("/api/cron/daily")).status()).toBe(401);
   expect((await request.post("/api/cv")).status()).toBe(401);
+  const origin = new URL(page.url()).origin;
+  expect(
+    (
+      await request.post("/api/jobs/search", {
+        headers: { Origin: origin },
+        data: {},
+      })
+    ).status(),
+  ).toBe(401);
+  expect(
+    (
+      await request.post("/api/jobs/search", {
+        headers: { Origin: "https://example.invalid" },
+        data: {},
+      })
+    ).status(),
+  ).toBe(403);
   await page.goto("/auth/callback?code=invalid");
   await expect(
     page.getByRole("alert").filter({ hasText: "expired" }),

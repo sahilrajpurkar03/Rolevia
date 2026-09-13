@@ -8,7 +8,6 @@ import {
   type SearchPreferences,
 } from "@/lib/schema";
 import { TermsInput } from "./profile-form";
-import { RoleSuggestions } from "./role-suggestions";
 
 const labels = {
   "full-time": "Full-time",
@@ -32,9 +31,10 @@ export function JobSearchForm({
     regions: profile.regions,
     jobTypes: profile.jobTypes,
     remote: profile.remote,
+    listSize: 40,
+    resultsPerRequest: 20,
   });
   const [error, setError] = useState("");
-  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   return (
     <form
       className="job-search-form"
@@ -44,7 +44,7 @@ export function JobSearchForm({
         const parsed = searchPreferencesSchema.safeParse(preferences);
         if (!parsed.success) {
           setError(
-            "Choose at least one role, location and employment type. Use up to 25 keywords and locations, with at most 100 characters each.",
+            "Choose a location and employment type. List size must be 10-100 and results per request 10-100. Role keywords are managed in Profile & preferences.",
           );
           return;
         }
@@ -66,15 +66,7 @@ export function JobSearchForm({
       <fieldset disabled={pending} className="job-search-controls">
         <legend className="sr-only">Search selections</legend>
         <TermsInput
-          label="1. Roles or keywords"
-          values={preferences.fields}
-          onChange={(fields) =>
-            setPreferences((current) => ({ ...current, fields }))
-          }
-          placeholder="e.g. Robotics, ROS2, SLAM"
-        />
-        <TermsInput
-          label="2. Countries or cities"
+          label="Country or city"
           values={preferences.regions}
           onChange={(regions) =>
             setPreferences((current) => ({ ...current, regions }))
@@ -82,7 +74,7 @@ export function JobSearchForm({
           placeholder="e.g. Germany, Berlin"
         />
         <fieldset className="job-search-types">
-          <legend>3. Employment type</legend>
+          <legend>Employment type</legend>
           {jobTypes.map((type) => (
             <label key={type}>
               <input
@@ -101,6 +93,44 @@ export function JobSearchForm({
             </label>
           ))}
         </fieldset>
+        <label>
+          List size
+          <select
+            aria-label="List size"
+            value={preferences.listSize}
+            onChange={(event) =>
+              setPreferences((current) => ({
+                ...current,
+                listSize: Number(event.target.value),
+              }))
+            }
+          >
+            {[10, 20, 40, 60, 100].map((size) => (
+              <option key={size} value={size}>
+                {size} jobs
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Results per request
+          <select
+            aria-label="Results per request"
+            value={preferences.resultsPerRequest}
+            onChange={(event) =>
+              setPreferences((current) => ({
+                ...current,
+                resultsPerRequest: Number(event.target.value),
+              }))
+            }
+          >
+            {[10, 20, 50, 100].map((size) => (
+              <option key={size} value={size}>
+                {size} jobs
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="job-search-remote">
           <input
             type="checkbox"
@@ -120,20 +150,9 @@ export function JobSearchForm({
           {error}
         </p>
       )}
-      <details
-        onToggle={(event) => setSuggestionsOpen(event.currentTarget.open)}
-      >
-        <summary>Role suggestions</summary>
-        {suggestionsOpen && (
-          <RoleSuggestions
-            profile={{ ...profile, ...preferences }}
-            onChange={(fields) => {
-              if (!pending)
-                setPreferences((current) => ({ ...current, fields }));
-            }}
-          />
-        )}
-      </details>
+      <p className="coverage-note">
+        Profile roles: {profile.fields.join(", ")}
+      </p>
     </form>
   );
 }

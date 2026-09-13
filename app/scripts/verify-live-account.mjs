@@ -3,7 +3,9 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { chromium } from "@playwright/test";
 
-const site = "https://rolevia-alpha.vercel.app";
+const site = process.argv.includes("--local")
+  ? "http://localhost:3012"
+  : "https://rolevia-alpha.vercel.app";
 const url = "https://qnuytqvbtcaeibcxyloq.supabase.co";
 if (!process.argv.includes("--run"))
   throw new Error(
@@ -19,6 +21,7 @@ const options = { auth: { persistSession: false, autoRefreshToken: false } };
 const admin = createClient(url, service, options);
 const accounts = [];
 let browser;
+let stage = "document persistence";
 
 try {
   for (const label of ["first", "second"]) {
@@ -99,6 +102,120 @@ try {
     "Synthetic Verification Person",
   );
   console.log("PASS: Letter saved and reopened; existing CV preserved.");
+  if (process.argv.includes("--search")) {
+    stage = "seed search profile";
+    const before = await admin
+      .from("profiles")
+      .select("data")
+      .eq("id", accounts[0].id)
+      .single();
+    assert.equal(before.error, null);
+    const profile = {
+      ...before.data.data,
+      fullName: "Synthetic Verification Person",
+      headline: "Robotics engineer",
+      summary: "Synthetic robotics search verification profile.",
+      experience: "Synthetic ROS2 and Python experience.",
+      education: "Synthetic education",
+      skills: ["ROS2", "Python", "SLAM"],
+      fields: ["Robotics", "ROS2", "Robotik"],
+      regions: ["Germany"],
+      jobTypes: ["full-time"],
+      remote: true,
+      dailyChecks: false,
+      emailDigest: false,
+      cvText: "",
+      cvName: "",
+    };
+    const seed = await admin
+      .from("profiles")
+      .update({ data: profile })
+      .eq("id", accounts[0].id);
+    assert.equal(seed.error, null);
+    await page.reload();
+    stage = "select search controls";
+    const search = page.getByRole("form", { name: "Find jobs" });
+    await search.getByLabel("List size", { exact: true }).selectOption("10");
+    await search
+      .getByLabel("Results per request", { exact: true })
+      .selectOption("10");
+    await search
+      .getByRole("button", { name: "Search jobs", exact: true })
+      .click();
+    stage = "first search response";
+    await page
+      .getByRole("status")
+      .filter({ hasText: /ranked matches/ })
+      .waitFor({ timeout: 240000 });
+    const count = await page.locator(".job-card").count();
+    stage = "check first result list";
+    assert.ok(
+      count > 0 && count <= 10,
+      "Real queries did not return the expected bounded result list",
+    );
+    const top = await page
+      .locator(".job-card")
+      .first()
+      .locator(".job-title button")
+      .textContent();
+    const company = await page
+      .locator(".job-card")
+      .first()
+      .locator(".job-title p")
+      .textContent();
+    const scores = await page.locator(".match-score strong").allTextContents();
+    const values = scores.map((score) => Number.parseInt(score, 10));
+    assert.deepEqual(
+      values,
+      [...values].sort((first, second) => second - first),
+    );
+    await page
+      .getByRole("button", { name: "Save job", exact: true })
+      .first()
+      .click();
+    stage = "save result to log";
+    await page
+      .getByRole("status")
+      .filter({ hasText: "Saved to your applications" })
+      .waitFor();
+    await search.getByLabel("List size", { exact: true }).selectOption("20");
+    await search
+      .getByRole("button", { name: "Search jobs", exact: true })
+      .click();
+    stage = "second search response";
+    await page
+      .getByRole("status")
+      .filter({ hasText: /ranked matches/ })
+      .waitFor({ timeout: 240000 });
+    assert.equal(
+      await page
+        .locator(".job-card")
+        .filter({ has: page.getByText(company, { exact: true }) })
+        .getByRole("button", { name: top, exact: true })
+        .count(),
+      0,
+      "Logged application remained in fresh search results",
+    );
+    const after = await admin
+      .from("profiles")
+      .select("data")
+      .eq("id", accounts[0].id)
+      .single();
+    stage = "verify stored results and documents";
+    assert.deepEqual(after.data.data.cvEditor, before.data.data.cvEditor);
+    assert.deepEqual(
+      after.data.data.letterDrafts,
+      before.data.data.letterDrafts,
+    );
+    const savedMatches = await admin
+      .from("matches")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", accounts[0].id);
+    assert.ok(savedMatches.count > 0);
+    console.log(
+      `PASS: live per-role search returned ${count} ranked jobs, persisted results, excluded a logged job and preserved documents.`,
+    );
+  }
   const other = createClient(url, anon, options);
   const login = await other.auth.signInWithPassword({
     email: accounts[1].email,
@@ -126,9 +243,9 @@ try {
   console.log(
     "PASS: Second authenticated account cannot read or overwrite the first account's documents.",
   );
-} catch {
+} catch (error) {
   console.error(
-    "Live verification failed; account content and provider details suppressed.",
+    `Live verification failed at ${stage} (${error.name}); account content and provider details suppressed.`,
   );
   process.exitCode = 1;
 } finally {

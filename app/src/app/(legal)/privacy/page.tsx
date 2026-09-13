@@ -86,6 +86,12 @@ export default function PrivacyPage() {
       </p>
       <h2>Providers and international processing</h2>
       <p>
+        Manual job searches send your saved role keywords and selected locations
+        to Bundesagentur fuer Arbeit. CV text, names and email addresses are not
+        sent to job sources. Arbeitnow and Remotive provide public feeds without
+        receiving your individual search preferences.
+      </p>
+      <p>
         Vercel hosts the application; Supabase provides accounts and the
         database. Email services process delivery information when used.
         Hosting, processing regions, data processing agreements, and any

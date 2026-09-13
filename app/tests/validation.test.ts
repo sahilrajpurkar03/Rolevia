@@ -20,6 +20,19 @@ test("three-selection searches validate bounds without accepting profile replace
     remote: true,
   };
   assert.equal(searchPreferencesSchema.safeParse(search).success, true);
+  assert.equal(searchPreferencesSchema.parse(search).listSize, 40);
+  assert.equal(searchPreferencesSchema.parse(search).resultsPerRequest, 20);
+  for (const value of [0, 101, 10.5]) {
+    assert.equal(
+      searchPreferencesSchema.safeParse({ ...search, listSize: value }).success,
+      false,
+    );
+    assert.equal(
+      searchPreferencesSchema.safeParse({ ...search, resultsPerRequest: value })
+        .success,
+      false,
+    );
+  }
   assert.equal(
     searchPreferencesSchema.safeParse({ ...search, fields: [] }).success,
     false,

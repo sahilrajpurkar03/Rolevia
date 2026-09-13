@@ -19,12 +19,17 @@ export const profileSchema = z.object({
   cvName: z.string().max(255),
 });
 export type Profile = z.infer<typeof profileSchema>;
-export const searchPreferencesSchema = profileSchema.pick({
-  fields: true,
-  regions: true,
-  jobTypes: true,
-  remote: true,
-});
+export const searchPreferencesSchema = profileSchema
+  .pick({
+    fields: true,
+    regions: true,
+    jobTypes: true,
+    remote: true,
+  })
+  .extend({
+    listSize: z.number().int().min(10).max(100).default(40),
+    resultsPerRequest: z.number().int().min(10).max(100).default(20),
+  });
 export type SearchPreferences = z.infer<typeof searchPreferencesSchema>;
 export const statuses = [
   "saved",

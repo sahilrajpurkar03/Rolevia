@@ -7,6 +7,7 @@ import {
   Copy,
   Download,
   Eye,
+  FileText,
   ImagePlus,
   LoaderCircle,
   Pencil,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 import {
   createCvDrafts,
+  createImportedCvDrafts,
   cvColors,
   cvDraftsSchema,
   cvPlainText,
@@ -32,7 +34,6 @@ import {
 } from "@/lib/cv-editor";
 import { saveCvDrafts } from "@/lib/cv-actions";
 import { emptyProfile, type Profile } from "@/lib/schema";
-import { suggestProfile } from "@/lib/cv-profile";
 
 type Props = {
   profile: Profile;
@@ -375,13 +376,12 @@ export function CvEditor({
       const response = await fetch("/api/cv", { method: "POST", body: form });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
-      const seed = {
-        ...emptyProfile,
-        ...suggestProfile(result.text),
-        cvText: result.text,
-        cvName: result.filename,
-      };
-      commit({ ...drafts, [version]: createCvDrafts(seed, email)[version] });
+      commit({
+        ...drafts,
+        [version]: createImportedCvDrafts(result.text, email, document.photo)[
+          version
+        ],
+      });
       setMessage(
         "CV imported into the selected format. Review the extracted fields before saving; original layout is not retained.",
       );
@@ -462,6 +462,38 @@ export function CvEditor({
         >
           <Pencil size={16} />
           Use profile
+        </button>
+        <button
+          className="button"
+          disabled={busy || !profile.cvText}
+          onClick={() => {
+            if (
+              !window.confirm(
+                "Replace this version with the uploaded CV text? All recognized sections will be included. The other version is unchanged; you can undo this edit.",
+              )
+            )
+              return;
+            try {
+              commit({
+                ...drafts,
+                [version]: createImportedCvDrafts(
+                  profile.cvText,
+                  email,
+                  document.photo,
+                )[version],
+              });
+              setMessage(
+                "Uploaded CV content recovered. Review pagination before saving; PDF layout and missing glyphs cannot be reconstructed from text.",
+              );
+            } catch {
+              setError(
+                "The extracted CV exceeds editor limits. Export a backup and review the uploaded text before importing smaller sections.",
+              );
+            }
+          }}
+        >
+          <FileText size={16} />
+          Use uploaded CV
         </button>
         <button
           className="button"

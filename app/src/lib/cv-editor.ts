@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Profile } from "./schema.ts";
+import { parseCvText } from "./cv-text.ts";
 
 const shortText = z.string().max(180);
 export const cvEntrySchema = z.object({
@@ -123,6 +124,61 @@ export function createCvDrafts(profile: Profile, email = ""): CvDrafts {
       ],
     },
   };
+}
+
+export function createImportedCvDrafts(
+  text: string,
+  email = "",
+  photo = "",
+): CvDrafts {
+  const parsed = parseCvText(text);
+  const headerRemainder = parsed.header.filter(
+    (line) =>
+      line !== parsed.fullName &&
+      line !== parsed.headline &&
+      !parsed.summary.split("\n").includes(line),
+  );
+  const sourceSections = [
+    ...(headerRemainder.length
+      ? [{ title: "Contact details", kind: "contact", lines: headerRemainder }]
+      : []),
+    ...parsed.sections.filter((section) => section.kind !== "summary"),
+  ];
+  if (!sourceSections.length && !parsed.summary)
+    sourceSections.push({
+      title: "Imported content",
+      kind: "other",
+      lines: [text],
+    });
+  const build = (version: CvVersion): CvDocument => ({
+    fullName: parsed.fullName,
+    headline: parsed.headline,
+    email: parsed.email || email,
+    phone: parsed.phone,
+    location: "",
+    links: "",
+    summary: parsed.summary,
+    photo,
+    fontSize: 9,
+    accent: "black",
+    sections: sourceSections.map((section, index) => {
+      const description = section.lines.join("\n");
+      const chunks = description.match(/[\s\S]{1,3000}/g) ?? [""];
+      return {
+        id: crypto.randomUUID(),
+        title: section.title,
+        page:
+          version === "two" && index >= Math.ceil(sourceSections.length / 2)
+            ? 2
+            : 1,
+        entries: chunks.map((chunk) => ({
+          ...newCvEntry(),
+          description: chunk,
+        })),
+      };
+    }),
+  });
+  return cvDraftsSchema.parse({ one: build("one"), two: build("two") });
 }
 
 export function writingSuggestion(

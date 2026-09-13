@@ -5,6 +5,36 @@ import mammoth from "mammoth";
 import JSZip from "jszip";
 import sharp from "sharp";
 
+test("uploaded CV recovery includes every section and preserves the other version", async ({
+  page,
+}) => {
+  page.on("dialog", (dialog) => dialog.accept());
+  await page.goto("/demo");
+  await page.getByRole("button", { name: "CV editor", exact: true }).click();
+  await page.getByRole("button", { name: "Two pages", exact: true }).click();
+  await page.getByLabel("Full name", { exact: true }).fill("Keep this version");
+  await page.getByRole("button", { name: "One page", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Use uploaded CV", exact: true })
+    .click();
+  const headings = await Promise.all(
+    (await page.getByLabel("Section heading", { exact: true }).all()).map(
+      (input) => input.inputValue(),
+    ),
+  );
+  expect(headings).toContain("Research & Achievements");
+  expect(headings).toContain("Selected Projects & Publication");
+  expect(headings).toContain("Languages");
+  const text = await download(page, "txt");
+  expect(text.toString()).toContain("Student design award");
+  expect(text.toString()).toContain("fictional usability case study");
+  await editorView(page, "Edit");
+  await page.getByRole("button", { name: "Two pages", exact: true }).click();
+  await expect(page.getByLabel("Full name", { exact: true })).toHaveValue(
+    "Keep this version",
+  );
+});
+
 async function editorView(page: Page, mode: "Edit" | "Preview") {
   const switcher = page.getByRole("group", {
     name: "Editor view",

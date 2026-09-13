@@ -33,6 +33,12 @@ export default function DataSharingPage() {
           listings. This integration does not send CVs, names, emails, or
           individual search preferences to those job feeds.
         </li>
+        <li>
+          <strong>Bundesagentur fuer Arbeit:</strong> manual searches send saved
+          role keywords and selected countries or cities to its public job
+          search service. The server also requests listing descriptions. CV
+          text, names and email addresses are not sent by this integration.
+        </li>
       </ul>
       <h2>Your actions</h2>
       <p>

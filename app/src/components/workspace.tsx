@@ -48,7 +48,6 @@ import {
   dismissMatch,
   generateLetter,
   saveMatch,
-  searchJobs,
   updateApplication,
 } from "@/lib/actions";
 import { logout } from "@/lib/auth-actions";
@@ -121,11 +120,20 @@ export function Workspace(props: Props) {
   const [onboardingDraft, setOnboardingDraft] = useState(emptyProfile);
   const [sampleProfile, setSampleProfile] = useState(props.profile);
   const [sampleMatches, setSampleMatches] = useState(props.matches);
+  const [searchResults, setSearchResults] = useState<MatchRecord[] | null>(
+    null,
+  );
+  const [searchProgress, setSearchProgress] = useState<{
+    stage: string;
+    completed: number;
+    total: number;
+    found: number;
+  } | null>(null);
   const [sampleApplications, setSampleApplications] = useState(
     props.applications,
   );
   const profile = props.demo ? sampleProfile : props.profile;
-  const matches = props.demo ? sampleMatches : props.matches;
+  const matches = props.demo ? sampleMatches : (searchResults ?? props.matches);
   const applications = props.demo ? sampleApplications : props.applications;
   const [search, setSearch] = useState("");
   const [type, setType] = useState("all");
@@ -136,10 +144,17 @@ export function Workspace(props: Props) {
   const resultsHeading = useRef<HTMLHeadingElement>(null);
   const searchRequested = useRef(false);
   useEffect(() => {
-    if (searchRequested.current && !pending && (message.success || message.error)) {
+    if (
+      searchRequested.current &&
+      !pending &&
+      (message.success || message.error)
+    ) {
       searchRequested.current = false;
       if (message.success) {
-        resultsHeading.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        resultsHeading.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
         resultsHeading.current?.focus({ preventScroll: true });
       }
     }
@@ -212,7 +227,16 @@ export function Workspace(props: Props) {
         current.filter((item) => item.id !== match.id),
       );
       setMessage({ success: "Sample match dismissed." });
-    } else act(() => dismissMatch(match.id));
+    } else
+      act(async () => {
+        const result = await dismissMatch(match.id);
+        if (result.success)
+          setSearchResults(
+            (current) =>
+              current?.filter((item) => item.id !== match.id) ?? null,
+          );
+        return result;
+      });
   }
   return (
     <div className="app-shell">
@@ -365,12 +389,7 @@ export function Workspace(props: Props) {
                     </div>
                   </div>
                   <JobSearchForm
-                    key={JSON.stringify([
-                      profile.fields,
-                      profile.regions,
-                      profile.jobTypes,
-                      profile.remote,
-                    ])}
+                    key={JSON.stringify(profile.fields)}
                     profile={profile}
                     pending={pending}
                     onSearch={(preferences) => {
@@ -380,14 +399,100 @@ export function Workspace(props: Props) {
                       if (props.demo) {
                         const next = { ...profile, ...preferences };
                         setSampleProfile(next);
-                        setSampleMatches(refreshMatches(props.matches, next));
+                        setSampleMatches(
+                          refreshMatches(props.matches, next)
+                            .sort((first, second) => second.score - first.score)
+                            .slice(0, preferences.listSize),
+                        );
                         setMessage({
                           success:
                             "Search complete. Showing matching sample jobs; live searches require your account.",
                         });
-                      } else act(() => searchJobs(preferences));
+                      } else {
+                        setMessage({});
+                        setSearchProgress({
+                          stage: "Starting search",
+                          completed: 0,
+                          total: profile.fields.length,
+                          found: 0,
+                        });
+                        startTransition(async () => {
+                          try {
+                            const response = await fetch("/api/jobs/search", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify(preferences),
+                            });
+                            if (!response.ok) {
+                              const failure = await response.json();
+                              throw new Error(
+                                failure.error ?? "Could not start search.",
+                              );
+                            }
+                            const reader = response.body?.getReader();
+                            if (!reader)
+                              throw new Error("No search response received.");
+                            const decoder = new TextDecoder();
+                            let buffer = "";
+                            let finished = false;
+                            for (;;) {
+                              const { value, done } = await reader.read();
+                              buffer += decoder.decode(value, {
+                                stream: !done,
+                              });
+                              const lines = buffer.split("\n");
+                              buffer = lines.pop() ?? "";
+                              for (const line of lines.filter(Boolean)) {
+                                const event = JSON.parse(line);
+                                if (event.type === "progress")
+                                  setSearchProgress(event);
+                                if (event.type === "error")
+                                  throw new Error(event.error);
+                                if (event.type === "result") {
+                                  setSearchResults(event.matches);
+                                  setMessage({ success: event.message });
+                                  finished = true;
+                                }
+                              }
+                              if (done) break;
+                            }
+                            if (!finished)
+                              throw new Error(
+                                "Search connection ended before completion. Your previous results are unchanged; check Activity and retry.",
+                              );
+                            router.refresh();
+                          } catch (error) {
+                            setMessage({
+                              error:
+                                error instanceof Error
+                                  ? error.message
+                                  : "Search failed. Please retry.",
+                            });
+                          } finally {
+                            setSearchProgress(null);
+                          }
+                        });
+                      }
                     }}
                   />
+                  {searchProgress && (
+                    <section
+                      className="notice"
+                      role="status"
+                      aria-label="Job search progress"
+                    >
+                      <strong>{searchProgress.stage}</strong>
+                      <p>
+                        {searchProgress.completed} / {searchProgress.total}{" "}
+                        completed; {searchProgress.found} listings retrieved.
+                      </p>
+                      <progress
+                        value={searchProgress.completed}
+                        max={Math.max(1, searchProgress.total)}
+                        aria-label="Search progress"
+                      />
+                    </section>
+                  )}
                   <div className="stats-strip">
                     <div>
                       <span>Matched opportunities</span>
@@ -619,9 +724,17 @@ export function Workspace(props: Props) {
                       />
                     )}
                     <p className="coverage-note">
-                      Arbeitnow + Remotive. Coverage varies by region and role.
-                      Listings with unknown employment types are excluded.
-                      Verify eligibility on the original listing.
+                      <a
+                        href="https://www.arbeitsagentur.de/jobsuche/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Bundesagentur fuer Arbeit
+                      </a>{" "}
+                      role searches + Arbeitnow + Remotive feeds. Coverage
+                      varies by region and role. Listings with unknown
+                      employment types are excluded. Verify eligibility on the
+                      original listing.
                     </p>
                   </section>
                   <aside className="context-rail">
@@ -738,6 +851,7 @@ export function Workspace(props: Props) {
                     demo={props.demo}
                     onSave={(next) => {
                       setSampleProfile(next);
+                      setSearchResults(null);
                       router.refresh();
                     }}
                   />

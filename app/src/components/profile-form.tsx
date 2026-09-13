@@ -72,6 +72,7 @@ export function ProfileForm({
         cvText: result.text,
         cvName: result.filename,
         fullName: current.fullName || suggested.fullName,
+        headline: current.headline || suggested.headline,
         summary: current.summary || suggested.summary,
         experience: current.experience || suggested.experience,
         education: current.education || suggested.education,

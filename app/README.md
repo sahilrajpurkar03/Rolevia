@@ -21,13 +21,15 @@ Vercel Root Directory must be `app`. Keep local environment values and Vercel cr
 
 ## Role Suggestions
 
-On **Matches**, the **Find jobs** form has three selections: roles/keywords, countries/cities, and employment types. **Search jobs** saves these search preferences and displays matching jobs below. The remote checkbox retains geographic restrictions. Identical searches share a 15-minute run window; changing selections starts a distinct search. The smaller **Search matches** field only filters already-loaded results. The demo applies the same matching rules to fictional jobs without saving account data.
+On **Matches**, **Find jobs** controls country/city, employment type, list size and results per request. Roles remain in Profile. The private `/api/jobs/search` endpoint streams real query/description/scoring progress and returns the ranked result list, not just the count of newly inserted records. It combines per-role Arbeitsagentur requests with the existing feeds, excludes application history, and caps results to the selected list size. Identical requests within a minute are suppressed. See [How to Use](../README.md#how-to-use) for the complete workflow and source limitations.
 
-Profile preferences include explicitly selectable related keywords and recent job titles from Arbeitnow and Remotive. The robotics catalogue retains the former toolkit's search roles, alongside other career families. Ranking uses the profile locally in the browser; no CV or preference text is sent to job providers or the public suggestions endpoint.
+Profile preferences include explicitly selectable related keywords and recent job titles from Arbeitnow and Remotive. The robotics catalogue retains the former toolkit's search roles, alongside other career families. Suggestion ranking uses the profile locally in the browser; the public suggestions endpoint receives no profile text. Manual job searches send saved role keywords and selected locations to Arbeitsagentur, but not CV text, names or email addresses. Arbeitnow and Remotive feeds receive no individual preferences.
 
 Evidence includes only dated listings from the past 45 days, deduplicated by URL. Counts respect the existing location, employment-type and remote matching rules (all locations until a region is entered); unknown employment types are excluded. Keyword counts can include descriptions, not just titles. Closed listings, missing dates and limited provider coverage mean these are not whole-market demand estimates. Source outages are displayed, with the keyword catalogue available as a fallback.
 
 The public `/api/role-suggestions` GET endpoint returns only compact public listing evidence, never profiles or account data. Provider fetches use the existing one-hour cache and the computed snapshot is cached for 15 minutes. No paid API or new credentials are required. Selecting a suggestion preserves custom terms and does not change the matcher's exact-keyword semantics or automatically save the profile.
+
+CV imports now preserve all recognized sections directly in editor drafts, independently of the shorter profile fields. `Use uploaded CV` explicitly replaces only the selected version, with confirmation and Undo. `scripts/recover-uploaded-cv.ts` is a guarded, dry-run-first operator repair for archive-derived drafts; it verifies all extracted lines, backs up outside Git and compares timestamps before writes. It does not reconstruct missing PDF glyphs, original fonts or source layout.
 
 ## Legacy Restore
 
