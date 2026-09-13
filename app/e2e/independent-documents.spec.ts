@@ -65,6 +65,37 @@ test("CVs and letters work before onboarding and retain drafts across tabs", asy
     .fill(
       "I developed software for research projects.\n\nI would welcome a discussion of this role.",
     );
+  const generator = letters.getByRole("region", {
+    name: "AI cover letter generator",
+  });
+  let generationRequests = 0;
+  page.on("request", (request) => {
+    if (request.url().includes("/api/letters/generate")) generationRequests++;
+  });
+  await generator
+    .getByLabel("Job title", { exact: true })
+    .fill("Research engineer");
+  await generator
+    .getByLabel("Company", { exact: true })
+    .fill("Example Research");
+  await generator
+    .getByLabel("Job description", { exact: true })
+    .fill(
+      "Develop robotics software with Python and ROS2. Work with the engineering team to validate research prototypes.",
+    );
+  await generator
+    .getByRole("button", { name: "Generate with AI", exact: true })
+    .click();
+  await expect(generator.getByRole("alert")).toContainText("confirm consent");
+  await generator.getByRole("checkbox").check();
+  await generator
+    .getByRole("button", { name: "Generate with AI", exact: true })
+    .click();
+  await expect(generator.getByRole("alert")).toContainText("Sign in");
+  expect(generationRequests).toBe(0);
+  await expect(letters.getByLabel("Letter body", { exact: true })).toHaveValue(
+    "I developed software for research projects.\n\nI would welcome a discussion of this role.",
+  );
   await letters.getByRole("button", { name: "Modern", exact: true }).click();
   await letters
     .getByRole("button", { name: "Save letters", exact: true })

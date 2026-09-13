@@ -2,6 +2,15 @@ import { z } from "zod";
 import { jobTypes } from "./matching.ts";
 
 const terms = z.array(z.string().trim().min(1).max(100)).min(1).max(25);
+const searchCountry = z.enum([
+  "germany",
+  "switzerland",
+  "netherlands",
+  "india",
+  "usa",
+  "uk",
+  "canada",
+]);
 export const profileSchema = z.object({
   fullName: z.string().trim().min(2).max(120),
   headline: z.string().trim().max(160),
@@ -11,6 +20,7 @@ export const profileSchema = z.object({
   skills: terms,
   fields: terms,
   regions: terms,
+  country: searchCountry.optional(),
   jobTypes: z.array(z.enum(jobTypes)).min(1).max(5),
   remote: z.boolean(),
   dailyChecks: z.boolean(),
@@ -27,6 +37,7 @@ export const searchPreferencesSchema = profileSchema
     remote: true,
   })
   .extend({
+    country: searchCountry.default("germany"),
     listSize: z.number().int().min(10).max(100).default(40),
     resultsPerRequest: z.number().int().min(10).max(100).default(20),
   });

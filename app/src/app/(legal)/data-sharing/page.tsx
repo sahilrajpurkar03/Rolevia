@@ -39,6 +39,25 @@ export default function DataSharingPage() {
           search service. The server also requests listing descriptions. CV
           text, names and email addresses are not sent by this integration.
         </li>
+        <li>
+          <strong>LinkedIn, Indeed, Google Jobs, StepStone and Xing:</strong> a
+          Vercel-hosted app and a separate Python worker send role, country and
+          location queries to public job search endpoints. The worker does not
+          receive your CV, profile text, name or email. Provider access and
+          coverage can vary.
+        </li>
+        <li>
+          <strong>Google Gemini (optional):</strong> only after you confirm the
+          generation consent, the app sends your saved CV/profile text, job
+          details and optional availability/relocation information to Gemini.
+          Contact details present in CV text are included. Google&apos;s
+          free-tier terms may permit use of inputs and outputs to improve
+          products and human review, subject to regional terms. Remove sensitive
+          information first and review{" "}
+          <a href="https://ai.google.dev/gemini-api/terms">Gemini API terms</a>.
+          Generated text is stored in your account only when you save the
+          letter.
+        </li>
       </ul>
       <h2>Your actions</h2>
       <p>
@@ -52,8 +71,8 @@ export default function DataSharingPage() {
       <h2>What the app does not implement</h2>
       <p>
         There are no public CV profiles, user-to-user record sharing,
-        advertising data sales, or external AI model calls for document drafting
-        in the current app. Letters are assembled from supplied profile text.
+        advertising data sales, or automatic applications. AI drafting is
+        optional; manual editing and document exports do not call an AI model.
         These statements describe this implementation, not every independent
         practice of an infrastructure provider.
       </p>

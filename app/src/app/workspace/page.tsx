@@ -40,6 +40,7 @@ export default async function Page() {
         .from("check_runs")
         .select("*")
         .eq("user_id", user.id)
+        .not("run_key", "like", "ai-letter:%")
         .order("created_at", { ascending: false })
         .limit(30),
     ]);

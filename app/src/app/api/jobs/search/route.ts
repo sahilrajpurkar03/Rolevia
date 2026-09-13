@@ -90,6 +90,7 @@ export async function POST(request: Request) {
           undefined,
           {
             listSize: preferences.listSize,
+            country: preferences.country,
             resultsPerRequest: preferences.resultsPerRequest,
             progress: (event) => send({ type: "progress", ...event }),
           },

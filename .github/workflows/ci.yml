@@ -2,14 +2,26 @@ name: Rolevia checks
 
 on:
   push:
-    paths: ["app/**", "supabase/**", ".github/workflows/ci.yml"]
+    paths: ["app/**", "search-worker/**", "supabase/**", ".github/workflows/ci.yml"]
   pull_request:
-    paths: ["app/**", "supabase/**", ".github/workflows/ci.yml"]
+    paths: ["app/**", "search-worker/**", "supabase/**", ".github/workflows/ci.yml"]
 
 permissions:
   contents: read
 
 jobs:
+  worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: search-worker/requirements.txt
+      - run: pip install -r search-worker/requirements.txt
+      - run: python -m unittest discover -s tests
+        working-directory: search-worker
   verify:
     runs-on: ubuntu-latest
     defaults:

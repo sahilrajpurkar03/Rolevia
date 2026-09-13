@@ -75,7 +75,7 @@ export default function PrivacyPage() {
         metadata. The resulting photo is stored as part of your CV drafts when
         you select Save CVs. Removing a photo and saving updates the active
         version; the other version may still contain its own copy. Preview,
-        PDF/Word generation, and wording suggestions run in your browser without
+        PDF/Word exports and CV wording suggestions run in your browser without
         an external AI service. Unsaved edits stay in memory, not browser local
         storage. Demo edits and photos are not saved to an account.
       </p>
@@ -84,12 +84,24 @@ export default function PrivacyPage() {
         This is not end-to-end encryption: service operators and infrastructure
         providers may have administrative access needed to operate the service.
       </p>
+      <p>
+        Optional cover-letter AI generation sends saved CV/profile text and the
+        supplied job details to Google Gemini only after explicit consent for
+        the generation workflow. CV text may contain contact details. Remove
+        sensitive information first. Free-tier data-use terms vary by region and
+        may include product improvement and human review. Read the{" "}
+        <a href="https://ai.google.dev/gemini-api/terms">Gemini API terms</a>.
+        Generated drafts are not automatically saved; review all claims before
+        saving or sending. Generation activity is recorded for rate limiting.
+      </p>
       <h2>Providers and international processing</h2>
       <p>
         Manual job searches send your saved role keywords and selected locations
-        to Bundesagentur fuer Arbeit. CV text, names and email addresses are not
-        sent to job sources. Arbeitnow and Remotive provide public feeds without
-        receiving your individual search preferences.
+        to Bundesagentur fuer Arbeit and, through a separate Vercel worker, to
+        LinkedIn, Indeed, Google Jobs, StepStone and Xing. CV text, names and
+        email addresses are not sent to job sources. Arbeitnow and Remotive
+        provide public feeds without receiving your individual search
+        preferences.
       </p>
       <p>
         Vercel hosts the application; Supabase provides accounts and the

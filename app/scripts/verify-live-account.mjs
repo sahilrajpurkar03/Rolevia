@@ -45,17 +45,21 @@ try {
   await page.getByLabel("Email", { exact: true }).fill(accounts[0].email);
   await page.getByLabel("Password", { exact: true }).fill(accounts[0].password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  stage = "wait for authenticated workspace";
   await page.waitForURL(`${site}/workspace`);
+  stage = "open CV editor before onboarding";
   await page.getByRole("button", { name: "CV editor", exact: true }).click();
   const cv = page.getByRole("region", { name: "CV editor", exact: true });
   await cv
     .getByLabel("Full name", { exact: true })
     .fill("Synthetic Verification Person");
   await cv.getByRole("button", { name: "Save CVs", exact: true }).click();
+  stage = "confirm initial CV save";
   await cv
     .getByText("Both CV versions saved to your account.", { exact: true })
     .waitFor();
   await page.reload();
+  stage = "reopen initial saved CV";
   await page.getByRole("button", { name: "CV editor", exact: true }).click();
   assert.equal(
     await cv.getByLabel("Full name", { exact: true }).inputValue(),
@@ -102,6 +106,112 @@ try {
     "Synthetic Verification Person",
   );
   console.log("PASS: Letter saved and reopened; existing CV preserved.");
+  if (process.argv.includes("--ai")) {
+    stage = "mocked authenticated AI workflow";
+    await page
+      .getByRole("button", { name: "Cover letters", exact: true })
+      .click();
+    const original = await letters
+      .getByLabel("Letter body", { exact: true })
+      .inputValue();
+    const paragraphs = [
+      "I am applying for the Robotics Engineer role at Synthetic Research.",
+      "My supplied experience includes Python and ROS2 research prototypes.",
+      "Thank you for considering my application. I welcome a discussion of this position.",
+    ];
+    let fail = true;
+    await page.route("**/api/letters/generate", async (route) => {
+      assert.equal(route.request().postDataJSON().consent, true);
+      await route.fulfill({
+        status: fail ? 503 : 200,
+        json: fail
+          ? { error: "Synthetic provider failure. Your draft is unchanged." }
+          : {
+              result: {
+                requirements: ["Python and ROS2"],
+                evidence: [
+                  {
+                    requirement: "Python",
+                    quote: "Synthetic ROS2 and Python experience.",
+                  },
+                ],
+                gaps: [],
+                paragraphs,
+              },
+            },
+      });
+    });
+    const generator = letters.getByRole("region", {
+      name: "AI cover letter generator",
+    });
+    await generator
+      .getByLabel("Job title", { exact: true })
+      .fill("Robotics Engineer");
+    await generator
+      .getByLabel("Company", { exact: true })
+      .fill("Synthetic Research");
+    await generator
+      .getByLabel("Job description", { exact: true })
+      .fill(
+        "Develop robotics software using Python and ROS2. Collaborate with researchers and test engineering prototypes.",
+      );
+    await generator.getByRole("checkbox").check();
+    await generator
+      .getByRole("button", { name: "Generate with AI", exact: true })
+      .click();
+    await generator
+      .getByRole("alert")
+      .filter({ hasText: "Synthetic provider failure" })
+      .waitFor();
+    assert.equal(
+      await letters.getByLabel("Letter body", { exact: true }).inputValue(),
+      original,
+    );
+    fail = false;
+    await generator
+      .getByRole("button", { name: "Generate with AI", exact: true })
+      .click();
+    await generator
+      .getByRole("heading", { name: "Draft For Review" })
+      .waitFor();
+    assert.equal(
+      await letters.getByLabel("Letter body", { exact: true }).inputValue(),
+      original,
+    );
+    page.once("dialog", (dialog) => dialog.accept());
+    await generator
+      .getByRole("button", { name: "Use generated draft" })
+      .click();
+    assert.equal(
+      await letters.getByLabel("Letter body", { exact: true }).inputValue(),
+      paragraphs.join("\n\n"),
+    );
+    await letters
+      .getByLabel("Letter body", { exact: true })
+      .fill(paragraphs.join("\n\n") + "\n\nReviewed manually.");
+    await letters
+      .getByLabel("Letter page count", { exact: true })
+      .filter({ hasText: "1 page" })
+      .waitFor();
+    for (const format of ["pdf", "docx"]) {
+      await letters
+        .getByLabel("Letter export format", { exact: true })
+        .selectOption(format);
+      const exported = page.waitForEvent("download");
+      await letters
+        .getByRole("button", { name: "Download letter", exact: true })
+        .click();
+      assert.equal(await (await exported).failure(), null);
+    }
+    await letters.getByRole("button", { name: "Undo generated draft" }).click();
+    assert.equal(
+      await letters.getByLabel("Letter body", { exact: true }).inputValue(),
+      original,
+    );
+    console.log(
+      "PASS: signed-in mocked AI consent, failure preservation, review-before-use, editing, PDF/Word downloads and Undo. No Gemini request made.",
+    );
+  }
   if (process.argv.includes("--search")) {
     stage = "seed search profile";
     const before = await admin
@@ -146,7 +256,24 @@ try {
     await page
       .getByRole("status")
       .filter({ hasText: /ranked matches/ })
-      .waitFor({ timeout: 240000 });
+      .waitFor({ timeout: 300000 });
+    const sourceStatus = await page
+      .getByRole("status")
+      .filter({ hasText: /ranked matches/ })
+      .textContent();
+    for (const source of [
+      "linkedin",
+      "indeed",
+      "google",
+      "stepstone",
+      "xing",
+    ]) {
+      const summary = sourceStatus.match(
+        new RegExp(`${source}: \\d+ listings;[^.]+`),
+      );
+      assert.ok(summary, `Missing ${source} search status`);
+      console.log(summary[0]);
+    }
     const count = await page.locator(".job-card").count();
     stage = "check first result list";
     assert.ok(
@@ -178,6 +305,69 @@ try {
       .getByRole("status")
       .filter({ hasText: "Saved to your applications" })
       .waitFor();
+    if (process.argv.includes("--ai")) {
+      stage = "application AI generation and exports";
+      await page
+        .getByRole("button", { name: "Applications", exact: true })
+        .click();
+      await page.locator(".table-row").first().click();
+      const modal = page.getByRole("dialog");
+      const text = modal.getByRole("textbox", { name: "Cover letter text" });
+      await text.fill(
+        "Existing application letter must survive until confirmed replacement.",
+      );
+      await modal
+        .locator("summary")
+        .filter({ hasText: "Generate with AI" })
+        .click();
+      const generator = modal.getByRole("region", {
+        name: "AI cover letter generator",
+      });
+      await generator
+        .getByLabel("Job description", { exact: true })
+        .fill(
+          "Develop robotics software using Python and ROS2. Collaborate with researchers and test engineering prototypes.",
+        );
+      await generator.getByRole("checkbox").check();
+      await generator
+        .getByRole("button", { name: "Generate with AI", exact: true })
+        .click();
+      await generator
+        .getByRole("button", { name: "Use generated draft" })
+        .waitFor();
+      assert.equal(
+        await text.inputValue(),
+        "Existing application letter must survive until confirmed replacement.",
+      );
+      page.once("dialog", (dialog) => dialog.accept());
+      await generator
+        .getByRole("button", { name: "Use generated draft" })
+        .click();
+      assert.match(await text.inputValue(), /Synthetic Research/);
+      for (const format of ["pdf", "docx"]) {
+        await modal
+          .getByLabel("Application letter export format")
+          .selectOption(format);
+        const exported = page.waitForEvent("download");
+        await modal
+          .getByRole("button", { name: "Download", exact: true })
+          .click();
+        assert.equal(await (await exported).failure(), null);
+      }
+      await modal.getByRole("button", { name: "Undo generated draft" }).click();
+      assert.equal(
+        await text.inputValue(),
+        "Existing application letter must survive until confirmed replacement.",
+      );
+      await modal
+        .getByRole("button", { name: "Save changes", exact: true })
+        .click();
+      await modal.waitFor({ state: "hidden" });
+      await page.getByRole("button", { name: "Matches", exact: true }).click();
+      console.log(
+        "PASS: application AI review, confirmed replacement, Undo and PDF/Word exports with mocked provider output.",
+      );
+    }
     await search.getByLabel("List size", { exact: true }).selectOption("20");
     await search
       .getByRole("button", { name: "Search jobs", exact: true })
@@ -186,7 +376,7 @@ try {
     await page
       .getByRole("status")
       .filter({ hasText: /ranked matches/ })
-      .waitFor({ timeout: 240000 });
+      .waitFor({ timeout: 300000 });
     assert.equal(
       await page
         .locator(".job-card")

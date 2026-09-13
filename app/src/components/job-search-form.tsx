@@ -17,6 +17,16 @@ const labels = {
   contract: "Contract",
 };
 
+const countries = {
+  germany: "Germany",
+  switzerland: "Switzerland",
+  netherlands: "Netherlands",
+  india: "India",
+  usa: "United States",
+  uk: "United Kingdom",
+  canada: "Canada",
+};
+
 export function JobSearchForm({
   profile,
   pending,
@@ -28,6 +38,7 @@ export function JobSearchForm({
 }) {
   const [preferences, setPreferences] = useState<SearchPreferences>({
     fields: profile.fields,
+    country: profile.country ?? "germany",
     regions: profile.regions,
     jobTypes: profile.jobTypes,
     remote: profile.remote,
@@ -65,6 +76,28 @@ export function JobSearchForm({
       </div>
       <fieldset disabled={pending} className="job-search-controls">
         <legend className="sr-only">Search selections</legend>
+        <label>
+          Search country
+          <select
+            aria-label="Search country"
+            value={preferences.country}
+            onChange={(event) => {
+              const country = event.target
+                .value as SearchPreferences["country"];
+              setPreferences((current) => ({
+                ...current,
+                country,
+                regions: [countries[country]],
+              }));
+            }}
+          >
+            {Object.entries(countries).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
         <TermsInput
           label="Country or city"
           values={preferences.regions}

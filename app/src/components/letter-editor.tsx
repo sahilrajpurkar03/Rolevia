@@ -19,6 +19,7 @@ import {
 } from "@/lib/letter-editor";
 import { saveLetterDrafts } from "@/lib/letter-actions";
 import type { ActionResult, Profile } from "@/lib/schema";
+import { LetterGenerator } from "./letter-generator";
 
 function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -73,12 +74,14 @@ export function LetterEditor({
   initialRevision = null,
   demo,
   applications = [],
+  jobs = [],
 }: {
   profile: Profile | null;
   email?: string;
   initialDrafts?: LetterDrafts;
   initialRevision?: string | null;
   demo?: boolean;
+  jobs?: { title: string; company: string; description: string }[];
   applications?: {
     id: string;
     letter: string;
@@ -96,6 +99,10 @@ export function LetterEditor({
   const [mobileView, setMobileView] = useState("edit");
   const [retry, setRetry] = useState(0);
   const [applicationId, setApplicationId] = useState("");
+  const [beforeGeneration, setBeforeGeneration] = useState<{
+    id: string;
+    previous?: LetterDocument;
+  } | null>(null);
   const [preview, setPreview] = useState<{
     source: string;
     blob?: Blob;
@@ -262,6 +269,67 @@ export function LetterEditor({
   return (
     <section className="letter-editor" aria-label="Cover letter editor">
       <h1>Cover letters</h1>
+      <LetterGenerator
+        jobs={jobs}
+        demo={demo}
+        disabled={busy || (!document && drafts.length >= 20)}
+        onUse={(result, input) => {
+          if (
+            document?.body &&
+            !window.confirm(
+              "Replace this letter with the generated draft? You can undo this replacement.",
+            )
+          )
+            return;
+          const next = {
+            ...(document ?? newLetter(profile, email)),
+            title: `${input.company} / ${input.title}`.slice(0, 180),
+            recipient: input.company,
+            subject: input.title,
+            salutation:
+              input.language === "German"
+                ? "Sehr geehrtes Recruiting-Team,"
+                : "Dear Hiring Team,",
+            body: result.paragraphs.join("\n\n"),
+            closing:
+              input.language === "German"
+                ? "Mit freundlichen Gruessen,"
+                : "Kind regards,",
+          };
+          const updated = document
+            ? drafts.map((draft) => (draft.id === selected ? next : draft))
+            : [...drafts, next];
+          if (commit(updated)) {
+            setBeforeGeneration({ id: next.id, previous: document });
+            setSelected(next.id);
+            setMessage(
+              "Generated draft inserted. Review, edit and save your letter before exporting.",
+            );
+          }
+        }}
+      />
+      {beforeGeneration && (
+        <button
+          className="button"
+          disabled={busy}
+          onClick={() => {
+            const unaffected = drafts.filter(
+              (draft) => draft.id !== beforeGeneration.id,
+            );
+            const restored = beforeGeneration.previous
+              ? [...unaffected, beforeGeneration.previous]
+              : unaffected;
+            if (commit(restored)) {
+              setSelected(
+                beforeGeneration.previous?.id ?? restored[0]?.id ?? "",
+              );
+              setBeforeGeneration(null);
+            }
+          }}
+        >
+          Undo generated draft
+        </button>
+      )}
       <div className="cv-toolbar">
         <button
           className="button"

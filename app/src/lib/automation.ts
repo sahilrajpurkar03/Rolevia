@@ -4,6 +4,7 @@ import { discoverJobs } from "./jobs";
 import { matchJob, type Job } from "./matching";
 import type { Profile } from "./schema";
 import { searchAgency, type SearchProgress } from "./query-jobs";
+import { searchPlatforms } from "./platform-jobs";
 
 export async function runCheck(
   client: SupabaseClient,
@@ -14,6 +15,7 @@ export async function runCheck(
   options?: {
     listSize: number;
     resultsPerRequest: number;
+    country?: string;
     progress?: (event: SearchProgress) => void;
   },
 ) {
@@ -37,18 +39,36 @@ export async function runCheck(
       total: profile.fields.length,
       found: 0,
     });
-    const [base, agency] = await Promise.all([
+    const [base, agency, platforms] = await Promise.all([
       feed ? Promise.resolve(feed) : discoverJobs(),
       options
         ? searchAgency(profile, options.resultsPerRequest, options.progress)
         : Promise.resolve(null),
+      options
+        ? searchPlatforms(
+            profile,
+            options.resultsPerRequest,
+            options.country ?? "germany",
+            options.progress,
+          )
+        : Promise.resolve(null),
     ]);
-    const warnings = [...base.warnings, ...(agency?.warnings ?? [])];
-    if (base.warnings.length === 2 && !agency?.succeeded)
+    const warnings = [
+      ...base.warnings,
+      ...(agency?.warnings ?? []),
+      ...(platforms?.warnings ?? []),
+    ];
+    if (
+      base.warnings.length === 2 &&
+      !agency?.succeeded &&
+      !platforms?.succeeded
+    )
       throw new Error("All job sources are unavailable. Please retry later.");
     const jobs = [
       ...new Map(
-        [...base.jobs, ...(agency?.jobs ?? [])].map((job) => [job.url, job]),
+        [...base.jobs, ...(agency?.jobs ?? []), ...(platforms?.jobs ?? [])].map(
+          (job) => [job.url, job],
+        ),
       ).values(),
     ];
     const { data: logged, error: logError } = await client

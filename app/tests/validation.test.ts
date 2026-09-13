@@ -79,6 +79,14 @@ test("empty or incomplete onboarding cannot be saved", () => {
   };
   assert.equal(profileSchema.safeParse(valid).success, true);
   assert.equal(
+    profileSchema.parse({ ...valid, country: "canada" }).country,
+    "canada",
+  );
+  assert.equal(
+    searchPreferencesSchema.parse({ ...valid, country: "canada" }).country,
+    "canada",
+  );
+  assert.equal(
     profileSchema.safeParse({ ...valid, jobTypes: [] }).success,
     false,
   );

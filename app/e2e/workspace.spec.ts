@@ -12,7 +12,12 @@ test("three search selections return matching jobs directly", async ({
   await form
     .getByLabel("Results per request", { exact: true })
     .selectOption("10");
-  await form.getByLabel("Country or city", { exact: true }).fill("Netherlands");
+  await form
+    .getByLabel("Search country", { exact: true })
+    .selectOption("netherlands");
+  await expect(form.getByLabel("Country or city", { exact: true })).toHaveValue(
+    "Netherlands",
+  );
   await form.getByLabel("Full-time", { exact: true }).uncheck();
   await form.getByLabel("Working student", { exact: true }).uncheck();
   await form.getByRole("button", { name: "Search jobs", exact: true }).click();

@@ -186,6 +186,21 @@ test("security headers and anonymous access boundaries", async ({
   const upload = await request.post("/api/cv");
   expect(upload.status()).toBe(401);
   expect(upload.headers()["cache-control"]).toContain("no-store");
+  const origin = new URL(page.url()).origin;
+  const generation = await request.post("/api/letters/generate", {
+    headers: { Origin: origin },
+    data: {},
+  });
+  expect(generation.status()).toBe(401);
+  expect(generation.headers()["cache-control"]).toContain("no-store");
+  expect(
+    (
+      await request.post("/api/letters/generate", {
+        headers: { Origin: "https://untrusted.example" },
+        data: {},
+      })
+    ).status(),
+  ).toBe(403);
   const cron = await request.get("/api/cron/daily", {
     headers: { Authorization: "Bearer invalid-test-value" },
   });

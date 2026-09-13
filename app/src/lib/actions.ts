@@ -88,6 +88,7 @@ export async function searchJobs(input: unknown): Promise<ActionResult> {
           remote: preferences.remote,
           listSize: preferences.listSize,
           resultsPerRequest: preferences.resultsPerRequest,
+          country: preferences.country,
         }),
       )
       .digest("hex")
@@ -101,6 +102,7 @@ export async function searchJobs(input: unknown): Promise<ActionResult> {
       {
         listSize: preferences.listSize,
         resultsPerRequest: preferences.resultsPerRequest,
+        country: preferences.country,
       },
     );
     revalidatePath("/workspace");

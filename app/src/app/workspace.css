@@ -1,3 +1,38 @@
+.letter-generator {
+  border-top: 1px solid #d8e2dc;
+  border-bottom: 1px solid #d8e2dc;
+  padding: 20px 0;
+  margin: 16px 0 24px;
+}
+.generator-fields {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+}
+.generator-fields label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  font-size: 13px;
+}
+.generator-fields input:not([type="checkbox"]),
+.generator-fields textarea,
+.generator-fields select {
+  width: 100%;
+  min-width: 0;
+}
+.generator-fields .generator-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+.generator-consent input { flex-shrink: 0; margin-top: 3px; }
+.generator-fields > button { justify-self: start; }
+.generated-review { max-width: 760px; overflow-wrap: anywhere; line-height: 1.6; }
+.application-generator { margin: 16px 0; }
 :root {
   --paper: #fafbf9;
   --white: #fff;

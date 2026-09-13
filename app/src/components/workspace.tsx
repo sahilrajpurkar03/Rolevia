@@ -32,6 +32,8 @@ import {
 } from "lucide-react";
 import { ProfileForm } from "./profile-form";
 import { JobSearchForm } from "./job-search-form";
+import { LetterGenerator } from "./letter-generator";
+import { newLetter } from "@/lib/letter-editor";
 import type { CvDrafts } from "@/lib/cv-editor";
 import type { LetterDrafts } from "@/lib/letter-editor";
 const LetterEditor = dynamic(
@@ -346,6 +348,10 @@ export function Workspace(props: Props) {
                 initialRevision={props.letterRevision}
                 demo={props.demo}
                 applications={applications}
+                jobs={[
+                  ...matches.map((match) => match.job),
+                  ...applications.map((application) => application.job),
+                ]}
               />
             </div>
           )}
@@ -718,7 +724,7 @@ export function Workspace(props: Props) {
                           matches.length
                             ? "Try another keyword or employment type."
                             : latest || props.demo
-                              ? "No results in the available feeds for your last search."
+                              ? "No matching results from the available sources for your last search."
                               : "No search results yet."
                         }
                       />
@@ -731,10 +737,10 @@ export function Workspace(props: Props) {
                       >
                         Bundesagentur fuer Arbeit
                       </a>{" "}
-                      role searches + Arbeitnow + Remotive feeds. Coverage
-                      varies by region and role. Listings with unknown
-                      employment types are excluded. Verify eligibility on the
-                      original listing.
+                      + LinkedIn, Indeed, Google Jobs, StepStone and Xing
+                      searches; Arbeitnow and Remotive feeds. Coverage varies by
+                      region and role. Listings with unknown employment types
+                      are excluded. Verify eligibility on the original listing.
                     </p>
                   </section>
                   <aside className="context-rail">
@@ -1262,6 +1268,43 @@ function ApplicationEditor({
   const [draft, setDraft] = useState(application);
   const [message, setMessage] = useState<ActionResult>({});
   const [pending, startTransition] = useTransition();
+  const [previousLetter, setPreviousLetter] = useState<string | null>(null);
+  const [exportFormat, setExportFormat] = useState("txt");
+  async function exportApplicationLetter() {
+    if (exportFormat === "txt") {
+      download(draft.letter, "cover-letter.txt");
+      return;
+    }
+    startTransition(async () => {
+      try {
+        const document = {
+          ...newLetter(null),
+          title: application.job.company,
+          fullName: "",
+          subject: "",
+          recipient: "",
+          date: "",
+          body: draft.letter,
+          salutation: "",
+          closing: "",
+        };
+        const blob =
+          exportFormat === "pdf"
+            ? await (await import("@/lib/cv-pdf")).buildLetterPdf(document)
+            : await (
+                await import("@/lib/letter-word")
+              ).buildLetterWord(document);
+        const url = URL.createObjectURL(blob);
+        const anchor = window.document.createElement("a");
+        anchor.href = url;
+        anchor.download = `cover-letter.${exportFormat}`;
+        anchor.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      } catch {
+        setMessage({ error: "Export failed. Your letter is unchanged." });
+      }
+    });
+  }
   function generate() {
     startTransition(async () => {
       try {
@@ -1367,6 +1410,55 @@ function ApplicationEditor({
           placeholder="Your letter will appear here. Review and personalize before sending."
         />
       </label>
+      <details className="application-generator">
+        <summary>Generate with AI</summary>
+        <LetterGenerator
+          job={application.job}
+          demo={demo}
+          disabled={pending}
+          onUse={(result, input) => {
+            if (
+              draft.letter &&
+              !window.confirm(
+                "Replace the application letter with this draft? You can undo this replacement.",
+              )
+            )
+              return;
+            setPreviousLetter(draft.letter);
+            const greeting =
+              input.language === "German"
+                ? "Sehr geehrtes Recruiting-Team,"
+                : "Dear Hiring Team,";
+            const closing =
+              input.language === "German"
+                ? "Mit freundlichen Gruessen,"
+                : "Kind regards,";
+            setDraft((current) => ({
+              ...current,
+              letter: [
+                greeting,
+                ...result.paragraphs,
+                closing,
+                profile.fullName,
+              ].join("\n\n"),
+            }));
+            setMessage({
+              success: "AI draft inserted. Review it, then save changes.",
+            });
+          }}
+        />
+      </details>
+      {previousLetter !== null && (
+        <button
+          className="button"
+          onClick={() => {
+            setDraft((current) => ({ ...current, letter: previousLetter }));
+            setPreviousLetter(null);
+          }}
+        >
+          Undo generated draft
+        </button>
+      )}
       <p className="field-note">
         Drafts use your profile text and matching skills. No application is
         submitted automatically.
@@ -1388,10 +1480,19 @@ function ApplicationEditor({
           )}
           Save changes
         </button>
+        <select
+          aria-label="Application letter export format"
+          value={exportFormat}
+          onChange={(event) => setExportFormat(event.target.value)}
+        >
+          <option value="txt">Text</option>
+          <option value="pdf">PDF</option>
+          <option value="docx">Word</option>
+        </select>
         <button
           className="button"
-          disabled={!draft.letter}
-          onClick={() => download(draft.letter, "cover-letter.txt")}
+          disabled={!draft.letter || pending}
+          onClick={() => void exportApplicationLetter()}
         >
           <ArrowDownToLine size={16} />
           Download
