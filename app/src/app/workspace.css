@@ -872,6 +872,129 @@ input[type="checkbox"] {
   color: var(--muted);
   font-weight: 400;
 }
+.role-suggestions {
+  margin: 0 0 28px;
+  padding: 18px 0;
+  border-block: 1px solid var(--line);
+}
+.role-suggestions-heading,
+.role-suggestions-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.role-suggestions-heading h3 {
+  font-size: 16px;
+}
+.role-suggestions-heading > span {
+  font-size: 11px;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.role-suggestions-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 200px);
+  gap: 12px;
+}
+.form-section .role-suggestions-filters label {
+  flex-direction: row;
+  align-items: center;
+  margin: 0;
+}
+.role-suggestions-filters input {
+  border: 0;
+}
+.role-market-note,
+.role-suggestions > p {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 12px 0;
+}
+.role-market-note a {
+  text-decoration: underline;
+}
+.role-suggestion {
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+}
+.form-section .role-suggestion label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  min-height: 44px;
+  cursor: pointer;
+}
+.role-suggestion label > span:first-of-type {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.role-suggestion strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.role-suggestion small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.role-evidence-count {
+  font-size: 10px;
+  flex: 0 0 85px;
+  text-align: right;
+  color: var(--muted);
+}
+.role-suggestion details {
+  margin: 4px 0 0 27px;
+  font-size: 11px;
+}
+.role-suggestion summary {
+  cursor: pointer;
+}
+.role-suggestion details a {
+  display: block;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+}
+.role-suggestion-list {
+  margin-bottom: 12px;
+}
+.role-suggestion-modes {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+}
+.role-suggestion-modes button {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 10px 8px;
+  font-size: 12px;
+  min-height: 42px;
+  cursor: pointer;
+}
+.role-suggestion-modes button[aria-pressed="true"] {
+  color: var(--green);
+  border-bottom-color: var(--green);
+  font-weight: 600;
+}
+@media (max-width: 600px) {
+  .role-suggestions-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .role-suggestions-tools {
+    flex-wrap: wrap;
+  }
+  .role-evidence-count {
+    flex-basis: 68px;
+  }
+}
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -64,9 +64,9 @@ test("profile preferences remain editable and preview uploads are private", asyn
     .getByRole("textbox", { name: "Fields and role keywords" })
     .fill("Design, Product designer");
   await page.getByRole("button", { name: "Save profile" }).click();
-  await expect(page.getByRole("status")).toContainText(
-    "Sample profile updated",
-  );
+  await expect(
+    page.getByRole("status").filter({ hasText: "Sample profile updated" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "1 Your CV" }).click();
   await page.getByLabel("Upload CV").setInputFiles({
     name: "sample.pdf",

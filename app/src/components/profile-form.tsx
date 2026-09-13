@@ -14,6 +14,7 @@ import { emptyProfile, profileSchema, type Profile } from "@/lib/schema";
 import { jobTypes } from "@/lib/matching";
 import { saveProfile } from "@/lib/actions";
 import { suggestProfile } from "@/lib/cv-profile";
+import { RoleSuggestions } from "./role-suggestions";
 
 const labels = {
   "full-time": "Full-time",
@@ -264,6 +265,10 @@ export function ProfileForm({
             onChange={(values) => update("fields", values)}
             placeholder="e.g. Marketing, data analyst, design"
           />
+          <RoleSuggestions
+            profile={profile}
+            onChange={(values) => update("fields", values)}
+          />
           <TermsInput
             label="Countries, cities or regions"
             values={profile.regions}
@@ -397,23 +402,32 @@ function TermsInput({
   placeholder: string;
 }) {
   const [text, setText] = useState(values.join(", "));
+  const signature = JSON.stringify(values);
+  const [previous, setPrevious] = useState(signature);
+  if (signature !== previous) {
+    setPrevious(signature);
+    setText(values.join(", "));
+  }
   return (
     <label>
       {label}
       <input
+        aria-label={label}
         value={text}
         maxLength={2500}
         placeholder={placeholder}
         onChange={(event) => {
           setText(event.target.value);
-          onChange([
+          const next = [
             ...new Set(
               event.target.value
                 .split(",")
                 .map((value) => value.trim())
                 .filter(Boolean),
             ),
-          ]);
+          ];
+          setPrevious(JSON.stringify(next));
+          onChange(next);
         }}
       />
       <span className="field-note">Separate entries with commas.</span>
