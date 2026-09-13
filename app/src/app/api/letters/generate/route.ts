@@ -117,7 +117,7 @@ export async function POST(request: Request) {
   const prompt = letterPrompt(input, candidate);
   try {
     const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
       {
         method: "POST",
         headers: {
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
             responseMimeType: "application/json",
             temperature: 0.3,
             maxOutputTokens: 4096,
-            thinkingConfig: { thinkingBudget: 0 },
+            thinkingConfig: { thinkingLevel: "low" },
           },
         }),
       },
@@ -142,7 +142,7 @@ export async function POST(request: Request) {
       throw new Error(
         response.status === 429
           ? "Gemini free-tier quota is exhausted. Try later; your draft is unchanged."
-          : "Gemini could not generate a letter. Check provider configuration or retry later; your draft is unchanged.",
+          : `Gemini returned HTTP ${response.status}. Check provider configuration or retry later; your draft is unchanged.`,
       );
     const output = await response.json();
     const choice = output.candidates?.[0];
