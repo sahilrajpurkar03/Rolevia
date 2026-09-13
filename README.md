@@ -8,7 +8,7 @@
 
 **Status:** Beta. Keep independent copies of important documents and review all generated content.
 
-Rolevia provides private profiles, job searches, an application tracker, editable CVs and cover letters, and document exports. AI drafting is optional; manual editing does not require a Gemini key.
+Rolevia provides private profiles, job searches, an application tracker, editable CVs and cover letters, and document exports. AI drafting is optional; manual editing remains available independently.
 
 ### Contents
 
@@ -23,7 +23,6 @@ Rolevia provides private profiles, job searches, an application tracker, editabl
 - [8. Saving and Backing Up Your Work](#8-saving-and-backing-up-your-work)
 - [9. Installing on a Phone](#9-installing-on-a-phone)
 - [10. Troubleshooting](#10-troubleshooting)
-- [Administrator Setup: Enable Gemini](#administrator-setup-enable-gemini)
 - [Search Coverage and Limits](#search-coverage-and-limits)
 - [Technical Documentation](#technical-documentation)
 
@@ -113,7 +112,7 @@ Results are deduplicated, exclude already logged applications and appear in best
 
 ### 5. Generating an Application Letter
 
-**Before you begin:** Save your profile and the job. The administrator must complete [Enable Gemini](#administrator-setup-enable-gemini).
+**Before you begin:** Save your profile and the job. AI drafting must be available in your workspace; otherwise, use manual editing or **Draft from profile**.
 
 1. Open **Applications**, select the job, and expand **Generate with AI**.
 2. Review **Job title**, **Company** and **Job description**. Paste missing details; the description must contain 80-20,000 characters.
@@ -204,13 +203,13 @@ Account access, cloud saves, searches and AI generation still require an interne
 
 | Symptom | Action |
 | --- | --- |
-| **Gemini is not configured yet** | Ask the administrator to add `GEMINI_API_KEY` to the correct Vercel project and redeploy. See the procedure below. |
+| AI drafting is unavailable | Contact the administrator. Continue with manual editing or **Draft from profile**. |
 | Generation asks you to sign in | Open your private workspace instead of the demo. |
 | Generation asks for a saved profile | Complete and save Profile & preferences before retrying. |
 | Job details or consent are rejected | Supply a title, company, 80-20,000 characters of description, and explicit consent. |
 | Generation already started this minute | Wait until the next minute before retrying. |
 | Daily generation limit reached | Rolevia allows 20 attempts per rolling 24 hours per account; edit an existing draft or return later. |
-| Gemini quota exhausted or provider unavailable | Google has separate project quotas. Check AI Studio usage and model availability; retry later without enabling billing. Existing drafts remain unchanged. |
+| AI quota exhausted or provider unavailable | Retry later or contact the administrator. Existing drafts remain unchanged; manual editing is still available. |
 | AI returns unsupported evidence or an invalid draft | Review the saved profile/job text and retry, or draft manually. Do not assume rejected output is safe to use. |
 | Search returns few or no matches | Inspect source warnings, locations, role terms and employment filters. See the coverage table below. A provider failure is not a count of available jobs. |
 | Search reports a time limit | Reduce role/location combinations and search again. Unfinished combinations are reported. |
@@ -218,65 +217,6 @@ Account access, cloud saves, searches and AI generation still require an interne
 | A save fails or reports a conflict | Keep a local copy of your edits, check connectivity, and resolve the message before reloading. Do not assume the change was stored. |
 | PDF/Word download is unavailable | Wait for preview generation, then address any validation or overflow message. |
 | Daily email does not arrive | Email delivery is not configured in this deployment. Manual search remains available. |
-
-## Administrator Setup: Enable Gemini
-
-**Who performs this:** The Rolevia project owner, once for the hosted application. Ordinary users do not need individual API keys. The project's Gemini quota is shared across their requests.
-
-**Required access:** A Google account with access to AI Studio and the **sparc1 / rolevia** project in Vercel.
-
-### A. Create a Key in Google AI Studio
-
-1. Open [Google AI Studio - API Keys](https://aistudio.google.com/apikey) and sign in.
-2. Complete Google's initial terms/setup steps if prompted.
-3. Choose **Create API key** and select or create a Google Cloud project for Rolevia. A new AI Studio account may already have a default project/key. If an existing project is missing, use **Dashboard > Projects > Import projects** first.
-4. Give the key a recognizable name, such as `Rolevia`, where the form permits it. Use a newly created AI Studio key restricted to the Gemini API; do not reuse an old unrestricted key.
-5. Keep the project on the **free tier**. Do not select paid-tier upgrades, enable billing or add a payment method for this setup. If the required model has no free quota for your account/region, stop and use manual drafting.
-6. Copy the key directly for entry into Vercel. Treat it as a password.
-
-> **Never paste the key into chat, GitHub, a README or a screenshot.** Do not put it in client-side code. If a key is exposed, revoke/replace it in AI Studio.
-
-### B. Add the Key to the Rolevia Server
-
-1. Open [Rolevia's Vercel environment settings](https://vercel.com/sparc1/rolevia/settings/environment-variables), or navigate to **Vercel > sparc1 > rolevia > Settings > Environment Variables**.
-2. Verify the project name is **rolevia**. Do not add the key to **rolevia-search-worker** or the unrelated **app** project.
-3. Choose **Add Environment Variable** or **Add New**.
-4. Enter these settings:
-
-| Setting | Value |
-| --- | --- |
-| **Name / Key** | `GEMINI_API_KEY` |
-| **Value** | The actual key you copied from AI Studio; no quotes or extra spaces. |
-| **Environment** | **Production** |
-| **Type / visibility** | **Secret** or **Sensitive**, where offered. |
-
-5. Choose **Save**. If `GEMINI_API_KEY` already exists, update its Production value instead of creating a duplicate.
-
-> Use the exact name `GEMINI_API_KEY`, not `NEXT_PUBLIC_GEMINI_API_KEY`. Rolevia reads the key only on the server. No source-code change is required. Add Preview or Development separately only if those environments also need AI access.
-
-### C. Redeploy the Application
-
-1. In the **rolevia** project, open **Deployments**.
-2. Select the latest successful Production deployment.
-3. Open its actions menu and choose **Redeploy**. Confirm Production when prompted.
-4. Wait for the new deployment to show **Ready**.
-5. Reopen or refresh [Rolevia](https://rolevia-alpha.vercel.app/workspace).
-
-**Expected result:** The new deployment can read the server-side key. Saving the environment variable alone does not update an already running deployment.
-
-### D. Verify One Generation
-
-1. Sign in and save a profile containing only information you are comfortable sharing with Google.
-2. Open **Cover letters** and enter a real job title, company and description of at least 80 characters.
-3. Review the consent notice, confirm it, and choose **Generate with AI**.
-4. Confirm that **Draft For Review** appears with three paragraphs and a requirements/evidence section.
-5. Review the output before choosing **Use generated draft**. You may leave the result unsaved if this was only a configuration test.
-
-**Success criterion:** An actual draft is returned by Gemini. A Ready deployment or a visible variable name alone does not prove the key, quota and model work. Rolevia currently requests `gemini-2.5-flash`; availability and free quotas must be checked for that model.
-
-If the configuration message remains, verify the exact variable name, Production environment and project, then redeploy again. If the message changes to a provider error, check the key's status, API restrictions, project quota and model availability in AI Studio without sharing the key.
-
-**Official references:** [Google API key setup](https://ai.google.dev/gemini-api/docs/api-key), [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing), [Gemini data-use terms](https://ai.google.dev/gemini-api/terms), [Vercel environment variables](https://vercel.com/docs/environment-variables/managing-environment-variables).
 
 ## Search Coverage and Limits
 
