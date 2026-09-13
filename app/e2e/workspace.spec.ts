@@ -1,5 +1,45 @@
 import { expect, test } from "@playwright/test";
 
+test("three search selections return matching jobs directly", async ({
+  page,
+}) => {
+  await page.goto("/demo");
+  const form = page.getByRole("form", { name: "Find jobs" });
+  await form.getByLabel("1. Roles or keywords", { exact: true }).fill("Design");
+  await form
+    .getByLabel("2. Countries or cities", { exact: true })
+    .fill("Netherlands");
+  await form.getByLabel("Full-time", { exact: true }).uncheck();
+  await form.getByLabel("Working student", { exact: true }).uncheck();
+  await form.getByRole("button", { name: "Search jobs", exact: true }).click();
+  await expect(page.locator(".job-card")).toHaveCount(2);
+  await expect(page.getByRole("heading", { name: "Your matches 2" })).toBeFocused();
+  await expect(page.locator(".job-card").first()).toContainText("Netherlands");
+  await expect(
+    page.getByRole("status").filter({ hasText: "Search complete" }),
+  ).toBeVisible();
+  await form
+    .getByLabel("2. Countries or cities", { exact: true })
+    .fill("Canada");
+  await form.getByRole("button", { name: "Search jobs", exact: true }).click();
+  await expect(page.locator(".job-card")).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "No jobs match these selections yet" }),
+  ).toBeVisible();
+  await form.getByLabel("1. Roles or keywords", { exact: true }).fill("");
+  await form.getByRole("button", { name: "Search jobs", exact: true }).click();
+  await expect(form.getByRole("alert")).toBeVisible();
+  await expect(
+    form.getByRole("button", { name: "Search jobs", exact: true }),
+  ).toBeEnabled();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await form.screenshot({ path: test.info().outputPath("job-search.png") });
+});
+
 test("search, save, draft and update an application", async ({ page }) => {
   await page.goto("/demo");
   await expect(

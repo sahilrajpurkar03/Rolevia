@@ -31,6 +31,7 @@ import {
   X,
 } from "lucide-react";
 import { ProfileForm } from "./profile-form";
+import { JobSearchForm } from "./job-search-form";
 import type { CvDrafts } from "@/lib/cv-editor";
 import type { LetterDrafts } from "@/lib/letter-editor";
 const LetterEditor = dynamic(
@@ -47,10 +48,11 @@ import {
   dismissMatch,
   generateLetter,
   saveMatch,
+  searchJobs,
   updateApplication,
 } from "@/lib/actions";
 import { logout } from "@/lib/auth-actions";
-import { draftLetter, type Job } from "@/lib/matching";
+import { draftLetter, refreshMatches, type Job } from "@/lib/matching";
 import {
   emptyProfile,
   statuses,
@@ -131,6 +133,17 @@ export function Workspace(props: Props) {
   const [status, setStatus] = useState("all");
   const [message, setMessage] = useState<ActionResult>({});
   const [pending, startTransition] = useTransition();
+  const resultsHeading = useRef<HTMLHeadingElement>(null);
+  const searchRequested = useRef(false);
+  useEffect(() => {
+    if (searchRequested.current && !pending && (message.success || message.error)) {
+      searchRequested.current = false;
+      if (message.success) {
+        resultsHeading.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        resultsHeading.current?.focus({ preventScroll: true });
+      }
+    }
+  }, [pending, message]);
   const [selected, setSelected] = useState<MatchRecord | null>(null);
   const [editing, setEditing] = useState<ApplicationRecord | null>(null);
   const [adding, setAdding] = useState(false);
@@ -350,22 +363,31 @@ export function Workspace(props: Props) {
                         Fresh possibilities. A clearer direction.
                       </p>
                     </div>
-                    <button
-                      className="button"
-                      disabled={pending}
-                      onClick={() =>
-                        props.demo
-                          ? setMessage({
-                              success:
-                                "Preview only. Live checks become available after account setup.",
-                            })
-                          : act(checkNow)
-                      }
-                    >
-                      <RefreshCw size={16} className={pending ? "spin" : ""} />
-                      Check now
-                    </button>
                   </div>
+                  <JobSearchForm
+                    key={JSON.stringify([
+                      profile.fields,
+                      profile.regions,
+                      profile.jobTypes,
+                      profile.remote,
+                    ])}
+                    profile={profile}
+                    pending={pending}
+                    onSearch={(preferences) => {
+                      searchRequested.current = true;
+                      setSearch("");
+                      setType("all");
+                      if (props.demo) {
+                        const next = { ...profile, ...preferences };
+                        setSampleProfile(next);
+                        setSampleMatches(refreshMatches(props.matches, next));
+                        setMessage({
+                          success:
+                            "Search complete. Showing matching sample jobs; live searches require your account.",
+                        });
+                      } else act(() => searchJobs(preferences));
+                    }}
+                  />
                   <div className="stats-strip">
                     <div>
                       <span>Matched opportunities</span>
@@ -453,7 +475,7 @@ export function Workspace(props: Props) {
                 <div className="content-columns">
                   <section className="opportunities">
                     <div className="list-heading">
-                      <h2>
+                      <h2 ref={resultsHeading} tabIndex={-1}>
                         Your matches <span>{visibleMatches.length}</span>
                       </h2>
                       <label className="sort-control">
@@ -583,12 +605,16 @@ export function Workspace(props: Props) {
                         title={
                           matches.length
                             ? "No matches with these filters"
-                            : "Your next opportunity is on its way"
+                            : latest || props.demo
+                              ? "No jobs match these selections yet"
+                              : "Ready to search"
                         }
                         text={
                           matches.length
                             ? "Try another keyword or employment type."
-                            : "Run a check, or broaden your fields and regions in preferences."
+                            : latest || props.demo
+                              ? "No results in the available feeds for your last search."
+                              : "No search results yet."
                         }
                       />
                     )}

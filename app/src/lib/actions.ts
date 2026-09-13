@@ -1,4 +1,5 @@
 "use server";
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "./supabase/server";
@@ -6,6 +7,7 @@ import {
   applicationSchema,
   manualJobSchema,
   profileSchema,
+  searchPreferencesSchema,
   type ActionResult,
 } from "./schema";
 import { draftLetter, type Job } from "./matching";
@@ -55,6 +57,49 @@ export async function checkNow(): Promise<ActionResult> {
         : `${result.count} new matches. ${result.message}`,
     };
   } catch (error) {
+    return failure(error);
+  }
+}
+export async function searchJobs(input: unknown): Promise<ActionResult> {
+  try {
+    const preferences = searchPreferencesSchema.parse(input);
+    const { client, user } = await requireUser();
+    const { data, error } = await client
+      .from("profiles")
+      .select("data")
+      .eq("id", user.id)
+      .single();
+    if (error) return { error: "Could not load your profile. Please retry." };
+    const profile = profileSchema.parse({ ...data?.data, ...preferences });
+    const saved = await writeProfileChange(client, user.id, { profile });
+    if (saved.error) return saved;
+    const fingerprint = createHash("sha256")
+      .update(
+        JSON.stringify({
+          fields: preferences.fields.map((value) => value.toLowerCase()).sort(),
+          regions: preferences.regions
+            .map((value) => value.toLowerCase())
+            .sort(),
+          jobTypes: [...preferences.jobTypes].sort(),
+          remote: preferences.remote,
+        }),
+      )
+      .digest("hex")
+      .slice(0, 24);
+    const result = await runCheck(
+      client,
+      user.id,
+      profile,
+      `search:${Math.floor(Date.now() / 900000)}:${fingerprint}`,
+    );
+    revalidatePath("/workspace");
+    return {
+      success: result.skipped
+        ? "Showing results for these selections. This search already ran in the last 15 minutes."
+        : `Search complete. ${result.count} new matches added. ${result.message}`,
+    };
+  } catch (error) {
+    revalidatePath("/workspace");
     return failure(error);
   }
 }

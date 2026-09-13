@@ -877,6 +877,78 @@ input[type="checkbox"] {
   padding: 18px 0;
   border-block: 1px solid var(--line);
 }
+.job-search-form {
+  border-block: 1px solid var(--line);
+  margin-bottom: 24px;
+  padding: 20px 0;
+}
+.job-search-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.job-search-heading h2 {
+  font-size: 20px;
+}
+.job-search-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.job-search-controls > label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.job-search-types {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.job-search-types legend {
+  font-size: 12px;
+  margin-bottom: 7px;
+  padding: 0;
+}
+.job-search-types label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  min-height: 32px;
+  margin-right: 12px;
+}
+.job-search-controls > .job-search-remote {
+  flex-direction: row;
+  align-items: center;
+  grid-column: 1 / -1;
+}
+.job-search-form > details {
+  margin-top: 16px;
+}
+.job-search-form > details > summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+.job-search-form .role-suggestion label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
+}
+@media (max-width: 800px) {
+  .job-search-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .role-suggestions-heading,
 .role-suggestions-tools {
   display: flex;

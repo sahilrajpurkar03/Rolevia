@@ -19,6 +19,13 @@ export const profileSchema = z.object({
   cvName: z.string().max(255),
 });
 export type Profile = z.infer<typeof profileSchema>;
+export const searchPreferencesSchema = profileSchema.pick({
+  fields: true,
+  regions: true,
+  jobTypes: true,
+  remote: true,
+});
+export type SearchPreferences = z.infer<typeof searchPreferencesSchema>;
 export const statuses = [
   "saved",
   "applied",

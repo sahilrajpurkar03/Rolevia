@@ -390,7 +390,7 @@ export function ProfileForm({
   );
 }
 
-function TermsInput({
+export function TermsInput({
   label,
   values,
   onChange,

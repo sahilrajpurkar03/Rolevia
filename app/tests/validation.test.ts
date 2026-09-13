@@ -5,11 +5,54 @@ import {
   profileSchema,
   manualJobSchema,
   applicationSchema,
+  searchPreferencesSchema,
 } from "../src/lib/schema.ts";
 import { extractCv, validateDocx } from "../src/lib/cv.ts";
 import { suggestProfile } from "../src/lib/cv-profile.ts";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import JSZip from "jszip";
+
+test("three-selection searches validate bounds without accepting profile replacements", () => {
+  const search = {
+    fields: ["ROS2"],
+    regions: ["Germany"],
+    jobTypes: ["full-time"],
+    remote: true,
+  };
+  assert.equal(searchPreferencesSchema.safeParse(search).success, true);
+  assert.equal(
+    searchPreferencesSchema.safeParse({ ...search, fields: [] }).success,
+    false,
+  );
+  assert.equal(
+    searchPreferencesSchema.safeParse({ ...search, regions: [] }).success,
+    false,
+  );
+  assert.equal(
+    searchPreferencesSchema.safeParse({ ...search, jobTypes: [] }).success,
+    false,
+  );
+  assert.equal(
+    searchPreferencesSchema.safeParse({
+      ...search,
+      fields: Array(26).fill("ROS2"),
+    }).success,
+    false,
+  );
+  assert.equal(
+    searchPreferencesSchema.safeParse({ ...search, regions: ["x".repeat(101)] })
+      .success,
+    false,
+  );
+  assert.equal(
+    "fullName" in
+      searchPreferencesSchema.parse({
+        ...search,
+        fullName: "Not a profile update",
+      }),
+    false,
+  );
+});
 
 test("empty or incomplete onboarding cannot be saved", () => {
   assert.equal(profileSchema.safeParse(emptyProfile).success, false);
