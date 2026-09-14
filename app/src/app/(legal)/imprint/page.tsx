@@ -10,17 +10,11 @@ export default function ImprintPage() {
         Rolevia is a noncommercial personal project based in Germany, currently
         in public beta testing.
       </p>
-      <p className="legal-draft">
-        <strong>Incomplete legal notice.</strong> The operator name and contact
-        email are published below. The address still lacks a street and house
-        number for service. This page is not a completed statutory imprint.
-      </p>
       <h2>Operator information</h2>
       <ul>
         <li>Project: Rolevia.</li>
         <li>Responsible operator: {legalOperator.name}.</li>
-        <li>Location: {legalOperator.address}.</li>
-        <li>Address for service: street and house number not yet supplied.</li>
+        <li>Address for service: {legalOperator.address}.</li>
         <li>
           Contact email:{" "}
           <a href={`mailto:${legalOperator.email}`}>{legalOperator.email}</a>
@@ -33,7 +27,7 @@ export default function ImprintPage() {
         before using it. Beta status and noncommercial operation do not remove
         applicable legal obligations or your statutory rights.
       </p>
-      <p>Last updated: 12 September 2026.</p>
+      <p>Last updated: 14 September 2026.</p>
     </>
   );
 }

@@ -67,7 +67,7 @@ test("beta notice and legal pages are public and readable", async ({
   });
 });
 
-test("legal pages publish operator details and retain the missing address warning", async ({
+test("legal pages publish the confirmed operator address", async ({
   page,
 }) => {
   for (const path of ["/imprint", "/privacy"]) {
@@ -75,14 +75,14 @@ test("legal pages publish operator details and retain the missing address warnin
     expect(response?.status()).toBe(200);
     const content = page.getByRole("main");
     await expect(content).toContainText("Sahil Rajpurkar");
-    await expect(content).toContainText("M\u00f6nsheim, 71297, Germany");
+    await expect(content).toContainText("Emil-Figge-Str. 21, 44227 Dortmund, Germany");
     await expect(
       content.getByRole("link", {
         name: "sahilrajpurkar1998@gmail.com",
         exact: true,
       }),
     ).toHaveAttribute("href", "mailto:sahilrajpurkar1998@gmail.com");
-    await expect(content).toContainText("street and house number");
+    await expect(content).not.toContainText("street and house number");
     await expect(content).not.toContainText("contact is still missing");
     expect(
       await page.evaluate(

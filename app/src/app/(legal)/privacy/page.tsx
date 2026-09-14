@@ -8,8 +8,8 @@ export default function PrivacyPage() {
     <>
       <h1>Privacy policy / Datenschutzhinweise</h1>
       <p className="legal-draft">
-        <strong>Draft privacy notice.</strong> The controller name and contact
-        email are published below. A complete postal address, legal bases,
+        <strong>Draft privacy notice.</strong> The controller name, postal address,
+        and contact email are published below. Legal bases,
         retention periods, and provider transfer arrangements still need
         operator confirmation. This notice describes the implemented service; it
         is not a claim of GDPR compliance. Avoid uploading sensitive information
@@ -21,15 +21,14 @@ export default function PrivacyPage() {
         controller responsible for the processing described here.
       </p>
       <ul>
-        <li>Location: {legalOperator.address}.</li>
+        <li>Postal address: {legalOperator.address}.</li>
         <li>
           Privacy contact:{" "}
           <a href={`mailto:${legalOperator.email}`}>{legalOperator.email}</a>
         </li>
       </ul>
       <p>
-        The street and house number for the postal address have not yet been
-        supplied. See the <Link href="/imprint">imprint</Link>.
+        See the <Link href="/imprint">imprint</Link> for operator information.
       </p>
       <h2>Information processed</h2>
       <ul>

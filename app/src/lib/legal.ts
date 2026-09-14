@@ -1,5 +1,5 @@
 export const legalOperator = {
   name: "Sahil Rajpurkar",
-  address: "M\u00f6nsheim, 71297, Germany",
+  address: "Emil-Figge-Str. 21, 44227 Dortmund, Germany",
   email: "sahilrajpurkar1998@gmail.com",
 };
