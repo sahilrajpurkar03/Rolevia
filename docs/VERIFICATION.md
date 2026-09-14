@@ -1,6 +1,18 @@
 # Verification
 
-Verified on Windows with Node 24.19.0 on 2026-09-11.
+## Current Status: 14 September 2026
+
+- Gmail digest implementation `8f8be12` passed lint, typechecking, 58 unit tests, production build, PDF dependency tracing and GitHub CI (including browser and worker checks). Production SMTP variables are configured; deployment `rolevia-hmznywsz4-sparc1.vercel.app` is aliased to the live site.
+- The owner confirmed receipt of a Gmail-backed Supabase password-recovery email and a successful password reset. This does not verify all recovery edge cases or signup delivery.
+- Real Gemini generation passed with three paragraphs and two evidence quotes checked against a synthetic profile. The live browser workflow below uses mocked AI output, not another real Gemini call.
+- `verify-live-account.mjs --run --search --ai` passed against production: CV/letter persistence before onboarding, preservation of existing documents, AI consent and failure handling, review before insertion, manual editing, PDF/Word downloads, Undo, application-editor generation/replacement/export/save, ranked search persistence, exclusion of a logged job and second-account read/write isolation. Both synthetic accounts and their records were deleted.
+- Hosted search returned LinkedIn 30, Indeed 22 and Xing 30 listings across three role queries. Google returned zero (`empty_or_blocked`); StepStone returned zero (`timeout`). Five-source functioning coverage is not achieved.
+- At the owner's request, daily checks and email digests were enabled with an optimistic-concurrency update preserving all other profile data. Vercel CLI triggered `/api/cron/daily` at 07:24 UTC. The account's run completed: 266 public-feed listings retrieved, zero ranked/new matches. No email was expected or sent. Gmail digest acceptance/inbox delivery and the next automatic scheduled invocation remain unverified. Daily checks currently use Arbeitnow and Remotive, not the full manual-search sources.
+- Google OAuth remains postponed. Physical-device installation, cross-device persistence, real-session expired/reused recovery links and multi-hour authenticated load remain outside the completed checks. Previously exposed credentials still require owner-confirmed rotation.
+
+## Historical Baseline: 11 September 2026
+
+The following is the original Windows/Node 24.19.0 verification record. Its outstanding setup items are superseded where explicitly confirmed above.
 
 ## Passed
 
