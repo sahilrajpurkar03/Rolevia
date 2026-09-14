@@ -51,7 +51,7 @@ The app supports Google OAuth and shows the button only when Supabase reports th
 
 ### Daily Search And Email Testing
 
-Production test-email verification on 14 September returned HTTP 200 after Gmail accepted the owner's labeled test. Inbox receipt remains owner-confirmed. A synthetic full-source daily run completed with 20 new matches; its email preference was disabled and its account was deleted afterward. The earlier zero-match run described above preceded this full-source change.
+Production test-email verification on 14 September returned HTTP 200 after Gmail accepted the owner's labeled test. The owner subsequently confirmed receipt; inbox-versus-spam placement was not specified. A synthetic full-source daily run completed with 20 new matches; its email preference was disabled and its account was deleted afterward. The earlier zero-match run described above preceded this full-source change. A real automatically scheduled digest remains unverified.
 
 Daily checks now attempt the manual-search sources (the four-source Python worker, StepStone, Arbeitsagentur and both public feeds). This does not resolve upstream Google/StepStone availability. Per-account search time is capped at 200 seconds; incomplete queries are reported. To fit a single free-tier invocation, at most four opted-in profiles are processed concurrently. Above four profiles, a deterministic rotating batch defers the rest and the cron returns HTTP 207 with a deferred count. More than 100 profiles still requires a queued scheduler. For the current single-account pilot this includes the account every day; do not promise daily coverage for all accounts beyond four.
 
