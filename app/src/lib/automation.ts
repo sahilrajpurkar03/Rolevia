@@ -5,6 +5,7 @@ import { matchJob, type Job } from "./matching";
 import type { Profile } from "./schema";
 import { searchAgency, type SearchProgress } from "./query-jobs";
 import { searchPlatforms } from "./platform-jobs";
+export { sendDigest } from "./digest-email";
 
 export async function runCheck(
   client: SupabaseClient,
@@ -182,38 +183,6 @@ export async function runCheck(
       .eq("user_id", userId);
     throw new Error(message);
   }
-}
-
-export async function sendDigest(
-  email: string,
-  count: number,
-  userId: string,
-  date: string,
-) {
-  if (
-    !process.env.RESEND_API_KEY ||
-    !process.env.DIGEST_FROM ||
-    !process.env.NEXT_PUBLIC_SITE_URL
-  )
-    return "Email delivery is not configured.";
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    signal: AbortSignal.timeout(15000),
-    headers: {
-      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-      "Idempotency-Key": `digest-${userId}-${date}`,
-    },
-    body: JSON.stringify({
-      from: process.env.DIGEST_FROM,
-      to: [email],
-      subject: `${count} new matches on Rolevia`,
-      text: `${count} new jobs match your preferences.\n\nReview: ${process.env.NEXT_PUBLIC_SITE_URL}/workspace\n\nTurn off daily emails in your Rolevia profile at any time.`,
-    }),
-  });
-  return response.ok
-    ? null
-    : "Email delivery failed; matches remain available in your inbox.";
 }
 
 export type MatchRecord = {

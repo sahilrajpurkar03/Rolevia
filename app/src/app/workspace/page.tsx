@@ -6,6 +6,7 @@ import { cvDraftsSchema } from "@/lib/cv-editor";
 import { letterDraftsSchema } from "@/lib/letter-editor";
 import { refreshMatches } from "@/lib/matching";
 import { workspaceFailures } from "@/lib/workspace-errors";
+import { digestEmailReady } from "@/lib/digest-email";
 import type {
   ApplicationRecord,
   CheckRecord,
@@ -81,9 +82,7 @@ export default async function Page() {
         process.env.SUPABASE_SERVICE_ROLE_KEY &&
         process.env.VERCEL,
       )}
-      emailReady={Boolean(
-        process.env.RESEND_API_KEY && process.env.DIGEST_FROM,
-      )}
+      emailReady={digestEmailReady()}
     />
   );
 }

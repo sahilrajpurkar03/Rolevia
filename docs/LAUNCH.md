@@ -11,7 +11,9 @@ In Supabase Authentication > URL Configuration, set Site URL to `https://rolevia
 
 Retain the localhost redirects if local development is still needed. As of 13 September 2026, `SUPABASE_SERVICE_ROLE_KEY` and a randomly generated `CRON_SECRET` are configured as sensitive production variables in Vercel. The production app was redeployed and an authenticated scheduler invocation returned HTTP 200 with zero completed and zero failed profiles. There were no eligible profiles; execution for an opted-in real profile and the next provider-scheduled invocation remain unverified.
 
-Email digests require `RESEND_API_KEY` and `DIGEST_FROM`, which remain unconfigured. The owner does not yet have a sending domain. Configure a verified sender and Supabase custom SMTP before relying on confirmation/recovery delivery or enabling digests. Enter secrets directly in provider settings or a terminal, never chat or Git. Redeploy after changing environment variables.
+Email digests support free Gmail SMTP using server-only `SMTP_USER` (full Gmail sender address) and `SMTP_PASSWORD` (Google App Password, without spaces). Set these in Vercel Production; Supabase SMTP settings are separate and are not shared with the app. Gmail uses TLS on `smtp.gmail.com:465` and sends from the authenticated mailbox as Rolevia. No purchased domain is required for this small pilot; Gmail quotas, spam filtering and account restrictions still apply. Alternatively, configure `RESEND_API_KEY` and `DIGEST_FROM` with a verified sender. Complete Gmail settings take precedence; incomplete Gmail settings disable sending rather than silently falling back. Enter secrets directly in provider settings or a secure terminal prompt, never chat or Git. Redeploy after changing environment variables.
+
+On 14 September 2026 the owner confirmed Gmail-backed Supabase recovery email delivery and a successful password reset. Digest SMTP delivery and a scheduled real-user digest still require separate verification. Daily digests require both daily checks and email opt-in, and send only when a check stores new matches. The existing per-account daily claim prevents a repeated cron invocation from sending again. SMTP itself has no idempotency guarantee; ambiguous delivery failures are not automatically retried. Delivery warnings leave matches available in the workspace.
 
 Live verification on 13 September 2026 passed: all four private tables have RLS enabled; the transactional ownership SQL test passed and rolled back its fixtures; two temporary authenticated accounts verified CV/letter save and reload before onboarding, CV preservation after letter saves, and cross-account document access denial. Both accounts and their records were deleted afterward. These checks do not verify email delivery, recovery, or every account-isolation operation.
 
@@ -35,11 +37,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR-PUBLIC-ANON-KEY
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 SUPABASE_SERVICE_ROLE_KEY=SERVER-ONLY-VALUE
 CRON_SECRET=LONG-RANDOM-SERVER-ONLY-VALUE
-RESEND_API_KEY=SERVER-ONLY-VALUE
-DIGEST_FROM=Rolevia <jobs@YOUR-VERIFIED-DOMAIN>
+SMTP_USER=YOUR-SENDER@gmail.com
+SMTP_PASSWORD=GOOGLE-APP-PASSWORD
 ```
 
-The first three enable accounts. The service-role key and cron secret enable hosted daily checks. Resend variables enable opt-in digests. The anon key is intentionally public; RLS is the data boundary. Enter values directly into local/Vercel settings, never agent chat. Restart the dev server after changing environment variables.
+The first three enable accounts. The service-role key and cron secret enable hosted daily checks. The SMTP variables enable opt-in Gmail digests. For Resend instead, omit both SMTP variables and set `RESEND_API_KEY` and `DIGEST_FROM`. The anon key is intentionally public; RLS is the data boundary. Enter values directly into local/Vercel settings, never agent chat. Restart the dev server after changing environment variables.
 
 ## 3. Authentication URLs
 
