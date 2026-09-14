@@ -19,6 +19,23 @@ test("StepStone cards exclude CSS and retain dates, unknown types and safe job U
   );
 });
 
+test("StepStone searches the public first page without query-string pagination", async () => {
+  const requests: URL[] = [];
+  const fetcher = (async (input: URL | RequestInfo) => {
+    const url = new URL(String(input));
+    requests.push(url);
+    assert.equal(url.search, "");
+    return new Response(url.pathname.startsWith("/jobs/")
+      ? `<article data-at="job-item"><a data-at="job-item-title" href="/stellenangebote--Engineer--1.html">Engineer</a><span data-at="job-item-company-name">Example</span></article>`
+      : "<html></html>");
+  }) as typeof fetch;
+  const result = await searchStepstone("Robotics", "Germany", 50, new AbortController().signal, fetcher);
+  assert.equal(result.status, "ok");
+  assert.equal(result.jobs.length, 1);
+  assert.equal(requests.filter(url => url.pathname.startsWith("/jobs/")).length, 1);
+  assert.equal(requests[0].pathname, "/jobs/robotics/in-germany");
+});
+
 test("StepStone refuses off-host redirects and reports provider blocks", async () => {
   let calls = 0;
   const redirect = (async () => {

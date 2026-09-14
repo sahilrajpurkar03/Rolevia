@@ -135,12 +135,7 @@ export async function searchStepstone(
     const url = new URL(
       `https://www.stepstone.de/jobs/${slug(term)}/in-${slug(location)}`,
     );
-    for (
-      let pageNumber = 1;
-      pageNumber <= Math.ceil(limit / 25);
-      pageNumber++
-    ) {
-      url.searchParams.set("page", String(pageNumber));
+    if (limit > 0) {
       const found = parseStepstone(
         await page(
           url,
@@ -148,11 +143,9 @@ export async function searchStepstone(
           fetcher,
         ),
       );
-      const fresh = found.filter(
-        (job) => !jobs.some((existing) => existing.url === job.url),
-      );
-      jobs.push(...fresh);
-      if (!fresh.length || jobs.length >= limit) break;
+      for (const job of found) {
+        if (!jobs.some((existing) => existing.url === job.url)) jobs.push(job);
+      }
     }
     jobs.splice(limit);
     let cursor = 0;
