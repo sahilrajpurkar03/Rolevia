@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { discoverJobs } from "@/lib/jobs";
 import { runCheck, sendDigest } from "@/lib/automation";
 import { profileSchema } from "@/lib/schema";
+import { dailyBatch } from "@/lib/daily-schedule";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -34,6 +35,7 @@ export async function GET(request: NextRequest) {
     .from("profiles")
     .select("id,data")
     .eq("data->>dailyChecks", "true")
+    .order("id")
     .limit(101);
   if (error)
     return NextResponse.json(
@@ -50,43 +52,55 @@ export async function GET(request: NextRequest) {
     );
   const feed = await discoverJobs();
   const date = new Date().toISOString().slice(0, 10);
+  const batch = dailyBatch(data, date);
   let completed = 0;
   let failed = 0;
-  for (const row of data) {
-    const profile = profileSchema.safeParse(row.data);
-    if (!profile.success) {
-      failed++;
-      continue;
-    }
-    try {
-      const result = await runCheck(
-        client,
-        row.id,
-        profile.data,
-        `daily:${date}`,
-        feed,
-      );
-      if (!result.skipped && profile.data.emailDigest && result.count > 0) {
-        const {
-          data: { user },
-        } = await client.auth.admin.getUserById(row.id);
-        const warning = user?.email
-          ? await sendDigest(user.email, result.count, row.id, date)
-          : "No email address found.";
-        if (warning)
-          await client
-            .from("check_runs")
-            .update({ message: `${result.message} ${warning}` })
-            .eq("user_id", row.id)
-            .eq("run_key", `daily:${date}`);
+  await Promise.all(
+    batch.selected.map(async (row) => {
+      const profile = profileSchema.safeParse(row.data);
+      if (!profile.success) {
+        failed++;
+        return;
       }
-      completed++;
-    } catch {
-      failed++;
-    }
-  }
+      try {
+        const result = await runCheck(
+          client,
+          row.id,
+          profile.data,
+          `daily:${date}`,
+          feed,
+          {
+            listSize: 40,
+            resultsPerRequest: 20,
+            country: profile.data.country ?? "germany",
+            budgetMs: 200000,
+          },
+        );
+        if (!result.skipped && profile.data.emailDigest && result.count > 0) {
+          const {
+            data: { user },
+          } = await client.auth.admin.getUserById(row.id);
+          const warning = user?.email
+            ? await sendDigest(user.email, result.count, row.id, date)
+            : "No email address found.";
+          if (warning)
+            await client
+              .from("check_runs")
+              .update({ message: `${result.message} ${warning}` })
+              .eq("user_id", row.id)
+              .eq("run_key", `daily:${date}`);
+        }
+        completed++;
+      } catch {
+        failed++;
+      }
+    }),
+  );
   return NextResponse.json(
-    { completed, failed },
-    { status: failed ? 207 : 200, headers: { "Cache-Control": "no-store" } },
+    { completed, failed, deferred: batch.deferred },
+    {
+      status: failed || batch.deferred ? 207 : 200,
+      headers: { "Cache-Control": "no-store" },
+    },
   );
 }

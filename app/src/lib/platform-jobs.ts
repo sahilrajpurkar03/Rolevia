@@ -59,6 +59,7 @@ export async function searchPlatforms(
     secret: process.env.SEARCH_WORKER_SECRET,
   },
   fetcher: typeof fetch = fetch,
+  budgetMs = 240000,
 ) {
   const jobs: Job[] = [];
   const stats = Object.fromEntries(
@@ -88,7 +89,7 @@ export async function searchPlatforms(
       preferences.regions.map((location) => ({ term, location })),
     )
     .slice(0, 75);
-  const deadline = AbortSignal.timeout(240000);
+  const deadline = AbortSignal.timeout(budgetMs);
   let cursor = 0;
   let completed = 0;
   await Promise.all(

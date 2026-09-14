@@ -1,5 +1,5 @@
 import { AuthForm } from "@/components/auth-form";
-import { isConfigured } from "@/lib/supabase/server";
+import { isConfigured, googleLoginEnabled } from "@/lib/supabase/server";
 export default async function Page({
   searchParams,
 }: {
@@ -9,6 +9,7 @@ export default async function Page({
     <AuthForm
       mode="login"
       configured={isConfigured()}
+      googleEnabled={await googleLoginEnabled()}
       expired={(await searchParams).error === "expired"}
     />
   );

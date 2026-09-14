@@ -2,22 +2,25 @@
 import Link from "next/link";
 import { useActionState, useId, useState } from "react";
 import { ArrowRight, Compass, Eye, EyeOff, LoaderCircle } from "lucide-react";
-import { authAction } from "@/lib/auth-actions";
+import { authAction, googleAuthAction } from "@/lib/auth-actions";
 
 export function AuthForm({
   mode,
   configured,
   expired = false,
+  googleEnabled = false,
 }: {
   mode: "login" | "signup" | "forgot" | "reset";
   configured: boolean;
   expired?: boolean;
+  googleEnabled?: boolean;
 }) {
   const [state, action, pending] = useActionState(
     authAction.bind(null, mode),
     {},
   );
   const [showPassword, setShowPassword] = useState(false);
+  const [googleState, googleAction, googlePending] = useActionState(googleAuthAction, {});
   const [capsLock, setCapsLock] = useState(false);
   const passwordId = useId();
   const emailId = useId();
@@ -157,6 +160,15 @@ export function AuthForm({
             {labels[mode]}
           </button>
         </form>
+        {googleEnabled && (mode === "login" || mode === "signup") && (
+          <form action={googleAction}>
+            <button className="button full" disabled={googlePending || pending}>
+              {googlePending ? <LoaderCircle size={18} className="spin" /> : <ArrowRight size={18} />}
+              Continue with Google
+            </button>
+            {googleState.error && <p role="alert" className="notice error">{googleState.error}</p>}
+          </form>
+        )}
         <div className="auth-links">
           {mode === "login" ? (
             <>

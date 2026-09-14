@@ -29,6 +29,17 @@ export async function createClient() {
     },
   );
 }
+export async function googleLoginEnabled() {
+  if (!isConfigured()) return false;
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/settings`, {
+      headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
+      signal: AbortSignal.timeout(5000),
+      cache: "no-store",
+    });
+    return response.ok && (await response.json()).external?.google === true;
+  } catch { return false; }
+}
 export async function requireUser() {
   const client = await createClient();
   const {

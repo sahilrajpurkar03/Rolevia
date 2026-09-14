@@ -1,5 +1,13 @@
 import { test, expect } from "@playwright/test";
 
+test("email tests require authentication and same-origin requests", async ({ request, baseURL }) => {
+  const denied = await request.post("/api/email/test", { headers: { Origin: baseURL! } });
+  expect(denied.status()).toBe(401);
+  expect(denied.headers()["cache-control"]).toContain("no-store");
+  const crossOrigin = await request.post("/api/email/test", { headers: { Origin: "https://example.invalid" } });
+  expect(crossOrigin.status()).toBe(403);
+});
+
 test("beta notice and legal pages are public and readable", async ({
   page,
 }) => {

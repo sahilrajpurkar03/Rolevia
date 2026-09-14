@@ -2,6 +2,14 @@
 
 ## Current Status: 14 September 2026
 
+Latest follow-up supersedes the earlier daily-source and email-acceptance limitations below:
+
+- Bounded full-source daily search, an own-account test-email endpoint/control, and configuration-gated Google sign-in passed lint, TypeScript, 61 unit tests, production build, and 34 live desktop/mobile browser regressions. Desktop/mobile Activity screenshots were inspected without horizontal overflow.
+- Production `/api/email/test` returned HTTP 200 after Gmail accepted the owner's explicitly labeled test message. The temporary verification session was signed out. Inbox receipt still requires owner confirmation; provider acceptance is not proof of inbox placement.
+- A temporary profile's daily cron run completed with 337 retrieved listings and 20 ranked/new matches. Arbeitsagentur succeeded 1/1; LinkedIn returned 20, Indeed 17, Xing 14, Google zero (`empty_or_blocked`) and StepStone zero (`timeout`). Email was disabled for synthetic accounts, which were deleted after verification. Daily checks now attempt full sources with a 200-second per-account search budget and a rotating four-account pilot batch; existing daily claims remain unchanged.
+- Google sign-in code is ready but the Supabase provider is disabled; the owner must configure a Google OAuth client ID/secret before real sign-in can be verified. A local Google Jobs diagnostic redirected to Google's consent page with zero parser entries; this does not establish the precise hosted failure cause. StepStone hosting timeouts remain unresolved. No paid proxy or consent bypass was added.
+- The next automatic provider-scheduled invocation and owner-confirmed exposed-key rotation remain pending. A first daily verification attempt relied on a realtime event and timed out; the subsequent direct database verification above passed.
+
 - Gmail digest implementation `8f8be12` passed lint, typechecking, 58 unit tests, production build, PDF dependency tracing and GitHub CI (including browser and worker checks). Production SMTP variables are configured; deployment `rolevia-hmznywsz4-sparc1.vercel.app` is aliased to the live site.
 - The owner confirmed receipt of a Gmail-backed Supabase password-recovery email and a successful password reset. This does not verify all recovery edge cases or signup delivery.
 - Real Gemini generation passed with three paragraphs and two evidence quotes checked against a synthetic profile. The live browser workflow below uses mocked AI output, not another real Gemini call.

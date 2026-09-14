@@ -247,7 +247,7 @@ Snapshot from 14 September 2026: three robotics queries, counts before deduplica
 
 ### Daily Checks
 
-Daily automation uses Arbeitnow and Remotive feeds, not the interactive five-platform query pipeline. Daily checks and email digests require their hosted services; email delivery is not configured in this deployment. Open **Activity** for job-check outcomes and source warnings.
+Daily automation now attempts the same sources as interactive search, within a time limit; Google and StepStone can still be unavailable. The free pilot processes up to four accounts per day; larger account lists rotate and defer the remaining accounts. Gmail delivery is configured. In **Activity**, use **Send test email** to check delivery to your confirmed account address (one attempt per UTC day), and review job-check outcomes and source warnings. Daily digests are sent only when new matches are saved.
 
 ## Technical Documentation
 

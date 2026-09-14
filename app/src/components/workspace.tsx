@@ -31,6 +31,7 @@ import {
   X,
 } from "lucide-react";
 import { ProfileForm } from "./profile-form";
+import { EmailTest } from "./email-test";
 import { JobSearchForm } from "./job-search-form";
 import { LetterGenerator } from "./letter-generator";
 import { newLetter } from "@/lib/letter-editor";
@@ -1036,6 +1037,7 @@ export function Workspace(props: Props) {
                     </button>
                   </div>
                   <div className="activity-list">
+                    {!props.demo && props.emailReady && <EmailTest />}
                     {props.checks.map((run) => (
                       <article key={run.id}>
                         <span

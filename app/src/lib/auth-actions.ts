@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient } from "./supabase/server";
+import { createClient, googleLoginEnabled } from "./supabase/server";
 import { recoveryErrorDetails } from "./recovery-errors";
 import type { ActionResult } from "./schema";
 
@@ -14,6 +14,20 @@ function callbackUrl(recovery = false) {
   const origin = process.env.NEXT_PUBLIC_SITE_URL;
   if (!origin) throw new Error("The site URL has not been configured.");
   return `${origin.replace(/\/$/, "")}/auth/callback${recovery ? "?next=reset" : ""}`;
+}
+export async function googleAuthAction(): Promise<ActionResult> {
+  if (!(await googleLoginEnabled())) return { error: "Google sign-in is not configured yet." };
+  let destination: string;
+  try {
+    const client = await createClient();
+    const { data, error } = await client.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: callbackUrl(), skipBrowserRedirect: true },
+    });
+    if (error || !data.url) return { error: "Google sign-in could not be started. Please try later." };
+    destination = data.url;
+  } catch { return { error: "Google sign-in is unavailable. Please try later." }; }
+  redirect(destination);
 }
 export async function authAction(
   mode: string,

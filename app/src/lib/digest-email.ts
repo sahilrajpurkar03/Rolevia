@@ -19,12 +19,13 @@ export async function sendDigest(
   userId: string,
   date: string,
   env: EmailEnvironment = process.env,
+  testEmail = false,
 ) {
   const provider = emailProvider(env);
   if (!provider) return "Email delivery is not configured.";
   const failure = "Email delivery failed; matches remain available in your inbox.";
-  const subject = `${count} new matches on Rolevia`;
-  const text = `${count} new jobs match your preferences.\n\nReview: ${env.NEXT_PUBLIC_SITE_URL!.replace(/\/$/, "")}/workspace\n\nTurn off daily emails in your Rolevia profile at any time.`;
+  const subject = testEmail ? "Rolevia email delivery test" : `${count} new matches on Rolevia`;
+  const text = `${testEmail ? "This is the email delivery test you requested. No new job matches are implied." : `${count} new jobs match your preferences.`}\n\nReview: ${env.NEXT_PUBLIC_SITE_URL!.replace(/\/$/, "")}/workspace\n\nTurn off daily emails in your Rolevia profile at any time.`;
   try {
     if (provider === "gmail") {
       const transport = nodemailer.createTransport({

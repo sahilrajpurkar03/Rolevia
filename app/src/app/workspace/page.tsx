@@ -42,6 +42,7 @@ export default async function Page() {
         .select("*")
         .eq("user_id", user.id)
         .not("run_key", "like", "ai-letter:%")
+        .not("run_key", "like", "email-test:%")
         .order("created_at", { ascending: false })
         .limit(30),
     ]);

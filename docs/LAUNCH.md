@@ -45,6 +45,18 @@ The first three enable accounts. The service-role key and cron secret enable hos
 
 ## 3. Authentication URLs
 
+### Google Sign-In
+
+The app supports Google OAuth and shows the button only when Supabase reports the Google provider enabled. In Google Cloud, create a Web application OAuth client with the redirect URI `https://qnuytqvbtcaeibcxyloq.supabase.co/auth/v1/callback`. Configure the consent screen and authorized users as required by Google. Enter the client ID and client secret directly in Supabase Authentication > Sign In / Providers > Google, then enable it. Do not paste the secret into chat or source. No billing upgrade is needed for basic Google sign-in. Until configured, password login remains available and Google sign-in is hidden. A real Google login still requires browser verification by the owner.
+
+### Daily Search And Email Testing
+
+Production test-email verification on 14 September returned HTTP 200 after Gmail accepted the owner's labeled test. Inbox receipt remains owner-confirmed. A synthetic full-source daily run completed with 20 new matches; its email preference was disabled and its account was deleted afterward. The earlier zero-match run described above preceded this full-source change.
+
+Daily checks now attempt the manual-search sources (the four-source Python worker, StepStone, Arbeitsagentur and both public feeds). This does not resolve upstream Google/StepStone availability. Per-account search time is capped at 200 seconds; incomplete queries are reported. To fit a single free-tier invocation, at most four opted-in profiles are processed concurrently. Above four profiles, a deterministic rotating batch defers the rest and the cron returns HTTP 207 with a deferred count. More than 100 profiles still requires a queued scheduler. For the current single-account pilot this includes the account every day; do not promise daily coverage for all accounts beyond four.
+
+In Activity, **Send test email** uses the configured server sender and the signed-in account's confirmed email only. It sends an explicitly labeled test without changing matches or email preferences. One attempt per UTC day is allowed, including failed sends. The server reports provider acceptance, not inbox delivery. Test audit entries are excluded from job-check history. Existing per-day search claims are retained; deploying broader search does not rerun an already claimed day.
+
 In Supabase Authentication URL Configuration, set the production Site URL and allow:
 
 - `http://localhost:3000/auth/callback`

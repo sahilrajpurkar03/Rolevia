@@ -9,6 +9,18 @@ const gmail = {
   NEXT_PUBLIC_SITE_URL: "https://example.invalid/",
 };
 
+test("test emails are explicitly labeled and never invent new matches", async (context) => {
+  context.mock.method(nodemailer, "createTransport", () => ({
+    async sendMail(message: { subject: string; text: string }) {
+      assert.equal(message.subject, "Rolevia email delivery test");
+      assert.match(message.text, /No new job matches are implied/);
+      return { accepted: ["recipient@example.invalid"], rejected: [] };
+    },
+    close() {},
+  }));
+  assert.equal(await sendDigest("recipient@example.invalid", 0, "user", "test-date", gmail, true), null);
+});
+
 test("digest readiness requires complete configuration and no partial SMTP fallback", async () => {
   assert.equal(digestEmailReady({}), false);
   assert.equal(digestEmailReady(gmail), true);

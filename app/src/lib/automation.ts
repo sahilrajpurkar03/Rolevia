@@ -17,6 +17,7 @@ export async function runCheck(
     listSize: number;
     resultsPerRequest: number;
     country?: string;
+    budgetMs?: number;
     progress?: (event: SearchProgress) => void;
   },
 ) {
@@ -43,7 +44,7 @@ export async function runCheck(
     const [base, agency, platforms] = await Promise.all([
       feed ? Promise.resolve(feed) : discoverJobs(),
       options
-        ? searchAgency(profile, options.resultsPerRequest, options.progress)
+        ? searchAgency(profile, options.resultsPerRequest, options.progress, fetch, options.budgetMs)
         : Promise.resolve(null),
       options
         ? searchPlatforms(
@@ -51,6 +52,9 @@ export async function runCheck(
             options.resultsPerRequest,
             options.country ?? "germany",
             options.progress,
+            undefined,
+            fetch,
+            options.budgetMs,
           )
         : Promise.resolve(null),
     ]);

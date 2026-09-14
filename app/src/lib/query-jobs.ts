@@ -91,6 +91,7 @@ export async function searchAgency(
   perRequest: number,
   progress: (event: SearchProgress) => void = () => {},
   fetcher: typeof fetch = fetch,
+  budgetMs = 180000,
 ) {
   const roles = [
     ...new Set(preferences.fields.map((term) => term.trim()).filter(Boolean)),
@@ -105,7 +106,7 @@ export async function searchAgency(
   let completed = 0;
   let succeeded = 0;
   let invalid = 0;
-  const deadline = AbortSignal.timeout(180000);
+  const deadline = AbortSignal.timeout(budgetMs);
   const get = async (url: URL) => {
     const response = await fetcher(url, {
       headers: {
