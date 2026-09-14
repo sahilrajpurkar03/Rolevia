@@ -1,13 +1,25 @@
-export function dailyBatch<T>(profiles: T[], date: string) {
-  const capacity = 4;
-  if (profiles.length <= capacity) return { selected: profiles, deferred: 0 };
-  const day = Math.floor(Date.parse(`${date}T00:00:00Z`) / 86400000);
-  const offset = (day * capacity) % profiles.length;
+export async function runDailyBatch<T>(
+  profiles: T[],
+  attempt: (profile: T) => Promise<boolean>,
+) {
+  let cursor = 0;
+  let processed = 0;
+  let skipped = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(4, profiles.length) }, async () => {
+      while (cursor < profiles.length) {
+        const profile = profiles[cursor++];
+        if (await attempt(profile)) {
+          processed++;
+          return;
+        }
+        skipped++;
+      }
+    }),
+  );
   return {
-    selected: Array.from(
-      { length: capacity },
-      (_, index) => profiles[(offset + index) % profiles.length],
-    ),
-    deferred: profiles.length - capacity,
+    processed,
+    skipped,
+    deferred: profiles.length - processed - skipped,
   };
 }

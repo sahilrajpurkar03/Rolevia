@@ -247,7 +247,7 @@ Snapshot from 14 September 2026: three robotics queries, counts before deduplica
 
 ### Daily Checks
 
-Daily automation now attempts the same sources as interactive search, within a time limit; Google and StepStone can still be unavailable. The free pilot processes up to four accounts per day; larger account lists rotate and defer the remaining accounts. Gmail delivery is configured. In **Activity**, use **Send test email** to check delivery to your confirmed account address (one attempt per UTC day), and review job-check outcomes and source warnings. Daily digests are sent only when new matches are saved.
+Daily automation attempts the same sources as interactive search, within a time limit; Google and StepStone can still be unavailable. The cloud-only scheduler supports up to 100 opted-in accounts through 25 daily batches of at most four attempts each. Batches are scheduled between 07:00 and 19:00 UTC, with the last invocation possible by 19:59 UTC. Accounts get at most one attempt per UTC day, including failed attempts; accounts enabled after the final batch wait until the next day. Free hosting and source quotas still apply, and 100-account production load has not been verified. Gmail delivery is configured. In **Activity**, use **Send test email** to check delivery to your confirmed account address (one attempt per UTC day), and review job-check outcomes and source warnings. Daily digests are sent only when new matches are saved.
 
 ## Technical Documentation
 

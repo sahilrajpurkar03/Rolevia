@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { discoverJobs } from "@/lib/jobs";
 import { runCheck, sendDigest } from "@/lib/automation";
 import { profileSchema } from "@/lib/schema";
-import { dailyBatch } from "@/lib/daily-schedule";
+import { runDailyBatch } from "@/lib/daily-schedule";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -46,56 +46,79 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "Pilot scheduler capacity exceeded. Configure a queued worker before enabling more than 100 daily profiles.",
+          "Daily scheduler capacity exceeded. At most 100 opted-in profiles are supported.",
       },
       { status: 503 },
     );
-  const feed = await discoverJobs();
   const date = new Date().toISOString().slice(0, 10);
-  const batch = dailyBatch(data, date);
+  const claims = await client
+    .from("check_runs")
+    .select("user_id")
+    .eq("run_key", `daily:${date}`);
+  if (claims.error)
+    return NextResponse.json(
+      { error: "Could not load daily claims." },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  const claimed = new Set(claims.data.map((row) => row.user_id));
+  const pending = data.filter((row) => !claimed.has(row.id));
+  if (!pending.length)
+    return NextResponse.json(
+      { completed: 0, failed: 0, deferred: 0 },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  const feed = await discoverJobs();
   let completed = 0;
   let failed = 0;
-  await Promise.all(
-    batch.selected.map(async (row) => {
-      const profile = profileSchema.safeParse(row.data);
-      if (!profile.success) {
-        failed++;
-        return;
+  const batch = await runDailyBatch(pending, async (row) => {
+    const profile = profileSchema.safeParse(row.data);
+    if (!profile.success) {
+      const claim = await client.from("check_runs").insert({
+        user_id: row.id,
+        run_key: `daily:${date}`,
+        state: "failed",
+        message:
+          "Daily search skipped: saved profile is incomplete or invalid.",
+      });
+      if (claim.error?.code === "23505") return false;
+      failed++;
+      return true;
+    }
+    try {
+      const result = await runCheck(
+        client,
+        row.id,
+        profile.data,
+        `daily:${date}`,
+        feed,
+        {
+          listSize: 40,
+          resultsPerRequest: 20,
+          country: profile.data.country ?? "germany",
+          budgetMs: 200000,
+        },
+      );
+      if (result.skipped) return false;
+      if (profile.data.emailDigest && result.count > 0) {
+        const {
+          data: { user },
+        } = await client.auth.admin.getUserById(row.id);
+        const warning = user?.email
+          ? await sendDigest(user.email, result.count, row.id, date)
+          : "No email address found.";
+        if (warning)
+          await client
+            .from("check_runs")
+            .update({ message: `${result.message} ${warning}` })
+            .eq("user_id", row.id)
+            .eq("run_key", `daily:${date}`);
       }
-      try {
-        const result = await runCheck(
-          client,
-          row.id,
-          profile.data,
-          `daily:${date}`,
-          feed,
-          {
-            listSize: 40,
-            resultsPerRequest: 20,
-            country: profile.data.country ?? "germany",
-            budgetMs: 200000,
-          },
-        );
-        if (!result.skipped && profile.data.emailDigest && result.count > 0) {
-          const {
-            data: { user },
-          } = await client.auth.admin.getUserById(row.id);
-          const warning = user?.email
-            ? await sendDigest(user.email, result.count, row.id, date)
-            : "No email address found.";
-          if (warning)
-            await client
-              .from("check_runs")
-              .update({ message: `${result.message} ${warning}` })
-              .eq("user_id", row.id)
-              .eq("run_key", `daily:${date}`);
-        }
-        completed++;
-      } catch {
-        failed++;
-      }
-    }),
-  );
+      completed++;
+    } catch {
+      failed++;
+    }
+    return true;
+  });
   return NextResponse.json(
     { completed, failed, deferred: batch.deferred },
     {
