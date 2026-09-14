@@ -108,6 +108,96 @@ try {
     "Synthetic Verification Person",
   );
   console.log("PASS: Letter saved and reopened; existing CV preserved.");
+  if (process.argv.includes("--sessions")) {
+    stage = "independent mobile session persistence";
+    const mobileContext = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+    });
+    try {
+      const mobile = await mobileContext.newPage();
+      mobile.setDefaultTimeout(60000);
+      stage = "independent session signed-out redirect";
+      await mobile.goto(`${site}/workspace`);
+      await mobile.waitForURL(
+        (destination) => destination.pathname === "/login",
+      );
+      stage = "independent session password sign-in";
+      await mobile.getByLabel("Email", { exact: true }).fill(accounts[0].email);
+      await mobile
+        .getByLabel("Password", { exact: true })
+        .fill(accounts[0].password);
+      await mobile
+        .getByRole("button", { name: "Sign in", exact: true })
+        .click();
+      await mobile.waitForURL(`${site}/workspace`);
+      stage = "independent session CV load";
+      await mobile
+        .getByRole("button", { name: "CV editor", exact: true })
+        .click();
+      const mobileCv = mobile.getByRole("region", {
+        name: "CV editor",
+        exact: true,
+      });
+      assert.equal(
+        await mobileCv.getByLabel("Full name", { exact: true }).inputValue(),
+        "Synthetic Verification Person",
+      );
+      stage = "independent session letter load and save";
+      await mobile
+        .getByRole("button", { name: "Cover letters", exact: true })
+        .click();
+      const mobileLetters = mobile.getByRole("region", {
+        name: "Cover letter editor",
+        exact: true,
+      });
+      assert.equal(
+        await mobileLetters
+          .getByLabel("Letter title", { exact: true })
+          .inputValue(),
+        "Synthetic persistence check",
+      );
+      assert.equal(
+        await mobileLetters
+          .getByLabel("Letter body", { exact: true })
+          .inputValue(),
+        "Synthetic verification text. This draft is deleted after the test.",
+      );
+      const revised =
+        "Synthetic verification text updated from an independent mobile session.";
+      await mobileLetters
+        .getByLabel("Letter body", { exact: true })
+        .fill(revised);
+      await mobileLetters
+        .getByRole("button", { name: "Save letters", exact: true })
+        .click();
+      await mobileLetters
+        .getByText("Cover letters saved to your account.", { exact: true })
+        .waitFor();
+      stage = "original session reload after mobile edit";
+      await page.reload();
+      await page
+        .getByRole("button", { name: "Cover letters", exact: true })
+        .click();
+      assert.equal(
+        await letters.getByLabel("Letter body", { exact: true }).inputValue(),
+        revised,
+      );
+      await page
+        .getByRole("button", { name: "CV editor", exact: true })
+        .click();
+      assert.equal(
+        await cv.getByLabel("Full name", { exact: true }).inputValue(),
+        "Synthetic Verification Person",
+      );
+      console.log(
+        "PASS: independent desktop/mobile sessions load saved documents and persist edits across sessions without copying cookies.",
+      );
+    } finally {
+      await mobileContext.close();
+    }
+  }
   if (process.argv.includes("--ai")) {
     stage = "mocked authenticated AI workflow";
     await page
@@ -431,6 +521,82 @@ try {
     assert.ok(savedMatches.count > 0);
     console.log(
       `PASS: live per-role search returned ${count} ranked jobs, persisted results, excluded a logged job and preserved documents.`,
+    );
+  }
+  if (process.argv.includes("--recovery")) {
+    stage = "fresh-session rejected recovery callbacks";
+    const recoveryContext = await browser.newContext();
+    try {
+      const recoveryPage = await recoveryContext.newPage();
+      recoveryPage.setDefaultTimeout(60000);
+      for (const callback of [
+        "/auth/callback?error=access_denied&error_code=otp_expired",
+        "/auth/callback?code=synthetic-unusable-code&next=reset",
+        "/auth/callback?code=synthetic-unusable-code&next=reset",
+      ]) {
+        await recoveryPage.goto(`${site}${callback}`);
+        await recoveryPage.waitForURL(
+          (destination) =>
+            destination.pathname === "/login" &&
+            destination.searchParams.get("error") === "expired",
+        );
+        assert.ok(
+          !(await recoveryContext.cookies()).some(
+            (cookie) => cookie.name === "rolevia-recovery",
+          ),
+        );
+      }
+      await recoveryPage.goto(`${site}/reset-password`);
+      assert.ok(
+        await recoveryPage
+          .getByRole("button", { name: "Update password", exact: true })
+          .isDisabled(),
+      );
+      await recoveryPage
+        .getByRole("link", { name: "Request a new recovery link", exact: true })
+        .waitFor();
+      console.log(
+        "PASS: synthetic expired/repeated callbacks in a fresh session cannot authorize password reset.",
+      );
+    } finally {
+      await recoveryContext.close();
+    }
+    stage = "authenticated reset without recovery grant";
+    await page.goto(`${site}/reset-password`);
+    const updatePassword = page.getByRole("button", {
+      name: "Update password",
+      exact: true,
+    });
+    assert.ok(await updatePassword.isDisabled());
+    await page
+      .getByLabel("New password", { exact: true })
+      .fill(randomBytes(32).toString("hex"));
+    await updatePassword.evaluate((button) => {
+      button.disabled = false;
+    });
+    await updatePassword.click();
+    await page
+      .getByText(
+        "This recovery session has expired. Request a new link and open it in the same browser.",
+        { exact: true },
+      )
+      .waitFor();
+    const originalPassword = createClient(url, anon, options);
+    try {
+      const accepted = await originalPassword.auth.signInWithPassword({
+        email: accounts[0].email,
+        password: accounts[0].password,
+      });
+      assert.equal(
+        accepted.error,
+        null,
+        "Rejected reset changed the original password",
+      );
+    } finally {
+      await originalPassword.auth.signOut();
+    }
+    console.log(
+      "PASS: server rejects reset without a recovery grant even when the disabled button is bypassed; original password remains valid.",
     );
   }
   const other = createClient(url, anon, options);
