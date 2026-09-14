@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { useActionState, useId, useState } from "react";
 import { ArrowRight, Compass, Eye, EyeOff, LoaderCircle } from "lucide-react";
@@ -163,7 +164,18 @@ export function AuthForm({
         {googleEnabled && (mode === "login" || mode === "signup") && (
           <form action={googleAction}>
             <button className="button full" disabled={googlePending || pending}>
-              {googlePending ? <LoaderCircle size={18} className="spin" /> : <ArrowRight size={18} />}
+              {googlePending ? (
+                <LoaderCircle size={18} className="spin" aria-hidden="true" />
+              ) : (
+                <Image
+                  src="/google-g.png"
+                  alt=""
+                  width={18}
+                  height={18}
+                  unoptimized
+                  style={{ flexShrink: 0, width: 18, height: 18, objectFit: "contain" }}
+                />
+              )}
               Continue with Google
             </button>
             {googleState.error && <p role="alert" className="notice error">{googleState.error}</p>}
