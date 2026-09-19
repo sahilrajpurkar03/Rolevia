@@ -146,6 +146,16 @@ export async function toggleMatchSaved(id: string) {
     return { error: result.error ?? "Could not load this match." };
   if (result.application) {
     const saved = result.application.saved !== false;
+    if (saved && result.application.status === "saved") {
+      const { error } = await result.client
+        .from("applications")
+        .delete()
+        .eq("id", result.application.id)
+        .eq("user_id", result.user.id);
+      if (error) return { error: "Could not unsave this job." };
+      revalidatePath("/workspace");
+      return { success: "", application: null };
+    }
     const { data, error } = await result.client
       .from("applications")
       .update({ saved: !saved, updated_at: new Date().toISOString() })

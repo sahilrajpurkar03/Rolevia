@@ -248,7 +248,8 @@ export function Workspace(props: Props) {
     setMessage({});
     startTransition(async () => {
       try {
-        setMessage(await action());
+        const result = await action();
+        setMessage(result.error ? result : {});
         router.refresh();
       } catch {
         setMessage({
@@ -293,25 +294,28 @@ export function Workspace(props: Props) {
     if (props.demo) {
       if (existing)
         setSampleApplications((current) =>
-          current.map((item) =>
-            item.id === existing.id ? { ...item, saved: item.saved === false } : item,
-          ),
+          existing.saved !== false && existing.status === "saved"
+            ? current.filter((item) => item.id !== existing.id)
+            : current.map((item) =>
+                item.id === existing.id
+                  ? { ...item, saved: item.saved === false }
+                  : item,
+              ),
         );
       else setSampleApplications((current) => [
         ...current,
         { ...localApplication(match), saved: true },
       ]);
-      setMessage({
-        success: existing?.saved !== false ? "Job unsaved." : "Job saved.",
-      });
       return;
     }
     const nextApplications = existing
-      ? applications.map((item) =>
-          item.id === existing.id
-            ? { ...item, saved: item.saved === false }
-            : item,
-        )
+      ? existing.saved !== false && existing.status === "saved"
+        ? applications.filter((item) => item.id !== existing.id)
+        : applications.map((item) =>
+            item.id === existing.id
+              ? { ...item, saved: item.saved === false }
+              : item,
+          )
       : [...applications, { ...localApplication(match), saved: true }];
     runMatchAction(match, () => toggleMatchSaved(match.id), nextApplications, "save");
   }
@@ -334,7 +338,6 @@ export function Workspace(props: Props) {
     const nextMatches = matches.filter((item) => item.id !== match.id);
     if (props.demo) {
       setSampleMatches(nextMatches);
-      setMessage({ success: "Match dismissed." });
       return;
     }
     runMatchAction(match, () => dismissMatch(match.id), undefined, "dismiss");
@@ -361,9 +364,6 @@ export function Workspace(props: Props) {
           localApplication(match, "applied"),
         ]);
       }
-      setMessage({
-        success: existing ? "Application log removed." : "Application logged.",
-      });
       return;
     }
     const nextApplications = existing?.status === "applied"
