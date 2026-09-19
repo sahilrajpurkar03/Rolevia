@@ -70,7 +70,13 @@ import type {
 } from "@/lib/automation";
 
 type View =
-  "matches" | "applications" | "letters" | "activity" | "profile" | "cv";
+  | "matches"
+  | "applications"
+  | "calendar"
+  | "letters"
+  | "activity"
+  | "profile"
+  | "cv";
 type Props = {
   profile: Profile | null;
   cvDrafts?: CvDrafts;
@@ -96,6 +102,7 @@ const typeLabels: Record<string, string> = {
 const navigation = [
   { id: "matches", label: "Matches", icon: Compass },
   { id: "applications", label: "Applications", icon: BriefcaseBusiness },
+  { id: "calendar", label: "Calendar", icon: CalendarDays },
   { id: "letters", label: "Cover letters", icon: FileText },
   { id: "cv", label: "CV editor", icon: FileText },
   { id: "activity", label: "Activity", icon: Clock3 },
@@ -889,7 +896,7 @@ export function Workspace(props: Props) {
                                           fill={saved ? "currentColor" : "none"}
                                         /> Save
                                       </button>
-                                      <button className="button small" disabled={savePending || logPending || dismissPending} onClick={() => openCoverLetter(match)}>
+                                      <button className="button small" onClick={() => openCoverLetter(match)}>
                                         <FileText size={14} /> Cover letter
                                       </button>
                                       <a className="button small" href={match.job.url} target="_blank" rel="noopener noreferrer">
@@ -1180,6 +1187,12 @@ export function Workspace(props: Props) {
                   )}
                 </>
               )}
+              {view === "calendar" && (
+                <CalendarView
+                  applications={applications}
+                  onSelect={setEditing}
+                />
+              )}
               {view === "letters" && (
                 <div className="letters-list">
                   {applications.length > 0 && <h2>Application letters</h2>}
@@ -1439,6 +1452,98 @@ function Empty({
       <h2>{title}</h2>
       <p>{text}</p>
     </div>
+  );
+}
+function CalendarView({
+  applications,
+  onSelect,
+}: {
+  applications: ApplicationRecord[];
+  onSelect: (application: ApplicationRecord) => void;
+}) {
+  const interviews = applications
+    .filter(
+      (application) =>
+        application.status === "interview" && Boolean(application.follow_up),
+    )
+    .sort((first, second) =>
+      first.follow_up!.localeCompare(second.follow_up!),
+    );
+  const month = new Date();
+  const firstDay = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), 1));
+  const daysInMonth = new Date(
+    Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  const offset = firstDay.getUTCDay() === 0 ? 6 : firstDay.getUTCDay() - 1;
+  const today = new Date().toISOString().slice(0, 10);
+  const interviewsByDay = new Map(
+    interviews.map((application) => [application.follow_up!, application]),
+  );
+  return (
+    <section className="calendar-view" aria-label="Interview calendar">
+      <div className="calendar-month-heading">
+        <h2>
+          {month.toLocaleDateString("en-GB", {
+            month: "long",
+            year: "numeric",
+            timeZone: "UTC",
+          })}
+        </h2>
+        <span>{interviews.length} interview{interviews.length === 1 ? "" : "s"}</span>
+      </div>
+      <div className="calendar-grid" role="grid">
+        {[
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri",
+          "Sat",
+          "Sun",
+        ].map((day) => (
+          <strong key={day}>{day}</strong>
+        ))}
+        {Array.from({ length: offset + daysInMonth }, (_, index) => {
+          const day = index - offset + 1;
+          if (day < 1) return <span className="calendar-empty" key={index} />;
+          const date = `${month.getUTCFullYear()}-${String(month.getUTCMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          const interview = interviewsByDay.get(date);
+          return (
+            <button
+              type="button"
+              className={`calendar-day ${date === today ? "today" : ""} ${interview ? "has-interview" : ""}`}
+              key={date}
+              onClick={() => interview && onSelect(interview)}
+              disabled={!interview}
+            >
+              <span>{day}</span>
+              {interview && <small>{interview.job.company}</small>}
+            </button>
+          );
+        })}
+      </div>
+      <div className="calendar-upcoming">
+        <h3>Upcoming interviews</h3>
+        {interviews.length ? (
+          interviews.map((application) => (
+            <button
+              type="button"
+              className="calendar-event"
+              key={application.id}
+              onClick={() => onSelect(application)}
+            >
+              <strong>{dateLabel(application.follow_up!)}</strong>
+              <span>
+                {application.job.title} / {application.job.company}
+              </span>
+              <ChevronRight size={15} />
+            </button>
+          ))
+        ) : (
+          <p className="muted">Mark an application as an interview and add a follow-up date to see it here.</p>
+        )}
+      </div>
+    </section>
   );
 }
 function Modal({

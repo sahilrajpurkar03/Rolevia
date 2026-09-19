@@ -1633,6 +1633,105 @@ legend {
   font-size: 13px;
   line-height: 1.75;
 }
+.calendar-view {
+  max-width: 900px;
+}
+.calendar-month-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.calendar-month-heading span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--line);
+  border-radius: 8px;
+}
+.calendar-grid > strong {
+  padding: 10px 8px;
+  background: #f2f5ef;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: center;
+  text-transform: uppercase;
+}
+.calendar-day,
+.calendar-empty {
+  min-height: 84px;
+  padding: 9px;
+  border: 0;
+  background: #fff;
+  text-align: left;
+}
+.calendar-day {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--ink);
+}
+.calendar-day:not(:disabled) {
+  cursor: pointer;
+}
+.calendar-day:not(:disabled):hover {
+  background: #f1f6ef;
+}
+.calendar-day.today > span {
+  display: inline-grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+}
+.calendar-day.has-interview {
+  box-shadow: inset 0 -3px 0 var(--green);
+}
+.calendar-day small {
+  overflow: hidden;
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.calendar-upcoming {
+  margin-top: 28px;
+}
+.calendar-upcoming h3 {
+  margin-bottom: 10px;
+}
+.calendar-event {
+  display: grid;
+  grid-template-columns: 90px 1fr auto;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+  padding: 13px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  text-align: left;
+}
+.calendar-event strong {
+  color: var(--green);
+  font-size: 12px;
+}
+.calendar-event span {
+  font-size: 13px;
+}
+.calendar-event:hover {
+  color: var(--green);
+}
 .job-description h3 {
   margin: 20px 0 7px;
   color: var(--green);
