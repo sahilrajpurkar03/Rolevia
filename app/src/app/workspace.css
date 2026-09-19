@@ -1566,6 +1566,29 @@ legend {
   font-weight: 400;
   margin-top: 4px;
 }
+.letter-job-summary {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 18px;
+}
+.letter-job-summary strong {
+  font-size: 16px;
+}
+.letter-job-summary span {
+  color: var(--green);
+  font-size: 13px;
+}
+.letter-job-summary p {
+  max-height: 110px;
+  overflow: auto;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.letter-modal-actions {
+  margin-bottom: 16px;
+}
 .reason-list {
   display: flex;
   gap: 10px;

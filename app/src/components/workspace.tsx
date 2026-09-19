@@ -47,6 +47,7 @@ const CvEditor = dynamic(
 import {
   addApplication,
   checkNow,
+  deleteApplication,
   dismissMatchesForDay,
   generateLetter,
   logMatch,
@@ -175,6 +176,10 @@ export function Workspace(props: Props) {
     }
   }, [pending, message]);
   const [selected, setSelected] = useState<MatchRecord | null>(null);
+  const [coverLetterMatch, setCoverLetterMatch] = useState<MatchRecord | null>(
+    null,
+  );
+  const [actionPending, setActionPending] = useState<string | null>(null);
   const [editing, setEditing] = useState<ApplicationRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const latest = props.checks[0];
@@ -212,28 +217,44 @@ export function Workspace(props: Props) {
       }
     });
   }
+  function matchApplication(match: MatchRecord) {
+    return applications.find(
+      (application) => application.job.sourceId === match.job.sourceId,
+    );
+  }
+  function runMatchAction(match: MatchRecord, action: () => Promise<ActionResult>) {
+    setActionPending(match.id);
+    startTransition(async () => {
+      try {
+        setMessage(await action());
+        if (!props.demo) router.refresh();
+      } catch {
+        setMessage({
+          error: "Something went wrong. Check your connection and try again.",
+        });
+      } finally {
+        setActionPending(null);
+      }
+    });
+  }
   function save(match: MatchRecord) {
+    const existing = matchApplication(match);
     if (props.demo) {
-      if (
-        !applications.some(
-          (application) => application.job.sourceId === match.job.sourceId,
-        )
-      )
-        setSampleApplications((current) => [
-          ...current,
-          {
-            id: crypto.randomUUID(),
-            job: match.job,
-            status: "saved",
-            notes: "",
-            letter: "",
-            follow_up: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-        ]);
-      setMessage({ success: "Saved in this sample session." });
-    } else act(() => saveMatch(match.id));
+      if (existing)
+        setSampleApplications((current) =>
+          current.filter((item) => item.id !== existing.id),
+        );
+      else setSampleApplications((current) => [...current, localApplication(match)]);
+      setMessage({
+        success: existing
+          ? "Saved job removed from applications."
+          : "Saved in this sample session.",
+      });
+      return;
+    }
+    if (existing)
+      runMatchAction(match, () => deleteApplication(existing.id));
+    else runMatchAction(match, () => saveMatch(match.id));
   }
   function localApplication(match: MatchRecord, status: ApplicationRecord["status"] = "saved") {
     return {
@@ -247,38 +268,19 @@ export function Workspace(props: Props) {
       updated_at: new Date().toISOString(),
     } satisfies ApplicationRecord;
   }
-  function openApplication(match: MatchRecord) {
-    const existing = applications.find(
-      (application) => application.job.sourceId === match.job.sourceId,
-    );
-    if (existing) {
-      setEditing(existing);
-      return;
-    }
-    if (props.demo) {
-      const application = localApplication(match);
-      setSampleApplications((current) => [...current, application]);
-      setEditing(application);
-      return;
-    }
-    setMessage({});
-    startTransition(async () => {
-      const result = await saveMatch(match.id);
-      if (result.application) setEditing(result.application);
-      setMessage(result);
-      router.refresh();
-    });
+  function openCoverLetter(match: MatchRecord) {
+    setCoverLetterMatch(match);
   }
   function logApplication(match: MatchRecord) {
-    const existing = applications.find(
-      (application) => application.job.sourceId === match.job.sourceId,
-    );
+    const existing = matchApplication(match);
     if (props.demo) {
       if (existing) {
         setSampleApplications((current) =>
-          current.map((item) =>
-            item.id === existing.id ? { ...item, status: "applied" } : item,
-          ),
+          existing.status === "applied"
+            ? current.filter((item) => item.id !== existing.id)
+            : current.map((item) =>
+                item.id === existing.id ? { ...item, status: "applied" } : item,
+              ),
         );
       } else {
         setSampleApplications((current) => [
@@ -286,15 +288,14 @@ export function Workspace(props: Props) {
           localApplication(match, "applied"),
         ]);
       }
-      setMessage({ success: "Application logged." });
+      setMessage({
+        success: existing ? "Application log removed." : "Application logged.",
+      });
       return;
     }
-    setMessage({});
-    startTransition(async () => {
-      const result = await logMatch(match.id);
-      setMessage(result);
-      router.refresh();
-    });
+    if (existing?.status === "applied")
+      runMatchAction(match, () => deleteApplication(existing.id));
+    else runMatchAction(match, () => logMatch(match.id));
   }
   function dismissDay(day: string) {
     if (props.demo) {
@@ -724,8 +725,8 @@ export function Workspace(props: Props) {
                         .sort(([firstDay], [secondDay]) =>
                           secondDay.localeCompare(firstDay),
                         )
-                        .map(([day, dayMatches]) => (
-                        <details className="match-day" key={day} open>
+                        .map(([day, dayMatches], index) => (
+                        <details className="match-day" key={day} open={index === 0}>
                           <summary>
                             <span>
                               {dayLabel(day)} <strong>{dayMatches.length}</strong>
@@ -743,10 +744,9 @@ export function Workspace(props: Props) {
                           </summary>
                           <div className="match-list">
                             {dayMatches.map((match, index) => {
-                              const saved = applications.some(
-                                (application) =>
-                                  application.job.sourceId === match.job.sourceId,
-                              );
+                              const application = matchApplication(match);
+                              const saved = Boolean(application);
+                              const rowPending = actionPending === match.id;
                               return (
                                 <article
                                   key={match.id}
@@ -766,17 +766,17 @@ export function Workspace(props: Props) {
                                       <strong>{match.score}<small>%</small></strong>
                                     </span>
                                     <div className="job-actions">
-                                      <button className={`button small ${saved ? "saved" : ""}`} disabled={pending || saved} onClick={() => save(match)}>
-                                        <Bookmark size={14} /> Save
+                                      <button className={`button small ${saved ? "saved" : ""}`} disabled={rowPending} onClick={() => save(match)}>
+                                        <Bookmark size={14} /> {saved ? "Unsave" : "Save"}
                                       </button>
-                                      <button className="button small" disabled={pending} onClick={() => openApplication(match)}>
+                                      <button className="button small" disabled={rowPending} onClick={() => openCoverLetter(match)}>
                                         <FileText size={14} /> Cover letter
                                       </button>
                                       <a className="button small" href={match.job.url} target="_blank" rel="noopener noreferrer">
                                         <ExternalLink size={14} /> Apply
                                       </a>
-                                      <button className="button small" disabled={pending} onClick={() => logApplication(match)}>
-                                        <Check size={14} /> Log
+                                      <button className={`button small ${application?.status === "applied" ? "saved" : ""}`} disabled={rowPending} onClick={() => logApplication(match)}>
+                                        <Check size={14} /> {application?.status === "applied" ? "Delog" : "Log"}
                                       </button>
                                     </div>
                                   </div>
@@ -1215,6 +1215,14 @@ export function Workspace(props: Props) {
           </div>
         </Modal>
       )}
+      {coverLetterMatch && profile && (
+        <MatchLetterEditor
+          match={coverLetterMatch}
+          profile={profile}
+          demo={props.demo}
+          onClose={() => setCoverLetterMatch(null)}
+        />
+      )}
       {editing && profile && (
         <ApplicationEditor
           key={editing.id}
@@ -1327,6 +1335,126 @@ function Modal({
         {children}
       </div>
     </dialog>
+  );
+}
+
+function MatchLetterEditor({
+  match,
+  profile,
+  demo,
+  onClose,
+}: {
+  match: MatchRecord;
+  profile: Profile;
+  demo?: boolean;
+  onClose: () => void;
+}) {
+  const [letter, setLetter] = useState("");
+  const [exportFormat, setExportFormat] = useState("pdf");
+  const [message, setMessage] = useState<ActionResult>({});
+  const [pending, startTransition] = useTransition();
+  function applyDraft(result: { paragraphs: string[] }, language: string) {
+    const greeting =
+      language === "German" ? "Sehr geehrtes Recruiting-Team," : "Dear Hiring Team,";
+    const closing =
+      language === "German" ? "Mit freundlichen Gruessen," : "Kind regards,";
+    setLetter([greeting, ...result.paragraphs, closing, profile.fullName].join("\n\n"));
+    setMessage({ success: "Draft ready. Review and edit it before exporting." });
+  }
+  function generateFromProfile() {
+    applyDraft(
+      { paragraphs: draftLetter(profile, match.job).split("\n\n") },
+      "English",
+    );
+  }
+  function exportLetter() {
+    if (!letter) return;
+    if (exportFormat === "txt") {
+      download(letter, "cover-letter.txt");
+      return;
+    }
+    startTransition(async () => {
+      try {
+        const document = {
+          ...newLetter(null),
+          title: match.job.company,
+          fullName: profile.fullName,
+          body: letter,
+          subject: "",
+          recipient: "",
+          date: "",
+          salutation: "",
+          closing: "",
+        };
+        const blob =
+          exportFormat === "pdf"
+            ? await (await import("@/lib/cv-pdf")).buildLetterPdf(document)
+            : await (await import("@/lib/letter-word")).buildLetterWord(document);
+        const url = URL.createObjectURL(blob);
+        const anchor = window.document.createElement("a");
+        anchor.href = url;
+        anchor.download = `cover-letter.${exportFormat}`;
+        anchor.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      } catch {
+        setMessage({ error: "Export failed. Your draft is unchanged." });
+      }
+    });
+  }
+  return (
+    <Modal title="Cover letter" onClose={onClose}>
+      <div className="letter-job-summary">
+        <strong>{match.job.title}</strong>
+        <span>
+          {match.job.company} / {match.job.location}
+        </span>
+        <p>{match.job.description}</p>
+      </div>
+      <div className="letter-modal-actions">
+        <button className="button primary" disabled={pending} onClick={generateFromProfile}>
+          <Sparkles size={15} /> Generate from profile
+        </button>
+      </div>
+      <details className="application-generator">
+        <summary>Generate with AI</summary>
+        <LetterGenerator
+          job={match.job}
+          demo={demo}
+          disabled={pending}
+          onUse={(result, input) => applyDraft(result, input.language)}
+        />
+      </details>
+      <label>
+        <span className="sr-only">Cover letter preview</span>
+        <textarea
+          className="letter-text"
+          rows={14}
+          maxLength={15000}
+          value={letter}
+          onChange={(event) => setLetter(event.target.value)}
+          placeholder="Generate a draft, then review and edit it here."
+        />
+      </label>
+      {(message.error || message.success) && (
+        <p role={message.error ? "alert" : "status"} className={`notice ${message.error ? "error" : ""}`}>
+          {message.error || message.success}
+        </p>
+      )}
+      <div className="modal-footer">
+        <select
+          aria-label="Cover letter export format"
+          value={exportFormat}
+          onChange={(event) => setExportFormat(event.target.value)}
+        >
+          <option value="pdf">PDF</option>
+          <option value="docx">Word</option>
+          <option value="txt">Text</option>
+        </select>
+        <button className="button" disabled={!letter || pending} onClick={exportLetter}>
+          <ArrowDownToLine size={16} /> Export
+        </button>
+      </div>
+    </Modal>
   );
 }
 

@@ -172,6 +172,22 @@ export async function logMatch(id: string) {
   }
   return result.error ? result : { ...result, success: "Application logged." };
 }
+export async function deleteApplication(id: string): Promise<ActionResult> {
+  try {
+    z.uuid().parse(id);
+    const { client, user } = await requireUser();
+    const { error } = await client
+      .from("applications")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
+    if (error) return { error: "Could not undo this application action." };
+    revalidatePath("/workspace");
+    return { success: "Application action undone." };
+  } catch (error) {
+    return failure(error);
+  }
+}
 export async function dismissMatch(id: string): Promise<ActionResult> {
   try {
     z.uuid().parse(id);
