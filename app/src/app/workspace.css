@@ -29,6 +29,9 @@
   align-items: flex-start;
   gap: 9px;
 }
+.generator-consent span {
+  line-height: 1.5;
+}
 .generator-consent input { flex-shrink: 0; margin-top: 3px; }
 .generator-fields > button { justify-self: start; }
 .generated-review { max-width: 760px; overflow-wrap: anywhere; line-height: 1.6; }

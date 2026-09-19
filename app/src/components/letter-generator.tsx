@@ -194,8 +194,10 @@ export function LetterGenerator({
               setInput({ ...input, consent: event.target.checked })
             }
           />
-          I consent to sending my saved CV/profile text and these job details to
-          Google Gemini.
+          <span>
+            I consent to sending my saved CV/profile text and these job details
+            to Google Gemini.
+          </span>
         </label>
         <p className="field-note">
           Google&apos;s free-tier data-use terms apply. Remove sensitive details

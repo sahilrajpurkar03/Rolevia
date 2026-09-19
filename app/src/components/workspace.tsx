@@ -210,7 +210,9 @@ export function Workspace(props: Props) {
   const [coverLetterMatch, setCoverLetterMatch] = useState<MatchRecord | null>(
     null,
   );
-  const [actionPending, setActionPending] = useState<string | null>(null);
+  const [pendingActions, setPendingActions] = useState<Record<string, boolean>>(
+    {},
+  );
   const [editing, setEditing] = useState<ApplicationRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const latest = props.checks[0];
@@ -259,7 +261,8 @@ export function Workspace(props: Props) {
     nextApplications?: ApplicationRecord[],
     actionName = "action",
   ) {
-    setActionPending(`${match.id}:${actionName}`);
+    const key = `${match.id}:${actionName}`;
+    setPendingActions((current) => ({ ...current, [key]: true }));
     if (nextApplications) setOptimisticApplications(nextApplications);
     startTransition(async () => {
       try {
@@ -270,7 +273,11 @@ export function Workspace(props: Props) {
           error: "Something went wrong. Check your connection and try again.",
         });
       } finally {
-        setActionPending(null);
+        setPendingActions((current) => {
+          const next = { ...current };
+          delete next[key];
+          return next;
+        });
       }
     });
   }
@@ -848,9 +855,15 @@ export function Workspace(props: Props) {
                               const saved = Boolean(
                                 application && application.saved !== false,
                               );
-                              const savePending = actionPending === `${match.id}:save`;
-                              const logPending = actionPending === `${match.id}:log`;
-                              const dismissPending = actionPending === `${match.id}:dismiss`;
+                              const savePending = Boolean(
+                                pendingActions[`${match.id}:save`],
+                              );
+                              const logPending = Boolean(
+                                pendingActions[`${match.id}:log`],
+                              );
+                              const dismissPending = Boolean(
+                                pendingActions[`${match.id}:dismiss`],
+                              );
                               return (
                                 <article
                                   key={match.id}
@@ -871,7 +884,10 @@ export function Workspace(props: Props) {
                                     </span>
                                     <div className="job-actions">
                                       <button className={`button small ${saved ? "saved" : ""}`} disabled={savePending} onClick={() => save(match)}>
-                                        <Bookmark size={14} /> Save
+                                        <Bookmark
+                                          size={14}
+                                          fill={saved ? "currentColor" : "none"}
+                                        /> Save
                                       </button>
                                       <button className="button small" disabled={savePending || logPending || dismissPending} onClick={() => openCoverLetter(match)}>
                                         <FileText size={14} /> Cover letter
@@ -880,7 +896,10 @@ export function Workspace(props: Props) {
                                         <ExternalLink size={14} /> Apply
                                       </a>
                                       <button className={`button small ${application?.status === "applied" ? "saved" : ""}`} disabled={logPending} onClick={() => logApplication(match)}>
-                                        <Check size={14} /> Log
+                                        <Check
+                                          size={14}
+                                          fill={application?.status === "applied" ? "currentColor" : "none"}
+                                        /> Log
                                       </button>
                                       <button className="button small" disabled={dismissPending} onClick={() => dismiss(match)}>
                                         <X size={14} /> Dismiss
@@ -1532,7 +1551,7 @@ function MatchLetterEditor({
         demo={demo}
         disabled={pending}
         initialLocation={profile.regions.join(", ")}
-        showDescription={false}
+        showDescription
         onUse={(result, input) => applyDraft(result, input.language)}
       />
       <label>
