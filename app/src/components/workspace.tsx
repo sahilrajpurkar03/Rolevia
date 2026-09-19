@@ -707,6 +707,23 @@ export function Workspace(props: Props) {
                         <small>on your calendar</small>
                       </strong>
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatus("saved-jobs");
+                        setView("applications");
+                      }}
+                    >
+                      <span>Saved jobs</span>
+                      <strong>
+                        {
+                          applications.filter(
+                            (application) => application.saved !== false,
+                          ).length
+                        }
+                        <small>to apply later</small>
+                      </strong>
+                    </button>
                   </div>
                 </>
               )}
@@ -1113,6 +1130,7 @@ export function Workspace(props: Props) {
                         <option value="all">All statuses</option>
                         <option value="active">Active applications</option>
                         <option value="follow-ups">Follow-ups</option>
+                        <option value="saved-jobs">Saved jobs</option>
                       {statuses.map((value) => (
                         <option key={value}>{value}</option>
                       ))}
@@ -1144,6 +1162,8 @@ export function Workspace(props: Props) {
                           (status === "all" ||
                             (status === "follow-ups"
                               ? Boolean(application.follow_up)
+                              : status === "saved-jobs"
+                                ? application.saved !== false
                               : status === "active"
                                 ? !["rejected", "withdrawn"].includes(
                                     application.status,
