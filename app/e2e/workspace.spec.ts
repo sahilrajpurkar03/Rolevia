@@ -74,7 +74,7 @@ test("search, save, draft and update an application", async ({ page }) => {
     .getByRole("combobox", { name: "Employment type filter" })
     .selectOption("all");
   await page
-    .getByRole("button", { name: "Save job", exact: true })
+    .getByRole("button", { name: "Save", exact: true })
     .first()
     .click();
   await page.getByRole("button", { name: "Applications", exact: true }).click();
@@ -111,6 +111,7 @@ test("search, save, draft and update an application", async ({ page }) => {
   await page
     .getByRole("textbox", { name: "Notes", exact: true })
     .fill("Follow up with the team.");
+  await expect(page.getByRole("button", { name: "Save changes" })).toBeEnabled();
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.locator(".table-row").last()).toContainText("applied");
