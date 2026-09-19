@@ -508,6 +508,16 @@ svg {
   display: grid;
   gap: 14px;
 }
+.match-table-heading {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(160px, 1.5fr) minmax(110px, 1fr) minmax(100px, 0.9fr) 48px auto;
+  gap: 12px;
+  padding: 0 14px 7px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
 .match-day {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -555,7 +565,7 @@ svg {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--white);
-  padding: 21px 22px 14px;
+  padding: 12px 14px;
   animation: appear 0.35s ease both;
 }
 .job-card:hover {
@@ -565,6 +575,53 @@ svg {
   display: flex;
   gap: 13px;
   align-items: center;
+}
+.match-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(160px, 1.5fr) minmax(110px, 1fr) minmax(100px, 0.9fr) 48px auto;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.match-company,
+.match-position {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.match-company {
+  color: var(--ink);
+  font-weight: 600;
+}
+.match-position {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-weight: 600;
+  text-align: left;
+  overflow-wrap: normal;
+}
+.match-position:hover {
+  color: var(--green);
+}
+.match-score.compact {
+  width: 44px;
+  padding: 4px 2px;
+}
+.match-score.compact strong {
+  font-size: 15px;
+}
+.match-score.compact strong small {
+  font-size: 9px;
+}
+.match-row .job-actions {
+  justify-content: flex-end;
+}
+.match-row .button.small {
+  white-space: nowrap;
 }
 .company-mark {
   width: 43px;
@@ -1778,6 +1835,34 @@ legend {
   }
 }
 @media (max-width: 760px) {
+  .match-table-heading {
+    display: none;
+  }
+  .match-day .match-list {
+    padding: 8px;
+  }
+  .match-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 7px 10px;
+  }
+  .match-company,
+  .match-position,
+  .match-row > span:not(.match-score) {
+    grid-column: 1;
+  }
+  .match-score.compact {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: start;
+  }
+  .match-row .job-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .match-day summary {
+    padding: 12px;
+  }
   .sidebar {
     position: sticky;
     top: 0;

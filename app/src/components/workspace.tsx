@@ -22,7 +22,6 @@ import {
   ListFilter,
   LoaderCircle,
   LogOut,
-  MapPin,
   Plus,
   RefreshCw,
   Search,
@@ -49,8 +48,8 @@ import {
   addApplication,
   checkNow,
   dismissMatchesForDay,
-  dismissMatch,
   generateLetter,
+  logMatch,
   saveMatch,
   updateApplication,
 } from "@/lib/actions";
@@ -236,23 +235,66 @@ export function Workspace(props: Props) {
       setMessage({ success: "Saved in this sample session." });
     } else act(() => saveMatch(match.id));
   }
-  function dismiss(match: MatchRecord) {
-    setSelected(null);
+  function localApplication(match: MatchRecord, status: ApplicationRecord["status"] = "saved") {
+    return {
+      id: crypto.randomUUID(),
+      job: match.job,
+      status,
+      notes: "",
+      letter: "",
+      follow_up: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } satisfies ApplicationRecord;
+  }
+  function openApplication(match: MatchRecord) {
+    const existing = applications.find(
+      (application) => application.job.sourceId === match.job.sourceId,
+    );
+    if (existing) {
+      setEditing(existing);
+      return;
+    }
     if (props.demo) {
-      setSampleMatches((current) =>
-        current.filter((item) => item.id !== match.id),
-      );
-      setMessage({ success: "Sample match dismissed." });
-    } else
-      act(async () => {
-        const result = await dismissMatch(match.id);
-        if (result.success)
-          setSearchResults(
-            (current) =>
-              current?.filter((item) => item.id !== match.id) ?? null,
-          );
-        return result;
-      });
+      const application = localApplication(match);
+      setSampleApplications((current) => [...current, application]);
+      setEditing(application);
+      return;
+    }
+    setMessage({});
+    startTransition(async () => {
+      const result = await saveMatch(match.id);
+      if (result.application) setEditing(result.application);
+      setMessage(result);
+      router.refresh();
+    });
+  }
+  function logApplication(match: MatchRecord) {
+    const existing = applications.find(
+      (application) => application.job.sourceId === match.job.sourceId,
+    );
+    if (props.demo) {
+      if (existing) {
+        setSampleApplications((current) =>
+          current.map((item) =>
+            item.id === existing.id ? { ...item, status: "applied" } : item,
+          ),
+        );
+      } else {
+        setSampleApplications((current) => [
+          ...current,
+          localApplication(match, "applied"),
+        ]);
+      }
+      setMessage({ success: "Application logged." });
+      return;
+    }
+    setMessage({});
+    startTransition(async () => {
+      const result = await logMatch(match.id);
+      setMessage(result);
+      router.refresh();
+    });
   }
   function dismissDay(day: string) {
     if (props.demo) {
@@ -661,6 +703,14 @@ export function Workspace(props: Props) {
                         </select>
                       </label>
                     </div>
+                    <div className="match-table-heading" aria-hidden="true">
+                      <span>Company</span>
+                      <span>Position</span>
+                      <span>Location</span>
+                      <span>Employment type</span>
+                      <span>Score</span>
+                      <span>Actions</span>
+                    </div>
                     <div className="match-days">
                       {Array.from(
                         visibleMatches.reduce((groups, match) => {
@@ -705,68 +755,28 @@ export function Workspace(props: Props) {
                                     animationDelay: `${Math.min(index, 5) * 45}ms`,
                                   }}
                                 >
-                                  <div className="job-card-top">
-                                    <div
-                                      className={`company-mark tone-${index % 5}`}
-                                    >
-                                      {match.job.company.slice(0, 1)}
-                                    </div>
-                                    <div className="job-title">
-                                      <p>{match.job.company}</p>
-                                      <button onClick={() => setSelected(match)}>
-                                        {match.job.title}
-                                      </button>
-                                    </div>
-                                    <div className="match-score">
-                                      <strong>
-                                        {match.score}
-                                        <small>%</small>
-                                      </strong>
-                                      <span>match</span>
-                                    </div>
-                                  </div>
-                                  <div className="job-meta">
-                                    <span>
-                                      <MapPin size={13} />
-                                      {match.job.location}
-                                    </span>
-                                    <span>
-                                      <BriefcaseBusiness size={13} />
-                                      {typeLabels[match.job.type]}
-                                    </span>
-                                    {match.job.remote && (
-                                      <span className="remote-tag">Remote</span>
-                                    )}
-                                  </div>
-                                  <p className="job-snippet">
-                                    {match.job.description}
-                                  </p>
-                                  <div className="job-card-bottom">
-                                    <span className="source-label">
-                                      {match.job.source}
-                                      {match.job.publishedAt &&
-                                        ` / ${dateLabel(match.job.publishedAt)}`}
+                                  <div className="match-row">
+                                    <span className="match-company">{match.job.company}</span>
+                                    <button className="match-position" onClick={() => setSelected(match)}>
+                                      {match.job.title}
+                                    </button>
+                                    <span>{match.job.location}</span>
+                                    <span>{typeLabels[match.job.type]}</span>
+                                    <span className="match-score compact">
+                                      <strong>{match.score}<small>%</small></strong>
                                     </span>
                                     <div className="job-actions">
-                                      <button
-                                        className="icon-button"
-                                        title="Dismiss match"
-                                        disabled={pending}
-                                        onClick={() => dismiss(match)}
-                                      >
-                                        <X size={16} />
+                                      <button className={`button small ${saved ? "saved" : ""}`} disabled={pending || saved} onClick={() => save(match)}>
+                                        <Bookmark size={14} /> Save
                                       </button>
-                                      <button
-                                        className={`button small ${saved ? "saved" : ""}`}
-                                        disabled={pending || saved}
-                                        onClick={() => save(match)}
-                                      >
-                                        {saved ? (
-                                          <Check size={15} />
-                                        ) : (
-                                          <Bookmark size={15} />
-                                        )}
-                                        {saved ? "Saved" : "Save job"}
+                                      <button className="button small" disabled={pending} onClick={() => openApplication(match)}>
+                                        <FileText size={14} /> Cover letter
+                                      </button>
+                                      <a className="button small" href={match.job.url} target="_blank" rel="noopener noreferrer">
+                                        <ExternalLink size={14} /> Apply
+                                      </a>
+                                      <button className="button small" disabled={pending} onClick={() => logApplication(match)}>
+                                        <Check size={14} /> Log
                                       </button>
                                     </div>
                                   </div>

@@ -12,6 +12,7 @@ import {
 } from "./schema";
 import { draftLetter, type Job } from "./matching";
 import { runCheck } from "./automation";
+import type { ApplicationRecord } from "./automation";
 import { writeProfileChange } from "./profile-storage";
 
 function failure(error: unknown): ActionResult {
@@ -116,7 +117,10 @@ export async function searchJobs(input: unknown): Promise<ActionResult> {
     return failure(error);
   }
 }
-export async function saveMatch(id: string): Promise<ActionResult> {
+async function upsertMatchApplication(
+  id: string,
+  status: ApplicationRecord["status"] = "saved",
+): Promise<ActionResult & { application?: ApplicationRecord }> {
   try {
     z.uuid().parse(id);
     const { client, user } = await requireUser();
@@ -130,15 +134,43 @@ export async function saveMatch(id: string): Promise<ActionResult> {
     const { error } = await client
       .from("applications")
       .upsert(
-        { user_id: user.id, source_id: match.source_id, job: match.job },
+        { user_id: user.id, source_id: match.source_id, job: match.job, status },
         { onConflict: "user_id,source_id", ignoreDuplicates: true },
       );
     if (error) return { error: "Could not save this job." };
+    const { data: application, error: lookupError } = await client
+      .from("applications")
+      .select("id,job,status,notes,letter,follow_up,created_at,updated_at")
+      .eq("user_id", user.id)
+      .eq("source_id", match.source_id)
+      .single();
+    if (lookupError || !application)
+      return { error: "Could not load this application." };
     revalidatePath("/workspace");
-    return { success: "Saved to your applications." };
+    return {
+      success: "Saved to your applications.",
+      application: application as ApplicationRecord,
+    };
   } catch (error) {
     return failure(error);
   }
+}
+export async function saveMatch(id: string) {
+  return upsertMatchApplication(id);
+}
+export async function logMatch(id: string) {
+  const result = await upsertMatchApplication(id, "applied");
+  if (!result.error && result.application) {
+    const { client, user } = await requireUser();
+    const { error } = await client
+      .from("applications")
+      .update({ status: "applied", updated_at: new Date().toISOString() })
+      .eq("id", result.application.id)
+      .eq("user_id", user.id);
+    if (error) return { error: "Could not log this application." };
+    result.application = { ...result.application, status: "applied" };
+  }
+  return result.error ? result : { ...result, success: "Application logged." };
 }
 export async function dismissMatch(id: string): Promise<ActionResult> {
   try {
