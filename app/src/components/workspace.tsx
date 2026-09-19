@@ -48,6 +48,7 @@ const CvEditor = dynamic(
 import {
   addApplication,
   checkNow,
+  dismissMatchesForDay,
   dismissMatch,
   generateLetter,
   saveMatch,
@@ -103,6 +104,18 @@ function dateLabel(value: string) {
   return new Date(value).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
+    timeZone: "UTC",
+  });
+}
+function dayKey(value: string) {
+  return new Date(value).toISOString().slice(0, 10);
+}
+function dayLabel(value: string) {
+  return new Date(`${value}T00:00:00.000Z`).toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
     timeZone: "UTC",
   });
 }
@@ -237,6 +250,24 @@ export function Workspace(props: Props) {
           setSearchResults(
             (current) =>
               current?.filter((item) => item.id !== match.id) ?? null,
+          );
+        return result;
+      });
+  }
+  function dismissDay(day: string) {
+    if (props.demo) {
+      setSampleMatches((current) =>
+        current.filter((item) => dayKey(item.created_at) !== day),
+      );
+      setMessage({ success: "All matches for this day were dismissed." });
+    } else
+      act(async () => {
+        const result = await dismissMatchesForDay(day);
+        if (result.success)
+          setSearchResults(
+            (current) =>
+              current?.filter((item) => dayKey(item.created_at) !== day) ??
+              null,
           );
         return result;
       });
@@ -630,86 +661,121 @@ export function Workspace(props: Props) {
                         </select>
                       </label>
                     </div>
-                    <div className="match-list">
-                      {visibleMatches.map((match, index) => {
-                        const saved = applications.some(
-                          (application) =>
-                            application.job.sourceId === match.job.sourceId,
-                        );
-                        return (
-                          <article
-                            key={match.id}
-                            className="job-card"
-                            style={{
-                              animationDelay: `${Math.min(index, 5) * 45}ms`,
-                            }}
-                          >
-                            <div className="job-card-top">
-                              <div className={`company-mark tone-${index % 5}`}>
-                                {match.job.company.slice(0, 1)}
-                              </div>
-                              <div className="job-title">
-                                <p>{match.job.company}</p>
-                                <button onClick={() => setSelected(match)}>
-                                  {match.job.title}
-                                </button>
-                              </div>
-                              <div className="match-score">
-                                <strong>
-                                  {match.score}
-                                  <small>%</small>
-                                </strong>
-                                <span>match</span>
-                              </div>
-                            </div>
-                            <div className="job-meta">
-                              <span>
-                                <MapPin size={13} />
-                                {match.job.location}
-                              </span>
-                              <span>
-                                <BriefcaseBusiness size={13} />
-                                {typeLabels[match.job.type]}
-                              </span>
-                              {match.job.remote && (
-                                <span className="remote-tag">Remote</span>
-                              )}
-                            </div>
-                            <p className="job-snippet">
-                              {match.job.description}
-                            </p>
-                            <div className="job-card-bottom">
-                              <span className="source-label">
-                                {match.job.source}
-                                {match.job.publishedAt &&
-                                  ` / ${dateLabel(match.job.publishedAt)}`}
-                              </span>
-                              <div className="job-actions">
-                                <button
-                                  className="icon-button"
-                                  title="Dismiss match"
-                                  disabled={pending}
-                                  onClick={() => dismiss(match)}
+                    <div className="match-days">
+                      {Array.from(
+                        visibleMatches.reduce((groups, match) => {
+                          const day = dayKey(match.created_at);
+                          const group = groups.get(day) ?? [];
+                          group.push(match);
+                          groups.set(day, group);
+                          return groups;
+                        }, new Map<string, MatchRecord[]>()),
+                      )
+                        .sort(([firstDay], [secondDay]) =>
+                          secondDay.localeCompare(firstDay),
+                        )
+                        .map(([day, dayMatches]) => (
+                        <details className="match-day" key={day} open>
+                          <summary>
+                            <span>
+                              {dayLabel(day)} <strong>{dayMatches.length}</strong>
+                            </span>
+                            <button
+                              className="text-button"
+                              disabled={pending}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                dismissDay(day);
+                              }}
+                            >
+                              Dismiss all
+                            </button>
+                          </summary>
+                          <div className="match-list">
+                            {dayMatches.map((match, index) => {
+                              const saved = applications.some(
+                                (application) =>
+                                  application.job.sourceId === match.job.sourceId,
+                              );
+                              return (
+                                <article
+                                  key={match.id}
+                                  className="job-card"
+                                  style={{
+                                    animationDelay: `${Math.min(index, 5) * 45}ms`,
+                                  }}
                                 >
-                                  <X size={16} />
-                                </button>
-                                <button
-                                  className={`button small ${saved ? "saved" : ""}`}
-                                  disabled={pending || saved}
-                                  onClick={() => save(match)}
-                                >
-                                  {saved ? (
-                                    <Check size={15} />
-                                  ) : (
-                                    <Bookmark size={15} />
-                                  )}
-                                  {saved ? "Saved" : "Save job"}
-                                </button>
-                              </div>
-                            </div>
-                          </article>
-                        );
-                      })}
+                                  <div className="job-card-top">
+                                    <div
+                                      className={`company-mark tone-${index % 5}`}
+                                    >
+                                      {match.job.company.slice(0, 1)}
+                                    </div>
+                                    <div className="job-title">
+                                      <p>{match.job.company}</p>
+                                      <button onClick={() => setSelected(match)}>
+                                        {match.job.title}
+                                      </button>
+                                    </div>
+                                    <div className="match-score">
+                                      <strong>
+                                        {match.score}
+                                        <small>%</small>
+                                      </strong>
+                                      <span>match</span>
+                                    </div>
+                                  </div>
+                                  <div className="job-meta">
+                                    <span>
+                                      <MapPin size={13} />
+                                      {match.job.location}
+                                    </span>
+                                    <span>
+                                      <BriefcaseBusiness size={13} />
+                                      {typeLabels[match.job.type]}
+                                    </span>
+                                    {match.job.remote && (
+                                      <span className="remote-tag">Remote</span>
+                                    )}
+                                  </div>
+                                  <p className="job-snippet">
+                                    {match.job.description}
+                                  </p>
+                                  <div className="job-card-bottom">
+                                    <span className="source-label">
+                                      {match.job.source}
+                                      {match.job.publishedAt &&
+                                        ` / ${dateLabel(match.job.publishedAt)}`}
+                                    </span>
+                                    <div className="job-actions">
+                                      <button
+                                        className="icon-button"
+                                        title="Dismiss match"
+                                        disabled={pending}
+                                        onClick={() => dismiss(match)}
+                                      >
+                                        <X size={16} />
+                                      </button>
+                                      <button
+                                        className={`button small ${saved ? "saved" : ""}`}
+                                        disabled={pending || saved}
+                                        onClick={() => save(match)}
+                                      >
+                                        {saved ? (
+                                          <Check size={15} />
+                                        ) : (
+                                          <Bookmark size={15} />
+                                        )}
+                                        {saved ? "Saved" : "Save job"}
+                                      </button>
+                                    </div>
+                                  </div>
+                                </article>
+                              );
+                            })}
+                          </div>
+                        </details>
+                      ))}
                     </div>
                     {!visibleMatches.length && (
                       <Empty

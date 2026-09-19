@@ -156,6 +156,26 @@ export async function dismissMatch(id: string): Promise<ActionResult> {
     return failure(error);
   }
 }
+export async function dismissMatchesForDay(day: string): Promise<ActionResult> {
+  try {
+    z.string().regex(/^\d{4}-\d{2}-\d{2}$/).parse(day);
+    const { client, user } = await requireUser();
+    const start = new Date(`${day}T00:00:00.000Z`);
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 1);
+    const { error } = await client
+      .from("matches")
+      .update({ dismissed: true })
+      .eq("user_id", user.id)
+      .gte("created_at", start.toISOString())
+      .lt("created_at", end.toISOString());
+    if (error) return { error: "Could not dismiss these matches." };
+    revalidatePath("/workspace");
+    return { success: "All matches for this day were dismissed." };
+  } catch (error) {
+    return failure(error);
+  }
+}
 export async function updateApplication(input: unknown): Promise<ActionResult> {
   try {
     const values = applicationSchema.parse(input);
