@@ -641,7 +641,7 @@ export function Workspace(props: Props) {
                     <button
                       type="button"
                       onClick={() => {
-                        setStatus("all");
+                        setStatus("active");
                         setView("applications");
                       }}
                     >
@@ -1068,6 +1068,7 @@ export function Workspace(props: Props) {
                       onChange={(event) => setStatus(event.target.value)}
                     >
                         <option value="all">All statuses</option>
+                        <option value="active">Active applications</option>
                         <option value="follow-ups">Follow-ups</option>
                       {statuses.map((value) => (
                         <option key={value}>{value}</option>
@@ -1100,7 +1101,11 @@ export function Workspace(props: Props) {
                           (status === "all" ||
                             (status === "follow-ups"
                               ? Boolean(application.follow_up)
-                              : application.status === status)) &&
+                              : status === "active"
+                                ? !["rejected", "withdrawn"].includes(
+                                    application.status,
+                                  )
+                                : application.status === status)) &&
                           `${application.job.title} ${application.job.company}`
                             .toLowerCase()
                             .includes(search.toLowerCase()),
