@@ -1362,9 +1362,35 @@ legend {
   align-items: center;
   gap: 12px;
   margin-bottom: 25px;
+  flex-wrap: wrap;
 }
-.application-toolbar > select {
-  max-width: 160px;
+.application-tabs {
+  display: flex;
+  flex: 1 1 100%;
+  order: 3;
+  gap: 3px;
+  overflow-x: auto;
+  padding: 4px;
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: thin;
+}
+.application-tabs button {
+  flex-shrink: 0;
+  padding: 9px 13px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.application-tabs button:hover,
+.application-tabs button.active {
+  color: var(--green);
+}
+.application-tabs button.active {
+  border-bottom-color: var(--green);
+  font-weight: 700;
 }
 .application-toolbar .button {
   flex-shrink: 0;
@@ -2199,11 +2225,6 @@ legend {
   }
   .application-toolbar .search-box {
     flex-basis: 100%;
-  }
-  .application-toolbar > select {
-    flex: 1;
-    max-width: none;
-    width: 40%;
   }
   .table-header {
     display: none;

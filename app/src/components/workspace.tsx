@@ -713,7 +713,7 @@ export function Workspace(props: Props) {
                     <button
                       type="button"
                       onClick={() => {
-                        setStatus("saved-jobs");
+                        setStatus("saved");
                         setView("applications");
                       }}
                     >
@@ -1125,19 +1125,30 @@ export function Workspace(props: Props) {
                         onChange={(event) => setSearch(event.target.value)}
                       />
                     </label>
-                    <select
-                      aria-label="Filter application status"
-                      value={status}
-                      onChange={(event) => setStatus(event.target.value)}
-                    >
-                        <option value="all">All statuses</option>
-                        <option value="active">Active applications</option>
-                        <option value="follow-ups">Follow-ups</option>
-                        <option value="saved-jobs">Saved jobs</option>
-                      {statuses.map((value) => (
-                        <option key={value}>{value}</option>
+                    <div className="application-tabs" role="tablist" aria-label="Application filters">
+                      {[
+                        ["all", "All"],
+                        ["active", "Active"],
+                        ["applied", "Applied"],
+                        ["interview", "Interview"],
+                        ["offer", "Offer"],
+                        ["rejected", "Rejected"],
+                        ["withdrawn", "Withdrawn"],
+                        ["saved", "Saved"],
+                        ["follow-ups", "Follow-ups"],
+                      ].map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          role="tab"
+                          aria-selected={status === value}
+                          className={status === value ? "active" : ""}
+                          onClick={() => setStatus(value)}
+                        >
+                          {label}
+                        </button>
                       ))}
-                    </select>
+                    </div>
                     <button
                       className="button"
                       onClick={() =>
@@ -1165,10 +1176,10 @@ export function Workspace(props: Props) {
                           (status === "all" ||
                             (status === "follow-ups"
                               ? Boolean(application.follow_up)
-                              : status === "saved-jobs"
+                              : status === "saved"
                                 ? application.saved !== false
                               : status === "active"
-                                ? !["rejected", "withdrawn"].includes(
+                                ? !["rejected", "saved"].includes(
                                     application.status,
                                   )
                                 : application.status === status)) &&
