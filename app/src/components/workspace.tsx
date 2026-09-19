@@ -598,6 +598,19 @@ export function Workspace(props: Props) {
                             const decoder = new TextDecoder();
                             let buffer = "";
                             let finished = false;
+                            const processEvent = (line: string) => {
+                              if (!line.trim()) return;
+                              const event = JSON.parse(line);
+                              if (event.type === "progress")
+                                setSearchProgress(event);
+                              if (event.type === "error")
+                                throw new Error(event.error);
+                              if (event.type === "result") {
+                                setSearchResults(event.matches ?? []);
+                                setMessage({ success: event.message });
+                                finished = true;
+                              }
+                            };
                             for (;;) {
                               const { value, done } = await reader.read();
                               buffer += decoder.decode(value, {
@@ -605,18 +618,8 @@ export function Workspace(props: Props) {
                               });
                               const lines = buffer.split("\n");
                               buffer = lines.pop() ?? "";
-                              for (const line of lines.filter(Boolean)) {
-                                const event = JSON.parse(line);
-                                if (event.type === "progress")
-                                  setSearchProgress(event);
-                                if (event.type === "error")
-                                  throw new Error(event.error);
-                                if (event.type === "result") {
-                                  setSearchResults(event.matches);
-                                  setMessage({ success: event.message });
-                                  finished = true;
-                                }
-                              }
+                              for (const line of lines) processEvent(line);
+                              if (done) processEvent(buffer);
                               if (done) break;
                             }
                             if (!finished)
