@@ -721,7 +721,9 @@ export function Workspace(props: Props) {
                       <strong>
                         {
                           applications.filter(
-                            (application) => application.saved !== false,
+                            (application) =>
+                              application.status === "saved" &&
+                              application.saved !== false,
                           ).length
                         }
                         <small>to apply later</small>
@@ -1169,7 +1171,8 @@ export function Workspace(props: Props) {
                             (status === "follow-ups"
                               ? Boolean(application.follow_up)
                               : status === "saved"
-                                ? application.saved !== false
+                                ? application.status === "saved" &&
+                                  application.saved !== false
                               : status === "active"
                                 ? !["rejected", "saved"].includes(
                                     application.status,
