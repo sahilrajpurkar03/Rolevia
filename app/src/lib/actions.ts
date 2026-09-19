@@ -252,6 +252,21 @@ export async function dismissMatchesForDay(day: string): Promise<ActionResult> {
     return failure(error);
   }
 }
+export async function dismissAllMatches(): Promise<ActionResult> {
+  try {
+    const { client, user } = await requireUser();
+    const { error } = await client
+      .from("matches")
+      .update({ dismissed: true })
+      .eq("user_id", user.id)
+      .eq("dismissed", false);
+    if (error) return { error: "Could not dismiss all matches." };
+    revalidatePath("/workspace");
+    return { success: "All matches were dismissed." };
+  } catch (error) {
+    return failure(error);
+  }
+}
 export async function updateApplication(input: unknown): Promise<ActionResult> {
   try {
     const values = applicationSchema.parse(input);

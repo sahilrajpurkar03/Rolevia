@@ -386,6 +386,18 @@ svg {
   border: 0;
   padding-left: 0;
 }
+.stats-strip > button {
+  padding: 0 24px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.stats-strip > button:hover {
+  background: #f1f6ef;
+}
 .stats-strip > div > span {
   display: block;
   color: var(--muted);
@@ -441,6 +453,14 @@ svg {
   font:
     600 10px "DM Sans",
     sans-serif;
+}
+.match-list-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.danger-action {
+  color: var(--danger);
 }
 .sort-control {
   display: flex;
@@ -1603,10 +1623,29 @@ legend {
   color: var(--green);
 }
 .job-description {
-  white-space: pre-wrap;
   font-size: 13px;
-  line-height: 1.9;
-  overflow-wrap: anywhere;
+  line-height: 1.75;
+}
+.job-description h3 {
+  margin: 20px 0 7px;
+  color: var(--green);
+  font-size: 15px;
+}
+.job-description p {
+  margin: 0 0 12px;
+}
+.letter-job-description {
+  max-height: 180px;
+  overflow: auto;
+  margin: 8px 0 18px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.letter-job-description strong {
+  display: block;
+  margin-top: 12px;
+  color: var(--green);
 }
 .editor-heading {
   display: flex;

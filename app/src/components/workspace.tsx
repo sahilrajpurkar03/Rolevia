@@ -48,6 +48,7 @@ import {
   addApplication,
   checkNow,
   dismissMatchesForDay,
+  dismissAllMatches,
   generateLetter,
   toggleMatchLog,
   toggleMatchSaved,
@@ -125,6 +126,31 @@ function download(text: string, name: string, type = "text/plain") {
   anchor.download = name;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+const descriptionHeadings = [
+  "Your mission",
+  "What you'll do",
+  "Your profile",
+  "Must-have",
+  "Nice-to-have",
+  "Not for you if",
+  "Who you are",
+  "Side quest",
+  "What we offer",
+];
+function formatJobDescription(value: string) {
+  let text = value.replace(/\r\n?/g, "\n").replace(/\s+/g, " ").trim();
+  const firstHeading = descriptionHeadings.reduce((position, heading) => {
+    const index = text.indexOf(heading);
+    return index >= 0 && (position < 0 || index < position) ? index : position;
+  }, -1);
+  if (firstHeading > 0) text = text.slice(firstHeading);
+  for (const heading of descriptionHeadings)
+    text = text.replace(new RegExp(`\\s*(${heading})\\s*`, "gi"), "\n$1\n");
+  return text
+    .split("\n")
+    .map((part) => part.trim())
+    .filter(Boolean);
 }
 
 export function Workspace(props: Props) {
@@ -612,14 +638,26 @@ export function Workspace(props: Props) {
                         <small>in your inbox</small>
                       </strong>
                     </div>
-                    <div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatus("all");
+                        setView("applications");
+                      }}
+                    >
                       <span>Active applications</span>
                       <strong>
                         {activeApplications.length}
                         <small>moving forward</small>
                       </strong>
-                    </div>
-                    <div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatus("interview");
+                        setView("applications");
+                      }}
+                    >
                       <span>Interviews</span>
                       <strong>
                         {
@@ -629,14 +667,20 @@ export function Workspace(props: Props) {
                         }
                         <small>next conversations</small>
                       </strong>
-                    </div>
-                    <div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatus("follow-ups");
+                        setView("applications");
+                      }}
+                    >
                       <span>Follow-ups</span>
                       <strong>
                         {follows.length}
                         <small>on your calendar</small>
                       </strong>
-                    </div>
+                    </button>
                   </div>
                 </>
               )}
@@ -694,17 +738,31 @@ export function Workspace(props: Props) {
                       <h2 ref={resultsHeading} tabIndex={-1}>
                         Your matches <span>{visibleMatches.length}</span>
                       </h2>
-                      <label className="sort-control">
-                        Sort by
-                        <select
-                          aria-label="Sort matches"
-                          value={sort}
-                          onChange={(event) => setSort(event.target.value)}
+                      <div className="match-list-actions">
+                        <label className="sort-control">
+                          Sort by
+                          <select
+                            aria-label="Sort matches"
+                            value={sort}
+                            onChange={(event) => setSort(event.target.value)}
+                          >
+                            <option value="score">Best match</option>
+                            <option value="recent">Most recent</option>
+                          </select>
+                        </label>
+                        <button
+                          className="text-button danger-action"
+                          disabled={pending || !matches.length}
+                          onClick={() => {
+                            if (props.demo) {
+                              setSampleMatches([]);
+                              setMessage({ success: "All matches were dismissed." });
+                            } else act(() => dismissAllMatches());
+                          }}
                         >
-                          <option value="score">Best match</option>
-                          <option value="recent">Most recent</option>
-                        </select>
-                      </label>
+                          Dismiss all
+                        </button>
+                      </div>
                     </div>
                     <div className="filter-bar">
                       <label className="search-box">
@@ -1009,7 +1067,8 @@ export function Workspace(props: Props) {
                       value={status}
                       onChange={(event) => setStatus(event.target.value)}
                     >
-                      <option value="all">All statuses</option>
+                        <option value="all">All statuses</option>
+                        <option value="follow-ups">Follow-ups</option>
                       {statuses.map((value) => (
                         <option key={value}>{value}</option>
                       ))}
@@ -1038,7 +1097,10 @@ export function Workspace(props: Props) {
                     {applications
                       .filter(
                         (application) =>
-                          (status === "all" || application.status === status) &&
+                          (status === "all" ||
+                            (status === "follow-ups"
+                              ? Boolean(application.follow_up)
+                              : application.status === status)) &&
                           `${application.job.title} ${application.job.company}`
                             .toLowerCase()
                             .includes(search.toLowerCase()),
@@ -1212,7 +1274,17 @@ export function Workspace(props: Props) {
               </span>
             ))}
           </div>
-          <p className="job-description">{selected.job.description}</p>
+          <div className="job-description">
+            {formatJobDescription(selected.job.description).map((part, index) =>
+              descriptionHeadings.some(
+                (heading) => heading.toLowerCase() === part.toLowerCase(),
+              ) ? (
+                <h3 key={index}>{part}</h3>
+              ) : (
+                <p key={index}>{part}</p>
+              ),
+            )}
+          </div>
           <div className="modal-footer">
             <button
               className="button primary"
@@ -1440,7 +1512,17 @@ function MatchLetterEditor({
         <span>
           {match.job.company} / {match.job.location}
         </span>
-        <p>{match.job.description}</p>
+        <div className="letter-job-description">
+          {formatJobDescription(match.job.description).map((part, index) =>
+            descriptionHeadings.some(
+              (heading) => heading.toLowerCase() === part.toLowerCase(),
+            ) ? (
+              <strong key={index}>{part}</strong>
+            ) : (
+              <p key={index}>{part}</p>
+            ),
+          )}
+        </div>
       </div>
       <div className="letter-modal-actions">
         <button className="button primary" disabled={pending} onClick={generateFromProfile}>
