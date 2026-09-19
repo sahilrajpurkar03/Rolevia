@@ -838,14 +838,6 @@ export function Workspace(props: Props) {
                         </select>
                       </label>
                     </div>
-                    <div className="match-table-heading" aria-hidden="true">
-                      <span>Company</span>
-                      <span>Position</span>
-                      <span>Location</span>
-                      <span>Employment type</span>
-                      <span>Score</span>
-                      <span>Actions</span>
-                    </div>
                     <div className="match-days">
                       {Array.from(
                         visibleMatches.reduce((groups, match) => {
