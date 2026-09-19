@@ -117,10 +117,7 @@ export async function searchJobs(input: unknown): Promise<ActionResult> {
     return failure(error);
   }
 }
-async function upsertMatchApplication(
-  id: string,
-  status: ApplicationRecord["status"] = "saved",
-): Promise<ActionResult & { application?: ApplicationRecord }> {
+async function matchApplication(id: string) {
   try {
     z.uuid().parse(id);
     const { client, user } = await requireUser();
@@ -131,62 +128,93 @@ async function upsertMatchApplication(
       .eq("user_id", user.id)
       .single();
     if (!match) return { error: "This match is no longer available." };
-    const { error } = await client
+    const { data: application, error } = await client
       .from("applications")
-      .upsert(
-        { user_id: user.id, source_id: match.source_id, job: match.job, status },
-        { onConflict: "user_id,source_id", ignoreDuplicates: true },
-      );
-    if (error) return { error: "Could not save this job." };
-    const { data: application, error: lookupError } = await client
-      .from("applications")
-      .select("id,job,status,notes,letter,follow_up,created_at,updated_at")
+      .select("id,job,status,saved,notes,letter,follow_up,created_at,updated_at")
       .eq("user_id", user.id)
       .eq("source_id", match.source_id)
-      .single();
-    if (lookupError || !application)
-      return { error: "Could not load this application." };
-    revalidatePath("/workspace");
-    return {
-      success: "Saved to your applications.",
-      application: application as ApplicationRecord,
-    };
+      .maybeSingle();
+    if (error) return { error: "Could not load this application." };
+    return { client, user, match, application: application as ApplicationRecord | null };
   } catch (error) {
-    return failure(error);
+    return { ...failure(error), application: null };
   }
 }
-export async function saveMatch(id: string) {
-  return upsertMatchApplication(id);
-}
-export async function logMatch(id: string) {
-  const result = await upsertMatchApplication(id, "applied");
-  if (!result.error && result.application) {
-    const { client, user } = await requireUser();
-    const { error } = await client
+export async function toggleMatchSaved(id: string) {
+  const result = await matchApplication(id);
+  if (result.error || !result.client || !result.user || !result.match)
+    return { error: result.error ?? "Could not load this match." };
+  if (result.application) {
+    const saved = result.application.saved !== false;
+    const { data, error } = await result.client
       .from("applications")
-      .update({ status: "applied", updated_at: new Date().toISOString() })
+      .update({ saved: !saved, updated_at: new Date().toISOString() })
       .eq("id", result.application.id)
-      .eq("user_id", user.id);
-    if (error) return { error: "Could not log this application." };
-    result.application = { ...result.application, status: "applied" };
+      .eq("user_id", result.user.id)
+      .select("id,job,status,saved,notes,letter,follow_up,created_at,updated_at")
+      .single();
+    if (error || !data) return { error: "Could not update the saved job." };
+    revalidatePath("/workspace");
+    return { success: !saved ? "Job saved." : "Job unsaved.", application: data as ApplicationRecord };
   }
-  return result.error ? result : { ...result, success: "Application logged." };
+  const { data, error } = await result.client
+    .from("applications")
+    .insert({ user_id: result.user.id, source_id: result.match.source_id, job: result.match.job, saved: true, status: "saved" })
+    .select("id,job,status,saved,notes,letter,follow_up,created_at,updated_at")
+    .single();
+  if (error || !data) return { error: "Could not save this job." };
+  revalidatePath("/workspace");
+  return { success: "Job saved.", application: data as ApplicationRecord };
 }
-export async function deleteApplication(id: string): Promise<ActionResult> {
-  try {
-    z.uuid().parse(id);
-    const { client, user } = await requireUser();
-    const { error } = await client
+export async function toggleMatchLog(id: string) {
+  const result = await matchApplication(id);
+  if (result.error || !result.client || !result.user || !result.match)
+    return { error: result.error ?? "Could not load this match." };
+  if (result.application?.status === "applied") {
+    if (result.application.saved !== false) {
+      const { data, error } = await result.client
+        .from("applications")
+        .update({ status: "saved", updated_at: new Date().toISOString() })
+        .eq("id", result.application.id)
+        .eq("user_id", result.user.id)
+        .select("id,job,status,saved,notes,letter,follow_up,created_at,updated_at")
+        .single();
+      if (error || !data) return { error: "Could not undo the application log." };
+      revalidatePath("/workspace");
+      return { success: "Application log undone.", application: data as ApplicationRecord };
+    }
+    const { error } = await result.client
       .from("applications")
       .delete()
-      .eq("id", id)
-      .eq("user_id", user.id);
-    if (error) return { error: "Could not undo this application action." };
+      .eq("id", result.application.id)
+      .eq("user_id", result.user.id);
+    if (error) return { error: "Could not undo the application log." };
     revalidatePath("/workspace");
-    return { success: "Application action undone." };
-  } catch (error) {
-    return failure(error);
+    return { success: "Application log undone.", application: null };
   }
+  const response = result.application
+    ? await result.client
+        .from("applications")
+        .update({ status: "applied" })
+        .eq("id", result.application.id)
+        .eq("user_id", result.user.id)
+        .select("id,job,status,saved,notes,letter,follow_up,created_at,updated_at")
+        .single()
+    : await result.client
+        .from("applications")
+        .insert({
+          user_id: result.user.id,
+          source_id: result.match.source_id,
+          job: result.match.job,
+          saved: false,
+          status: "applied",
+        })
+        .select("id,job,status,saved,notes,letter,follow_up,created_at,updated_at")
+        .single();
+  const { data, error } = response;
+  if (error || !data) return { error: "Could not log this application." };
+  revalidatePath("/workspace");
+  return { success: "Application logged.", application: data as ApplicationRecord };
 }
 export async function dismissMatch(id: string): Promise<ActionResult> {
   try {

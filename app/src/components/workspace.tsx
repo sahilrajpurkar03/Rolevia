@@ -47,11 +47,10 @@ const CvEditor = dynamic(
 import {
   addApplication,
   checkNow,
-  deleteApplication,
   dismissMatchesForDay,
   generateLetter,
-  logMatch,
-  saveMatch,
+  toggleMatchLog,
+  toggleMatchSaved,
   updateApplication,
 } from "@/lib/actions";
 import { logout } from "@/lib/auth-actions";
@@ -148,9 +147,14 @@ export function Workspace(props: Props) {
   const [sampleApplications, setSampleApplications] = useState(
     props.applications,
   );
+  const [optimisticApplications, setOptimisticApplications] = useState<
+    ApplicationRecord[] | null
+  >(null);
   const profile = props.demo ? sampleProfile : props.profile;
   const matches = props.demo ? sampleMatches : (searchResults ?? props.matches);
-  const applications = props.demo ? sampleApplications : props.applications;
+  const applications = props.demo
+    ? sampleApplications
+    : (optimisticApplications ?? props.applications);
   const [search, setSearch] = useState("");
   const [type, setType] = useState("all");
   const [sort, setSort] = useState("score");
@@ -222,12 +226,17 @@ export function Workspace(props: Props) {
       (application) => application.job.sourceId === match.job.sourceId,
     );
   }
-  function runMatchAction(match: MatchRecord, action: () => Promise<ActionResult>) {
+  function runMatchAction(
+    match: MatchRecord,
+    action: () => Promise<ActionResult>,
+    nextApplications?: ApplicationRecord[],
+  ) {
     setActionPending(match.id);
+    if (nextApplications) setOptimisticApplications(nextApplications);
     startTransition(async () => {
       try {
         setMessage(await action());
-        if (!props.demo) router.refresh();
+        if (!props.demo && !nextApplications) router.refresh();
       } catch {
         setMessage({
           error: "Something went wrong. Check your connection and try again.",
@@ -242,19 +251,27 @@ export function Workspace(props: Props) {
     if (props.demo) {
       if (existing)
         setSampleApplications((current) =>
-          current.filter((item) => item.id !== existing.id),
+          current.map((item) =>
+            item.id === existing.id ? { ...item, saved: item.saved === false } : item,
+          ),
         );
-      else setSampleApplications((current) => [...current, localApplication(match)]);
+      else setSampleApplications((current) => [
+        ...current,
+        { ...localApplication(match), saved: true },
+      ]);
       setMessage({
-        success: existing
-          ? "Saved job removed from applications."
-          : "Saved in this sample session.",
+        success: existing?.saved !== false ? "Job unsaved." : "Job saved.",
       });
       return;
     }
-    if (existing)
-      runMatchAction(match, () => deleteApplication(existing.id));
-    else runMatchAction(match, () => saveMatch(match.id));
+    const nextApplications = existing
+      ? applications.map((item) =>
+          item.id === existing.id
+            ? { ...item, saved: item.saved === false }
+            : item,
+        )
+      : [...applications, { ...localApplication(match), saved: true }];
+    runMatchAction(match, () => toggleMatchSaved(match.id), nextApplications);
   }
   function localApplication(match: MatchRecord, status: ApplicationRecord["status"] = "saved") {
     return {
@@ -277,7 +294,11 @@ export function Workspace(props: Props) {
       if (existing) {
         setSampleApplications((current) =>
           existing.status === "applied"
-            ? current.filter((item) => item.id !== existing.id)
+            ? existing.saved !== false
+              ? current.map((item) =>
+                  item.id === existing.id ? { ...item, status: "saved" } : item,
+                )
+              : current.filter((item) => item.id !== existing.id)
             : current.map((item) =>
                 item.id === existing.id ? { ...item, status: "applied" } : item,
               ),
@@ -293,9 +314,18 @@ export function Workspace(props: Props) {
       });
       return;
     }
-    if (existing?.status === "applied")
-      runMatchAction(match, () => deleteApplication(existing.id));
-    else runMatchAction(match, () => logMatch(match.id));
+    const nextApplications = existing?.status === "applied"
+      ? existing.saved !== false
+        ? applications.map((item) =>
+            item.id === existing.id ? { ...item, status: "saved" as const } : item,
+          )
+        : applications.filter((item) => item.id !== existing.id)
+      : existing
+        ? applications.map((item) =>
+            item.id === existing.id ? { ...item, status: "applied" as const } : item,
+          )
+        : [...applications, { ...localApplication(match, "applied"), saved: false }];
+    runMatchAction(match, () => toggleMatchLog(match.id), nextApplications);
   }
   function dismissDay(day: string) {
     if (props.demo) {
@@ -745,7 +775,9 @@ export function Workspace(props: Props) {
                           <div className="match-list">
                             {dayMatches.map((match, index) => {
                               const application = matchApplication(match);
-                              const saved = Boolean(application);
+                              const saved = Boolean(
+                                application && application.saved !== false,
+                              );
                               const rowPending = actionPending === match.id;
                               return (
                                 <article

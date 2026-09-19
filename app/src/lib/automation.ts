@@ -199,6 +199,7 @@ export type MatchRecord = {
 export type ApplicationRecord = {
   id: string;
   job: Job;
+  saved?: boolean;
   status:
     "saved" | "applied" | "interview" | "offer" | "rejected" | "withdrawn";
   notes: string;
