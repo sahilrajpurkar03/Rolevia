@@ -398,7 +398,8 @@ svg {
 .stats-strip > button:hover {
   background: #f1f6ef;
 }
-.stats-strip > div > span {
+.stats-strip > div > span,
+.stats-strip > button > span {
   display: block;
   color: var(--muted);
   font-size: 11px;
@@ -412,6 +413,9 @@ svg {
   font:
     500 31px/1.25 "Space Grotesk",
     sans-serif;
+}
+.stats-strip > button strong {
+  display: flex;
 }
 .stats-strip small {
   color: #7f887d;

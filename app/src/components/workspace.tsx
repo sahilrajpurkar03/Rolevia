@@ -47,6 +47,7 @@ const CvEditor = dynamic(
 import {
   addApplication,
   checkNow,
+  dismissMatch,
   dismissMatchesForDay,
   dismissAllMatches,
   generateLetter,
@@ -256,8 +257,9 @@ export function Workspace(props: Props) {
     match: MatchRecord,
     action: () => Promise<ActionResult>,
     nextApplications?: ApplicationRecord[],
+    actionName = "action",
   ) {
-    setActionPending(match.id);
+    setActionPending(`${match.id}:${actionName}`);
     if (nextApplications) setOptimisticApplications(nextApplications);
     startTransition(async () => {
       try {
@@ -297,7 +299,7 @@ export function Workspace(props: Props) {
             : item,
         )
       : [...applications, { ...localApplication(match), saved: true }];
-    runMatchAction(match, () => toggleMatchSaved(match.id), nextApplications);
+    runMatchAction(match, () => toggleMatchSaved(match.id), nextApplications, "save");
   }
   function localApplication(match: MatchRecord, status: ApplicationRecord["status"] = "saved") {
     return {
@@ -313,6 +315,16 @@ export function Workspace(props: Props) {
   }
   function openCoverLetter(match: MatchRecord) {
     setCoverLetterMatch(match);
+  }
+  function dismiss(match: MatchRecord) {
+    const nextMatches = matches.filter((item) => item.id !== match.id);
+    if (props.demo) {
+      setSampleMatches(nextMatches);
+      setMessage({ success: "Match dismissed." });
+      return;
+    }
+    runMatchAction(match, () => dismissMatch(match.id), undefined, "dismiss");
+    setSearchResults(nextMatches);
   }
   function logApplication(match: MatchRecord) {
     const existing = matchApplication(match);
@@ -351,7 +363,7 @@ export function Workspace(props: Props) {
             item.id === existing.id ? { ...item, status: "applied" as const } : item,
           )
         : [...applications, { ...localApplication(match, "applied"), saved: false }];
-    runMatchAction(match, () => toggleMatchLog(match.id), nextApplications);
+    runMatchAction(match, () => toggleMatchLog(match.id), nextApplications, "log");
   }
   function dismissDay(day: string) {
     if (props.demo) {
@@ -836,7 +848,9 @@ export function Workspace(props: Props) {
                               const saved = Boolean(
                                 application && application.saved !== false,
                               );
-                              const rowPending = actionPending === match.id;
+                              const savePending = actionPending === `${match.id}:save`;
+                              const logPending = actionPending === `${match.id}:log`;
+                              const dismissPending = actionPending === `${match.id}:dismiss`;
                               return (
                                 <article
                                   key={match.id}
@@ -856,17 +870,20 @@ export function Workspace(props: Props) {
                                       <strong>{match.score}<small>%</small></strong>
                                     </span>
                                     <div className="job-actions">
-                                      <button className={`button small ${saved ? "saved" : ""}`} disabled={rowPending} onClick={() => save(match)}>
-                                        <Bookmark size={14} /> {saved ? "Unsave" : "Save"}
+                                      <button className={`button small ${saved ? "saved" : ""}`} disabled={savePending} onClick={() => save(match)}>
+                                        <Bookmark size={14} /> Save
                                       </button>
-                                      <button className="button small" disabled={rowPending} onClick={() => openCoverLetter(match)}>
+                                      <button className="button small" disabled={savePending || logPending || dismissPending} onClick={() => openCoverLetter(match)}>
                                         <FileText size={14} /> Cover letter
                                       </button>
                                       <a className="button small" href={match.job.url} target="_blank" rel="noopener noreferrer">
                                         <ExternalLink size={14} /> Apply
                                       </a>
-                                      <button className={`button small ${application?.status === "applied" ? "saved" : ""}`} disabled={rowPending} onClick={() => logApplication(match)}>
-                                        <Check size={14} /> {application?.status === "applied" ? "Delog" : "Log"}
+                                      <button className={`button small ${application?.status === "applied" ? "saved" : ""}`} disabled={logPending} onClick={() => logApplication(match)}>
+                                        <Check size={14} /> Log
+                                      </button>
+                                      <button className="button small" disabled={dismissPending} onClick={() => dismiss(match)}>
+                                        <X size={14} /> Dismiss
                                       </button>
                                     </div>
                                   </div>
@@ -1470,12 +1487,6 @@ function MatchLetterEditor({
     setLetter([greeting, ...result.paragraphs, closing, profile.fullName].join("\n\n"));
     setMessage({ success: "Draft ready. Review and edit it before exporting." });
   }
-  function generateFromProfile() {
-    applyDraft(
-      { paragraphs: draftLetter(profile, match.job).split("\n\n") },
-      "English",
-    );
-  }
   function exportLetter() {
     if (!letter) return;
     if (exportFormat === "txt") {
@@ -1514,35 +1525,16 @@ function MatchLetterEditor({
     <Modal title="Cover letter" onClose={onClose}>
       <div className="letter-job-summary">
         <strong>{match.job.title}</strong>
-        <span>
-          {match.job.company} / {match.job.location}
-        </span>
-        <div className="letter-job-description">
-          {formatJobDescription(match.job.description).map((part, index) =>
-            descriptionHeadings.some(
-              (heading) => heading.toLowerCase() === part.toLowerCase(),
-            ) ? (
-              <strong key={index}>{part}</strong>
-            ) : (
-              <p key={index}>{part}</p>
-            ),
-          )}
-        </div>
+        <span>{match.job.company} / {match.job.location}</span>
       </div>
-      <div className="letter-modal-actions">
-        <button className="button primary" disabled={pending} onClick={generateFromProfile}>
-          <Sparkles size={15} /> Generate from profile
-        </button>
-      </div>
-      <details className="application-generator">
-        <summary>Generate with AI</summary>
-        <LetterGenerator
-          job={match.job}
-          demo={demo}
-          disabled={pending}
-          onUse={(result, input) => applyDraft(result, input.language)}
-        />
-      </details>
+      <LetterGenerator
+        job={match.job}
+        demo={demo}
+        disabled={pending}
+        initialLocation={profile.regions.join(", ")}
+        showDescription={false}
+        onUse={(result, input) => applyDraft(result, input.language)}
+      />
       <label>
         <span className="sr-only">Cover letter preview</span>
         <textarea

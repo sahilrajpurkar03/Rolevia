@@ -12,12 +12,18 @@ type LetterJob = { title: string; company: string; description: string };
 export function LetterGenerator({
   job,
   jobs = [],
+  initialAvailability = "",
+  initialLocation = "",
+  showDescription = true,
   demo,
   disabled,
   onUse,
 }: {
   job?: LetterJob;
   jobs?: LetterJob[];
+  initialAvailability?: string;
+  initialLocation?: string;
+  showDescription?: boolean;
   demo?: boolean;
   disabled?: boolean;
   onUse: (result: GeneratedLetter, input: GenerationInput) => void;
@@ -27,8 +33,8 @@ export function LetterGenerator({
     title: job?.title ?? "",
     company: job?.company ?? "",
     description: job?.description ?? "",
-    availability: "",
-    location: "",
+    availability: initialAvailability,
+    location: initialLocation,
     language: "English",
     consent: false,
   });
@@ -131,7 +137,7 @@ export function LetterGenerator({
             />
           </label>
         </div>
-        <div className="cv-field">
+        {showDescription && <div className="cv-field">
           <label htmlFor={`${prefix}-description`}>Job description</label>
           <textarea
             id={`${prefix}-description`}
@@ -142,7 +148,7 @@ export function LetterGenerator({
               setInput({ ...input, description: event.target.value })
             }
           />
-        </div>
+        </div>}
         <div className="form-grid">
           <label htmlFor={`${prefix}-availability`}>
             Availability (optional)
