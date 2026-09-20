@@ -38,7 +38,23 @@
 }
 .generator-consent input { flex-shrink: 0; margin-top: 3px; }
 .generator-fields > button { justify-self: start; }
-.generated-review { max-width: 760px; overflow-wrap: anywhere; line-height: 1.6; }
+.generated-review {
+  max-width: 760px;
+  margin-top: 20px;
+  padding: 22px 24px;
+  border: 1px solid #d8e2dc;
+  border-radius: 10px;
+  background: var(--white);
+  box-shadow: 0 8px 22px rgb(32 44 41 / 8%);
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+.generated-review p {
+  margin: 0 0 16px;
+}
+.generated-review p:last-of-type {
+  margin-bottom: 20px;
+}
 .application-generator { margin: 16px 0; }
 :root {
   --paper: #fafbf9;

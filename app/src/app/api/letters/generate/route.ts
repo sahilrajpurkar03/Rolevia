@@ -106,12 +106,12 @@ export async function POST(request: Request) {
       claim.error.code === "23505" ? 429 : 503,
     );
   const candidate = [
-    profile.data.headline,
-    profile.data.summary,
-    profile.data.experience,
-    profile.data.education,
-    profile.data.skills.join(", "),
-    profile.data.cvText,
+    `Profile headline:\n${profile.data.headline}`,
+    `Profile summary:\n${profile.data.summary}`,
+    `Professional experience (listed newest first; preserve this order):\n${profile.data.experience}`,
+    `Education:\n${profile.data.education}`,
+    `Skills:\n${profile.data.skills.join(", ")}`,
+    `CV text:\n${profile.data.cvText}`,
   ]
     .filter(Boolean)
     .join("\n\n");
