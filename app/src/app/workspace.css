@@ -57,7 +57,7 @@
 }
 .application-generator { margin: 16px 0; }
 :root {
-  --paper: #f6f8fc;
+  --paper: #f4f7fb;
   --white: #fff;
   --ink: #172033;
   --muted: #5e6b80;
@@ -1334,8 +1334,8 @@ input[type="checkbox"] {
 
 /* Calm, high-contrast dark theme. Text colors meet WCAG AA for normal copy. */
 .theme-dark {
-  --paper: #101827;
-  --white: #172236;
+  --paper: #0b1220;
+  --white: #152238;
   --ink: #edf4ff;
   --muted: #aab8cb;
   --line: #2b3a50;
@@ -1343,10 +1343,22 @@ input[type="checkbox"] {
   --green-soft: #193f43;
   --accent: #8ae5c9;
   --danger: #ff9daf;
+  background: var(--paper);
+  color: var(--ink);
+}
+.theme-light {
+  background:
+    radial-gradient(circle at 90% -10%, #dff8f1 0, transparent 30%),
+    var(--paper);
 }
 .theme-dark .sidebar,
 .theme-dark .topbar {
-  background: #131d2d;
+  background: #101a2b;
+}
+.theme-dark .app-shell,
+.theme-dark .main-shell,
+.theme-dark .workspace-main {
+  background: var(--paper);
 }
 .theme-dark .sidebar {
   border-right-color: var(--line);
@@ -1389,11 +1401,29 @@ input[type="checkbox"] {
 }
 .theme-dark .job-card,
 .theme-dark .search-results-panel,
-.theme-dark .generated-review {
-  background: #172236;
+.theme-dark .generated-review,
+.theme-dark .table-row,
+.theme-dark .letter-text,
+.theme-dark .modal-content,
+.theme-dark .calendar-view {
+  background: var(--white);
 }
 .theme-dark .job-card-bottom,
-.theme-dark .account {
+.theme-dark .account,
+.theme-dark .table-row {
+  border-color: var(--line);
+}
+.theme-dark .table-row:hover {
+  background: #1b2b43;
+}
+.theme-dark .application-status-control select,
+.theme-dark .application-status-control option {
+  background: #1b2b43;
+  color: var(--ink);
+}
+.theme-dark .letter-generator,
+.theme-dark .letter-layout,
+.theme-dark .cv-reference {
   border-color: var(--line);
 }
 .theme-dark .upload-zone {
