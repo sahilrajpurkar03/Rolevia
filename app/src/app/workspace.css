@@ -1614,7 +1614,7 @@ legend {
   grid-template-columns: minmax(0, 2.1fr) minmax(90px, 1fr) minmax(
       90px,
       0.9fr
-    ) minmax(85px, 0.8fr);
+    ) minmax(85px, 0.8fr) auto;
   gap: 16px;
   align-items: center;
   padding: 17px 14px;
@@ -1682,7 +1682,6 @@ legend {
   color: var(--muted);
 }
 .application-row-actions {
-  grid-column: 1 / -1;
   display: flex;
   flex-wrap: nowrap;
   gap: 7px;
@@ -2509,6 +2508,11 @@ legend {
     grid-template-columns: minmax(0, 1fr) 100px;
     gap: 10px;
     padding: 17px 10px;
+  }
+  .application-row-actions {
+    grid-column: 1 / -1;
+    overflow-x: auto;
+    padding-top: 4px;
   }
   .table-row > span:nth-child(3)::before {
     content: "Follow-up: ";

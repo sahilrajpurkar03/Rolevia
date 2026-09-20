@@ -279,7 +279,22 @@ export async function dismissAllMatches(): Promise<ActionResult> {
 }
 export async function updateApplication(input: unknown): Promise<ActionResult> {
   try {
-    const values = applicationSchema.parse(input);
+    const legacyInput =
+      input && typeof input === "object" ? input as Record<string, unknown> : {};
+    const values = applicationSchema.parse({
+      ...legacyInput,
+      notes: legacyInput.notes ?? "",
+      letter: legacyInput.letter ?? "",
+      followUp: legacyInput.followUp ?? "",
+      interviewDate: legacyInput.interviewDate ?? "",
+      interviewRound: legacyInput.interviewRound ?? "",
+      interviewNotes: legacyInput.interviewNotes ?? "",
+      jobTitle: legacyInput.jobTitle || "Untitled application",
+      jobCompany: legacyInput.jobCompany || "Company not recorded",
+      jobLocation: legacyInput.jobLocation ?? "",
+      jobUrl: legacyInput.jobUrl ?? "",
+      jobDescription: legacyInput.jobDescription ?? "",
+    });
     const { client, user } = await requireUser();
     const current = await client
       .from("applications")
