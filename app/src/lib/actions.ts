@@ -130,7 +130,7 @@ async function matchApplication(id: string) {
     if (!match) return { error: "This match is no longer available." };
     const { data: application, error } = await client
       .from("applications")
-      .select("id,job,status,saved,notes,letter,follow_up,interview_date,interview_round,interview_notes,created_at,updated_at")
+      .select("id,job,status,saved,notes,letter,follow_up,interview_date,interview_round,interview_notes,interview_completed,created_at,updated_at")
       .eq("user_id", user.id)
       .eq("source_id", match.source_id)
       .maybeSingle();
@@ -161,7 +161,7 @@ export async function toggleMatchSaved(id: string) {
       .update({ saved: !saved, updated_at: new Date().toISOString() })
       .eq("id", result.application.id)
       .eq("user_id", result.user.id)
-      .select("id,job,status,saved,notes,letter,follow_up,interview_date,interview_round,interview_notes,created_at,updated_at")
+      .select("id,job,status,saved,notes,letter,follow_up,interview_date,interview_round,interview_notes,interview_completed,created_at,updated_at")
       .single();
     if (error || !data) return { error: "Could not update the saved job." };
     revalidatePath("/workspace");
@@ -291,6 +291,7 @@ export async function updateApplication(input: unknown): Promise<ActionResult> {
         interview_date: values.interviewDate || null,
         interview_round: values.interviewRound,
         interview_notes: values.interviewNotes,
+        interview_completed: values.interviewCompleted,
         updated_at: new Date().toISOString(),
       })
       .eq("id", values.id)

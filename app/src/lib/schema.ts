@@ -60,6 +60,7 @@ export const applicationSchema = z.object({
   interviewDate: z.union([z.literal(""), z.iso.date()]).default(""),
   interviewRound: z.string().trim().max(80).default(""),
   interviewNotes: z.string().max(5000).default(""),
+  interviewCompleted: z.boolean().default(false),
 });
 export const safeJobUrl = z
   .url()

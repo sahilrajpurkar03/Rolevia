@@ -467,6 +467,7 @@ export function Workspace(props: Props) {
         interviewDate: application.interview_date ?? "",
         interviewRound: application.interview_round ?? "",
         interviewNotes: application.interview_notes ?? "",
+        interviewCompleted: application.interview_completed ?? false,
       });
       setMessage(result);
       if (result.error) setOptimisticApplications(null);
@@ -1840,8 +1841,7 @@ function CalendarView({
   const interviews = applications
     .filter(
       (application) =>
-        application.status === "interview" &&
-        Boolean(application.interview_date ?? application.follow_up),
+        Boolean(application.interview_date),
     )
     .sort((first, second) =>
       (first.interview_date ?? first.follow_up!).localeCompare(
@@ -2116,6 +2116,7 @@ function ApplicationEditor({
               interviewDate: draft.interview_date ?? "",
               interviewRound: draft.interview_round ?? "",
               interviewNotes: draft.interview_notes ?? "",
+              interviewCompleted: draft.interview_completed ?? false,
             });
         setMessage(result);
         if (!result.error) {
@@ -2176,7 +2177,7 @@ function ApplicationEditor({
           />
         </label>
       </div>
-      {draft.status === "interview" && (
+      {(draft.status === "interview" || Boolean(draft.interview_date)) && (
         <>
           <div className="form-grid">
             <label>
@@ -2219,6 +2220,21 @@ function ApplicationEditor({
               }
               placeholder="Add the interviewer, format, preparation notes, or meeting link."
             />
+          </label>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={draft.interview_completed ?? false}
+              onChange={(event) =>
+                setDraft({
+                  ...draft,
+                  interview_completed: event.target.checked,
+                })
+              }
+            />
+            {draft.interview_date === new Date().toISOString().slice(0, 10)
+              ? "Interview completed today"
+              : "Interview completed"}
           </label>
         </>
       )}

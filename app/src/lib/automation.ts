@@ -208,6 +208,7 @@ export type ApplicationRecord = {
   interview_date?: string | null;
   interview_round?: string;
   interview_notes?: string;
+  interview_completed?: boolean;
   created_at: string;
   updated_at: string;
 };
