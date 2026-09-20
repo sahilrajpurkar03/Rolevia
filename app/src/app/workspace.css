@@ -945,6 +945,15 @@ svg {
 .notice .icon-button {
   flex-shrink: 0;
 }
+.match-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 20;
+  width: min(360px, calc(100vw - 32px));
+  margin: 0;
+  box-shadow: 0 12px 30px rgb(32 44 41 / 16%);
+}
 .profile-editor {
   max-width: 830px;
 }
