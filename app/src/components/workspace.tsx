@@ -71,6 +71,7 @@ import type {
 
 type View =
   | "matches"
+  | "search"
   | "applications"
   | "calendar"
   | "letters"
@@ -101,6 +102,7 @@ const typeLabels: Record<string, string> = {
 };
 const navigation = [
   { id: "matches", label: "Matches", icon: Compass },
+  { id: "search", label: "Find jobs", icon: Search },
   { id: "applications", label: "Applications", icon: BriefcaseBusiness },
   { id: "calendar", label: "Calendar", icon: CalendarDays },
   { id: "letters", label: "Cover letters", icon: FileText },
@@ -552,16 +554,15 @@ export function Workspace(props: Props) {
             </div>
           ) : (
             <>
-              {view === "matches" && (
+              <div hidden={view !== "search"}>
                 <>
                   <div className="section-heading">
                     <div>
-                      <p className="eyebrow">
-                        A LITTLE CLOSER TO YOUR NEXT CHAPTER
-                      </p>
-                      <h1>Your next move, {profile.fullName.split(" ")[0]}.</h1>
+                      <p className="eyebrow">SEARCH BEYOND YOUR MATCHES</p>
+                      <h1>Find jobs</h1>
                       <p className="muted">
-                        Fresh possibilities. A clearer direction.
+                        Search the available job sources using your saved role
+                        preferences.
                       </p>
                     </div>
                   </div>
@@ -585,6 +586,7 @@ export function Workspace(props: Props) {
                           success:
                             "Search complete. Showing matching sample jobs; live searches require your account.",
                         });
+                        setView("matches");
                       } else {
                         setMessage({});
                         setSearchProgress({
@@ -622,6 +624,7 @@ export function Workspace(props: Props) {
                               if (event.type === "result") {
                                 setSearchResults(event.matches ?? []);
                                 setMessage({ success: event.message });
+                                setView("matches");
                                 finished = true;
                               }
                             };
@@ -745,8 +748,11 @@ export function Workspace(props: Props) {
                     </button>
                   </div>
                 </>
-              )}
-              {view !== "matches" && view !== "cv" && view !== "letters" && (
+              </div>
+              {view !== "matches" &&
+                view !== "search" &&
+                view !== "cv" &&
+                view !== "letters" && (
                 <div className="section-heading">
                   <div>
                     <p className="eyebrow">
