@@ -71,15 +71,15 @@ export function ProfileForm({
         ...current,
         cvText: result.text,
         cvName: result.filename,
-        fullName: current.fullName || suggested.fullName,
-        headline: current.headline || suggested.headline,
-        summary: current.summary || suggested.summary,
-        experience: current.experience || suggested.experience,
-        education: current.education || suggested.education,
-        skills: current.skills.length ? current.skills : suggested.skills,
+        fullName: suggested.fullName || current.fullName,
+        headline: suggested.headline || current.headline,
+        summary: suggested.summary || current.summary,
+        experience: suggested.experience || current.experience,
+        education: suggested.education || current.education,
+        skills: suggested.skills.length ? suggested.skills : current.skills,
       }));
       setMessage(
-        "CV imported. Review the suggested profile fields; existing edits were preserved.",
+        "CV imported. Review the updated profile fields, then save your profile.",
       );
     } catch (error) {
       setError(
@@ -189,6 +189,20 @@ export function ProfileForm({
             The original file is not retained. Extracted text is saved only when
             you save your profile.
           </p>
+          {!onboarding && (
+            <button
+              className="button primary"
+              disabled={uploading || pending}
+              onClick={submit}
+            >
+              {pending ? (
+                <LoaderCircle size={17} className="spin" />
+              ) : (
+                <Save size={17} />
+              )}
+              Update profile from CV
+            </button>
+          )}
         </section>
       )}
       {step === 1 && (
