@@ -12,6 +12,7 @@ import {
   BriefcaseBusiness,
   CalendarDays,
   Check,
+  ChevronLeft,
   ChevronRight,
   CircleCheck,
   Clock3,
@@ -1871,17 +1872,27 @@ function CalendarView({
   applications: ApplicationRecord[];
   onSelect: (application: ApplicationRecord) => void;
 }) {
-  const interviews = applications
-    .filter(
-      (application) =>
-        Boolean(application.interview_date),
-    )
-    .sort((first, second) =>
-      (first.interview_date ?? first.follow_up!).localeCompare(
-        second.interview_date ?? second.follow_up!,
-      ),
-    );
-  const month = new Date();
+  const interviews = applications.flatMap((application) => {
+    const history = application.interview_history?.length
+      ? application.interview_history
+      : application.interview_date
+        ? [{
+            id: "legacy-interview",
+            date: application.interview_date,
+            round: application.interview_round ?? "",
+            notes: application.interview_notes ?? "",
+            completed: application.interview_completed ?? false,
+          }]
+        : [];
+    return history
+      .filter((interview) => Boolean(interview.date))
+      .map((interview) => ({ application, interview }));
+  }).sort((first, second) => first.interview.date.localeCompare(second.interview.date));
+  const [monthCursor, setMonthCursor] = useState(() => {
+    const now = new Date();
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  });
+  const month = monthCursor;
   const firstDay = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), 1));
   const daysInMonth = new Date(
     Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 0),
@@ -1889,14 +1900,25 @@ function CalendarView({
   const offset = firstDay.getUTCDay() === 0 ? 6 : firstDay.getUTCDay() - 1;
   const today = new Date().toISOString().slice(0, 10);
   const interviewsByDay = new Map(
-    interviews.map((application) => [
-      application.interview_date ?? application.follow_up!,
-      application,
+    interviews.map(({ application, interview }) => [
+      interview.date,
+      { application, interview },
     ]),
   );
+  const upcomingInterviews = interviews.filter(
+    ({ interview }) => interview.date >= today,
+  );
+  function shiftMonth(amount: number) {
+    setMonthCursor((current) =>
+      new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth() + amount, 1)),
+    );
+  }
   return (
     <section className="calendar-view" aria-label="Interview calendar">
       <div className="calendar-month-heading">
+        <button type="button" className="calendar-nav" onClick={() => shiftMonth(-1)} aria-label="Previous month">
+          <ChevronLeft size={17} />
+        </button>
         <h2>
           {month.toLocaleDateString("en-GB", {
             month: "long",
@@ -1904,6 +1926,9 @@ function CalendarView({
             timeZone: "UTC",
           })}
         </h2>
+        <button type="button" className="calendar-nav" onClick={() => shiftMonth(1)} aria-label="Next month">
+          <ChevronRight size={17} />
+        </button>
         <span>{interviews.length} interview{interviews.length === 1 ? "" : "s"}</span>
       </div>
       <div className="calendar-grid" role="grid">
@@ -1922,22 +1947,22 @@ function CalendarView({
           const day = index - offset + 1;
           if (day < 1) return <span className="calendar-empty" key={index} />;
           const date = `${month.getUTCFullYear()}-${String(month.getUTCMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-          const interview = interviewsByDay.get(date);
+          const event = interviewsByDay.get(date);
           return (
             <button
               type="button"
-              className={`calendar-day ${date === today ? "today" : ""} ${interview ? "has-interview" : ""}`}
+              className={`calendar-day ${date === today ? "today" : ""} ${event ? "has-interview" : ""}`}
               key={date}
-              onClick={() => interview && onSelect(interview)}
-              disabled={!interview}
+              onClick={() => event && onSelect(event.application)}
+              disabled={!event}
             >
               <span>{day}</span>
-              {interview && (
+              {event && (
                 <small>
-                  {interview.interview_round
-                    ? `${interview.interview_round} · `
+                  {event.interview.round
+                    ? `${event.interview.round} · `
                     : ""}
-                  {interview.job.company}
+                  {event.application.job.company}
                 </small>
               )}
             </button>
@@ -1946,21 +1971,21 @@ function CalendarView({
       </div>
       <div className="calendar-upcoming">
         <h3>Upcoming interviews</h3>
-        {interviews.length ? (
-          interviews.map((application) => (
+        {upcomingInterviews.length ? (
+          upcomingInterviews.map(({ application, interview }) => (
             <button
               type="button"
               className="calendar-event"
-              key={application.id}
+              key={`${application.id}-${interview.id}`}
               onClick={() => onSelect(application)}
             >
               <strong>
-                {dateLabel(application.interview_date ?? application.follow_up!)}
+                {dateLabel(interview.date)}
               </strong>
               <span>
                 {application.job.title} / {application.job.company}
-                {application.interview_round
-                  ? ` · ${application.interview_round}`
+                {interview.round
+                  ? ` · ${interview.round}`
                   : ""}
               </span>
               <ChevronRight size={15} />

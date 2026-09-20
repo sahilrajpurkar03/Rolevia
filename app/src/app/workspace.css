@@ -1348,7 +1348,9 @@ input[type="checkbox"] {
 }
 .theme-light {
   background:
+    radial-gradient(circle at 8% 8%, rgb(191 228 255 / 42%) 0, transparent 25%),
     radial-gradient(circle at 90% -10%, #dff8f1 0, transparent 30%),
+    linear-gradient(135deg, transparent 0 48%, rgb(255 255 255 / 48%) 48% 50%, transparent 50%),
     var(--paper);
 }
 .theme-dark .sidebar,
@@ -1358,7 +1360,11 @@ input[type="checkbox"] {
 .theme-dark .app-shell,
 .theme-dark .main-shell,
 .theme-dark .workspace-main {
-  background: var(--paper);
+  background:
+    radial-gradient(circle at 12% 4%, rgb(42 117 139 / 20%) 0, transparent 28%),
+    radial-gradient(circle at 92% 88%, rgb(61 52 133 / 18%) 0, transparent 30%),
+    linear-gradient(135deg, transparent 0 48%, rgb(255 255 255 / 2%) 48% 50%, transparent 50%),
+    var(--paper);
 }
 .theme-dark .sidebar {
   border-right-color: var(--line);
@@ -2008,11 +2014,30 @@ legend {
 .calendar-month-heading {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 16px;
   margin-bottom: 18px;
 }
+.calendar-month-heading h2 {
+  min-width: 170px;
+  text-align: center;
+}
+.calendar-nav {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--green);
+}
+.calendar-nav:hover {
+  background: var(--green-soft);
+}
 .calendar-month-heading span {
+  margin-left: auto;
   color: var(--muted);
   font-size: 12px;
 }
