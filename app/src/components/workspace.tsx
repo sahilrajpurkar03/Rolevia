@@ -237,7 +237,8 @@ export function Workspace(props: Props) {
   const [adding, setAdding] = useState(false);
   const latest = props.checks[0];
   const activeApplications = applications.filter(
-    (application) => !["rejected", "withdrawn"].includes(application.status),
+    (application) =>
+      !["saved", "rejected", "withdrawn"].includes(application.status),
   );
   const follows = activeApplications
     .filter((application) => application.follow_up)
