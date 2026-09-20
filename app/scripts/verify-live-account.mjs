@@ -264,7 +264,7 @@ try {
       .getByRole("button", { name: "Generate with AI", exact: true })
       .click();
     await generator
-      .getByRole("heading", { name: "Draft For Review" })
+      .getByLabel("Generated letter review", { exact: true })
       .waitFor();
     assert.equal(
       await letters.getByLabel("Letter body", { exact: true }).inputValue(),
