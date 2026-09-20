@@ -1476,6 +1476,48 @@ input[type="checkbox"] {
 .theme-dark .cv-reference {
   border-color: var(--line);
 }
+.theme-dark .letter-text,
+.theme-dark .letter-fields .cv-field input,
+.theme-dark .letter-fields .cv-field textarea,
+.theme-dark .letter-fields .cv-field select {
+  background: #152238;
+  color: var(--ink);
+  border-color: var(--line);
+}
+.theme-dark .letter-paper-stack,
+.theme-dark .cv-paper-stack {
+  background: #0f1a2b;
+  border-color: var(--line);
+}
+.theme-dark .cv-segment {
+  background: #1b2b43;
+  border-color: var(--line);
+}
+.theme-dark .cv-segment button[aria-pressed="true"] {
+  background: #75e0c1;
+  color: #09201f;
+}
+.theme-dark .cv-field input,
+.theme-dark .cv-field textarea,
+.theme-dark .cv-editor select {
+  background: #152238;
+  color: var(--ink);
+  border-color: var(--line);
+}
+.theme-dark .cv-photo-empty,
+.theme-dark .cv-suggestion button {
+  background: #1b4145;
+  color: #b8f0d7;
+}
+.theme-dark .cv-entry {
+  border-color: var(--line);
+}
+.theme-dark .cv-suggestion {
+  color: var(--muted);
+}
+.theme-dark .cv-swatches button {
+  border-color: #152238;
+}
 .theme-dark .upload-zone {
   background: repeating-linear-gradient(
     135deg,
