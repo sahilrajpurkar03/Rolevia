@@ -1347,11 +1347,126 @@ input[type="checkbox"] {
   color: var(--ink);
 }
 .theme-light {
+  --paper: #edf4f7;
+  --white: #fbfdfc;
+  --ink: #172033;
+  --muted: #5e6b80;
+  --line: #d4e0e5;
+  --green: #176b67;
+  --green-soft: #e0f1ed;
+  --accent: #83d8c3;
+  --light-surface: #f5f9fa;
+  --light-surface-muted: #e8f1f2;
   background:
-    radial-gradient(circle at 8% 8%, rgb(191 228 255 / 42%) 0, transparent 25%),
-    radial-gradient(circle at 90% -10%, #dff8f1 0, transparent 30%),
-    linear-gradient(135deg, transparent 0 48%, rgb(255 255 255 / 48%) 48% 50%, transparent 50%),
+    radial-gradient(circle at 8% 6%, rgb(91 178 217 / 28%) 0, transparent 30%),
+    radial-gradient(circle at 92% 2%, rgb(74 196 166 / 24%) 0, transparent 32%),
+    linear-gradient(135deg, transparent 0 45%, rgb(255 255 255 / 58%) 45% 48%, transparent 48% 100%),
     var(--paper);
+}
+.theme-light .app-shell,
+.theme-light .main-shell,
+.theme-light .workspace-main {
+  background:
+    radial-gradient(circle at 5% 18%, rgb(103 191 224 / 16%) 0, transparent 25%),
+    radial-gradient(circle at 96% 78%, rgb(83 201 171 / 14%) 0, transparent 28%),
+    linear-gradient(135deg, transparent 0 45%, rgb(255 255 255 / 42%) 45% 48%, transparent 48% 100%),
+    var(--paper);
+}
+.theme-light .sidebar,
+.theme-light .topbar {
+  background: rgb(248 252 252 / 92%);
+  border-color: var(--line);
+}
+.theme-light .nav-item:hover,
+.theme-light .stats-strip > button:hover,
+.theme-light .search-result-row:hover,
+.theme-light .button:hover:not(:disabled) {
+  background: var(--light-surface-muted);
+}
+.theme-light .nav-item.active {
+  background: #d8eee9;
+  color: var(--green);
+}
+.theme-light input,
+.theme-light textarea,
+.theme-light select,
+.theme-light .search-box,
+.theme-light .type-filter,
+.theme-light .button,
+.theme-light .theme-toggle,
+.theme-light .date-tile {
+  background: var(--white);
+  color: var(--ink);
+  border-color: var(--line);
+}
+.theme-light .match-day,
+.theme-light .search-result-row {
+  background: var(--light-surface);
+}
+.theme-light .job-card,
+.theme-light .search-results-panel,
+.theme-light .generated-review,
+.theme-light .table-row,
+.theme-light .letter-text,
+.theme-light .modal-content,
+.theme-light .calendar-view {
+  background: var(--white);
+}
+.theme-light .letter-paper-stack,
+.theme-light .cv-paper-stack {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      #e1ecee 0,
+      #e1ecee 8px,
+      #edf4f5 8px,
+      #edf4f5 16px
+    );
+  border-color: var(--line);
+}
+.theme-light .cv-segment {
+  background: var(--light-surface-muted);
+  border-color: var(--line);
+}
+.theme-light .cv-segment button[aria-pressed="true"] {
+  background: var(--white);
+  color: var(--green);
+}
+.theme-light .cv-field input,
+.theme-light .cv-field textarea,
+.theme-light .cv-editor select,
+.theme-light .letter-fields .cv-field input,
+.theme-light .letter-fields .cv-field textarea,
+.theme-light .letter-fields .cv-field select {
+  background: var(--white);
+  color: var(--ink);
+  border-color: var(--line);
+}
+.theme-light .cv-photo-empty {
+  background: #dcebea;
+  color: #4e6d6a;
+}
+.theme-light .cv-suggestion button {
+  background: #e0f1ed;
+  color: #245c48;
+}
+.theme-light .cv-entry {
+  border-color: var(--line);
+}
+.theme-light .upload-zone {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      #e3eff0 0,
+      #e3eff0 8px,
+      #edf5f4 8px,
+      #edf5f4 16px
+    );
+  border-color: #8dbbb5;
+}
+.theme-light .cv-paper img,
+.theme-light .letter-paper-stack img {
+  background: var(--white);
 }
 .theme-dark .sidebar,
 .theme-dark .topbar {
