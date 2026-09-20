@@ -1424,6 +1424,40 @@ input[type="checkbox"] {
 .theme-dark .calendar-view {
   background: var(--white);
 }
+.theme-dark .calendar-grid {
+  background: #2b3a50;
+  border-color: #2b3a50;
+}
+.theme-dark .calendar-grid > strong {
+  background: #1b2b43;
+  color: #c2d0e2;
+}
+.theme-dark .calendar-day,
+.theme-dark .calendar-empty {
+  background: #152238;
+  color: var(--ink);
+}
+.theme-dark .calendar-day:not(:disabled):hover {
+  background: #203653;
+}
+.theme-dark .calendar-day.today > span {
+  background: #75e0c1;
+  color: #09201f;
+}
+.theme-dark .calendar-day.has-interview {
+  box-shadow: inset 0 -3px 0 #75e0c1;
+}
+.theme-dark .calendar-day small,
+.theme-dark .calendar-event strong {
+  color: #8aefd0;
+}
+.theme-dark .calendar-event {
+  color: var(--ink);
+  border-color: var(--line);
+}
+.theme-dark .calendar-event:hover {
+  background: #1b2b43;
+}
 .theme-dark .job-card-bottom,
 .theme-dark .account,
 .theme-dark .table-row {
