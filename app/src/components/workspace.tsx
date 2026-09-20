@@ -138,6 +138,15 @@ function download(text: string, name: string, type = "text/plain") {
 const descriptionHeadings = [
   "Your mission",
   "What you'll do",
+  "Duties And Responsibilities",
+  "Professional competencies",
+  "Personal competencies",
+  "Requirements",
+  "Responsibilities",
+  "Qualifications",
+  "Benefits",
+  "About the role",
+  "About you",
   "Your profile",
   "Must-have",
   "Nice-to-have",
@@ -155,6 +164,10 @@ function formatJobDescription(value: string) {
   if (firstHeading > 0) text = text.slice(firstHeading);
   for (const heading of descriptionHeadings)
     text = text.replace(new RegExp(`\\s*(${heading})\\s*`, "gi"), "\n$1\n");
+  text = text.replace(
+    /\s+(?=(?:You|Your|Several|Experience|Technologies|M\.Sc\.|Keen|A requirement|Making|Being|Ambitious|We're)\b)/g,
+    "\n",
+  );
   return text
     .split("\n")
     .map((part) => part.trim())

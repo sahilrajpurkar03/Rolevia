@@ -26,10 +26,14 @@
 }
 .generator-fields .generator-consent {
   display: flex;
+  flex-direction: row;
   align-items: flex-start;
   gap: 9px;
+  width: 100%;
 }
 .generator-consent span {
+  display: block;
+  flex: 1;
   line-height: 1.5;
 }
 .generator-consent input { flex-shrink: 0; margin-top: 3px; }
