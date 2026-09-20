@@ -1434,12 +1434,12 @@ export function Workspace(props: Props) {
                   </div>
                   <div className="application-table">
                     <div className="table-header">
-                      <span>OPPORTUNITY</span>
+                      <span className="application-opportunity-heading">OPPORTUNITY</span>
                       <span className="application-actions-heading">ACTIONS</span>
-                      <span>STATUS</span>
-                      <span>FOLLOW-UP</span>
-                      <span>UPDATED</span>
-                      <span aria-hidden="true" />
+                      <span className="application-status-heading">STATUS</span>
+                      <span className="application-follow-up-heading">FOLLOW-UP</span>
+                      <span className="application-updated-heading">UPDATED</span>
+                      <span className="application-delete-heading" aria-hidden="true" />
                     </div>
                     {applications
                       .filter(
@@ -1466,14 +1466,14 @@ export function Workspace(props: Props) {
                           onClick={() => setEditing(application)}
                         >
                           <button
-                            className="application-title"
+                            className="application-title application-opportunity-cell"
                             onClick={() => setEditing(application)}
                           >
                             <strong>{application.job.title}</strong>
                             <small>{application.job.company}</small>
                           </button>
                           <div
-                            className={`application-row-actions ${application.status !== "saved" ? "empty" : ""}`}
+                            className={`application-row-actions application-actions-cell ${application.status !== "saved" ? "empty" : ""}`}
                             onClick={(event) => event.stopPropagation()}
                           >
                             {application.status === "saved" && (
@@ -1505,7 +1505,7 @@ export function Workspace(props: Props) {
                               </>
                             )}
                           </div>
-                          <label className="application-status-control">
+                          <label className="application-status-control application-status-cell">
                             <span className="sr-only">Status</span>
                             <select
                               value={application.status}
@@ -1525,16 +1525,16 @@ export function Workspace(props: Props) {
                               ))}
                             </select>
                           </label>
-                          <span>
+                          <span className="application-follow-up-cell">
                             {application.follow_up
                               ? dateLabel(application.follow_up)
                               : "Not set"}
                           </span>
-                          <span>
+                          <span className="application-updated-cell">
                             {dateLabel(application.updated_at)}
                           </span>
                           <button
-                            className="application-delete"
+                            className="application-delete application-delete-cell"
                             aria-label={`Delete ${application.job.title}`}
                             title="Delete application"
                             onClick={(event) => {

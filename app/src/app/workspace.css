@@ -1771,10 +1771,21 @@ legend {
   justify-self: start;
 }
 .application-actions-heading {
+  grid-column: 2;
   justify-self: start;
   width: 100%;
   text-align: left;
 }
+.application-opportunity-heading,
+.application-opportunity-cell { grid-column: 1; }
+.application-status-heading,
+.application-status-cell { grid-column: 3; }
+.application-follow-up-heading,
+.application-follow-up-cell { grid-column: 4; }
+.application-updated-heading,
+.application-updated-cell { grid-column: 5; }
+.application-delete-heading,
+.application-delete-cell { grid-column: 6; }
 .application-row-actions.empty {
   min-height: 32px;
 }
@@ -2622,6 +2633,12 @@ legend {
     grid-row: 2;
     overflow-x: auto;
     padding-top: 4px;
+  }
+  .application-opportunity-cell,
+  .application-status-cell,
+  .application-follow-up-cell,
+  .application-updated-cell {
+    grid-column: auto;
   }
   .application-delete {
     grid-column: 2;
