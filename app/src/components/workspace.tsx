@@ -781,7 +781,7 @@ export function Workspace(props: Props) {
               {(message.error || message.success) && (
                 <div
                   role={message.error ? "alert" : "status"}
-                  className={`notice ${message.error ? "error" : ""}`}
+                  className={`notice ${view === "matches" ? "match-toast" : ""} ${message.error ? "error" : ""}`}
                 >
                   {message.error || message.success}
                   <button

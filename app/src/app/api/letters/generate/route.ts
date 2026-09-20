@@ -8,6 +8,7 @@ import { profileSchema } from "@/lib/schema";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
+const defaultGeminiModel = "gemini-2.5-flash";
 
 export async function POST(request: Request) {
   const reply = (body: unknown, status = 200) =>
@@ -116,33 +117,43 @@ export async function POST(request: Request) {
     .join("\n\n");
   const prompt = letterPrompt(input, candidate);
   try {
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": process.env.GEMINI_API_KEY,
-        },
-        signal: AbortSignal.timeout(65000),
-        cache: "no-store",
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: prompt.system }] },
-          contents: [{ role: "user", parts: [{ text: prompt.data }] }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            temperature: 0.3,
-            maxOutputTokens: 4096,
-            thinkingConfig: { thinkingLevel: "low" },
+    const configuredModel =
+      process.env.GEMINI_MODEL?.trim() || defaultGeminiModel;
+    const models = [
+      configuredModel,
+      ...(configuredModel === defaultGeminiModel ? [] : [defaultGeminiModel]),
+    ];
+    let response: Response | undefined;
+    for (const [index, model] of models.entries()) {
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": process.env.GEMINI_API_KEY,
           },
-        }),
-      },
-    );
-    if (!response.ok)
+          signal: AbortSignal.timeout(30000),
+          cache: "no-store",
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: prompt.system }] },
+            contents: [{ role: "user", parts: [{ text: prompt.data }] }],
+            generationConfig: {
+              responseMimeType: "application/json",
+              temperature: 0.3,
+              maxOutputTokens: 4096,
+            },
+          }),
+        },
+      );
+      if (response.ok || response.status !== 503 || index === models.length - 1)
+        break;
+    }
+    if (!response?.ok)
       throw new Error(
-        response.status === 429
+        response?.status === 429
           ? "Gemini free-tier quota is exhausted. Try later; your draft is unchanged."
-          : `Gemini returned HTTP ${response.status}. Check provider configuration or retry later; your draft is unchanged.`,
+          : `Gemini returned HTTP ${response?.status ?? 503}. Check provider configuration or retry later; your draft is unchanged.`,
       );
     const output = await response.json();
     const choice = output.candidates?.[0];
