@@ -289,31 +289,45 @@ export async function updateApplication(input: unknown): Promise<ActionResult> {
       .single();
     if (current.error || !current.data)
       return { error: "Application could not be loaded." };
-    const { error, data } = await client
+    const job = {
+      ...(current.data.job as Job),
+      title: values.jobTitle,
+      company: values.jobCompany,
+      location: values.jobLocation,
+      url: values.jobUrl,
+      description: values.jobDescription,
+    };
+    const baseUpdate = {
+      status: values.status,
+      notes: values.notes,
+      letter: values.letter,
+      follow_up: values.followUp || null,
+      job,
+      updated_at: new Date().toISOString(),
+    };
+    let response = await client
       .from("applications")
       .update({
-        status: values.status,
-        notes: values.notes,
-        letter: values.letter,
-        follow_up: values.followUp || null,
+        ...baseUpdate,
         interview_date: values.interviewDate || null,
         interview_round: values.interviewRound,
         interview_notes: values.interviewNotes,
         interview_completed: values.interviewCompleted,
-        job: {
-          ...(current.data.job as Job),
-          title: values.jobTitle,
-          company: values.jobCompany,
-          location: values.jobLocation,
-          url: values.jobUrl,
-          description: values.jobDescription,
-        },
-        updated_at: new Date().toISOString(),
       })
       .eq("id", values.id)
       .eq("user_id", user.id)
       .select("id")
       .single();
+    if (response.error?.code === "42703") {
+      response = await client
+        .from("applications")
+        .update(baseUpdate)
+        .eq("id", values.id)
+        .eq("user_id", user.id)
+        .select("id")
+        .single();
+    }
+    const { error, data } = response;
     if (error || !data) return { error: "Application could not be updated." };
     revalidatePath("/workspace");
     return { success: "Application updated." };
