@@ -449,6 +449,7 @@ export function Workspace(props: Props) {
       setSampleApplications((current) =>
         current.map((item) => (item.id === application.id ? updated : item)),
       );
+      if (status === "interview") setEditing(updated);
       return;
     }
     setOptimisticApplications((current) =>
@@ -463,11 +464,15 @@ export function Workspace(props: Props) {
         notes: application.notes,
         letter: application.letter,
         followUp: application.follow_up ?? "",
+        interviewDate: application.interview_date ?? "",
+        interviewRound: application.interview_round ?? "",
+        interviewNotes: application.interview_notes ?? "",
       });
       setMessage(result);
       if (result.error) setOptimisticApplications(null);
       else router.refresh();
     });
+    if (status === "interview") setEditing(updated);
   }
   function applicationMatch(application: ApplicationRecord): MatchRecord {
     return {
@@ -1835,10 +1840,13 @@ function CalendarView({
   const interviews = applications
     .filter(
       (application) =>
-        application.status === "interview" && Boolean(application.follow_up),
+        application.status === "interview" &&
+        Boolean(application.interview_date ?? application.follow_up),
     )
     .sort((first, second) =>
-      first.follow_up!.localeCompare(second.follow_up!),
+      (first.interview_date ?? first.follow_up!).localeCompare(
+        second.interview_date ?? second.follow_up!,
+      ),
     );
   const month = new Date();
   const firstDay = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), 1));
@@ -1848,7 +1856,10 @@ function CalendarView({
   const offset = firstDay.getUTCDay() === 0 ? 6 : firstDay.getUTCDay() - 1;
   const today = new Date().toISOString().slice(0, 10);
   const interviewsByDay = new Map(
-    interviews.map((application) => [application.follow_up!, application]),
+    interviews.map((application) => [
+      application.interview_date ?? application.follow_up!,
+      application,
+    ]),
   );
   return (
     <section className="calendar-view" aria-label="Interview calendar">
@@ -1888,7 +1899,14 @@ function CalendarView({
               disabled={!interview}
             >
               <span>{day}</span>
-              {interview && <small>{interview.job.company}</small>}
+              {interview && (
+                <small>
+                  {interview.interview_round
+                    ? `${interview.interview_round} · `
+                    : ""}
+                  {interview.job.company}
+                </small>
+              )}
             </button>
           );
         })}
@@ -1903,9 +1921,14 @@ function CalendarView({
               key={application.id}
               onClick={() => onSelect(application)}
             >
-              <strong>{dateLabel(application.follow_up!)}</strong>
+              <strong>
+                {dateLabel(application.interview_date ?? application.follow_up!)}
+              </strong>
               <span>
                 {application.job.title} / {application.job.company}
+                {application.interview_round
+                  ? ` · ${application.interview_round}`
+                  : ""}
               </span>
               <ChevronRight size={15} />
             </button>
@@ -2090,6 +2113,9 @@ function ApplicationEditor({
               notes: draft.notes,
               letter: draft.letter,
               followUp: draft.follow_up ?? "",
+              interviewDate: draft.interview_date ?? "",
+              interviewRound: draft.interview_round ?? "",
+              interviewNotes: draft.interview_notes ?? "",
             });
         setMessage(result);
         if (!result.error) {
@@ -2150,6 +2176,52 @@ function ApplicationEditor({
           />
         </label>
       </div>
+      {draft.status === "interview" && (
+        <>
+          <div className="form-grid">
+            <label>
+              Interview date
+              <input
+                type="date"
+                value={draft.interview_date ?? ""}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    interview_date: event.target.value || null,
+                  })
+                }
+              />
+            </label>
+            <label>
+              Interview round
+              <select
+                value={draft.interview_round}
+                onChange={(event) =>
+                  setDraft({ ...draft, interview_round: event.target.value })
+                }
+              >
+                <option value="">Select round</option>
+                <option value="Intro">Intro</option>
+                <option value="Technical">Technical</option>
+                <option value="Manager">Manager</option>
+                <option value="Final">Final</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            Interview details
+            <textarea
+              rows={3}
+              maxLength={5000}
+              value={draft.interview_notes}
+              onChange={(event) =>
+                setDraft({ ...draft, interview_notes: event.target.value })
+              }
+              placeholder="Add the interviewer, format, preparation notes, or meeting link."
+            />
+          </label>
+        </>
+      )}
       <label>
         Notes
         <textarea

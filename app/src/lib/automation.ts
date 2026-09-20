@@ -205,6 +205,9 @@ export type ApplicationRecord = {
   notes: string;
   letter: string;
   follow_up: string | null;
+  interview_date?: string | null;
+  interview_round?: string;
+  interview_notes?: string;
   created_at: string;
   updated_at: string;
 };

@@ -57,6 +57,9 @@ export const applicationSchema = z.object({
   notes: z.string().max(10000),
   letter: z.string().max(15000),
   followUp: z.union([z.literal(""), z.iso.date()]),
+  interviewDate: z.union([z.literal(""), z.iso.date()]).default(""),
+  interviewRound: z.string().trim().max(80).default(""),
+  interviewNotes: z.string().max(5000).default(""),
 });
 export const safeJobUrl = z
   .url()
