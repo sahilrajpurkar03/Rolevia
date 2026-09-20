@@ -8,7 +8,7 @@ import { profileSchema } from "@/lib/schema";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
-const defaultGeminiModel = "gemini-2.5-flash";
+const defaultGeminiModel = "gemini-3.6-flash";
 
 export async function POST(request: Request) {
   const reply = (body: unknown, status = 200) =>
@@ -155,7 +155,11 @@ export async function POST(request: Request) {
           request,
         );
       }
-      if (response.ok || response.status !== 503 || index === models.length - 1)
+      if (
+        response.ok ||
+        ![404, 503].includes(response.status) ||
+        index === models.length - 1
+      )
         break;
     }
     if (!response?.ok) {
