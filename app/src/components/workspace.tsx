@@ -676,6 +676,20 @@ export function Workspace(props: Props) {
                       />
                     </section>
                   )}
+                </>
+              </div>
+              <div hidden={view !== "matches"}>
+                <div className="section-heading">
+                  <div>
+                    <p className="eyebrow">
+                      A LITTLE CLOSER TO YOUR NEXT CHAPTER
+                    </p>
+                    <h1>Your next move, {profile.fullName.split(" ")[0]}.</h1>
+                    <p className="muted">
+                      Fresh possibilities. A clearer direction.
+                    </p>
+                  </div>
+                </div>
                   <div className="stats-strip">
                     <div>
                       <span>Matched opportunities</span>
@@ -747,7 +761,6 @@ export function Workspace(props: Props) {
                       </strong>
                     </button>
                   </div>
-                </>
               </div>
               {view !== "matches" &&
                 view !== "search" &&
