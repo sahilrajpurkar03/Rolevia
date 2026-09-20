@@ -1423,7 +1423,7 @@ export function Workspace(props: Props) {
                   <div className="application-table">
                     <div className="table-header">
                       <span>OPPORTUNITY</span>
-                      <span>ACTIONS</span>
+                      <span className="application-actions-heading">ACTIONS</span>
                       <span>STATUS</span>
                       <span>FOLLOW-UP</span>
                       <span>UPDATED</span>

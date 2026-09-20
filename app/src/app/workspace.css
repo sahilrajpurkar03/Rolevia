@@ -1690,6 +1690,10 @@ legend {
   flex-wrap: nowrap;
   gap: 7px;
   white-space: nowrap;
+  justify-self: start;
+}
+.application-actions-heading {
+  text-align: left;
 }
 .application-row-actions.empty {
   min-height: 32px;
