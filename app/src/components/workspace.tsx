@@ -1684,6 +1684,7 @@ function MatchLetterEditor({
         job={match.job}
         demo={demo}
         disabled={pending}
+        initialAvailability={profile.availability}
         initialLocation={profile.regions.join(", ")}
         showDescription
         onUse={(result, input) => applyDraft(result, input.language)}

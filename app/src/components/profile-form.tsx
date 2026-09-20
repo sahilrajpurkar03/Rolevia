@@ -276,6 +276,15 @@ export function ProfileForm({
             onChange={(values) => update("regions", values)}
             placeholder="e.g. Germany, Berlin, Canada"
           />
+          <label>
+            Availability
+            <input
+              value={profile.availability}
+              maxLength={180}
+              placeholder="e.g. Immediately, from October 2026"
+              onChange={(event) => update("availability", event.target.value)}
+            />
+          </label>
           <fieldset>
             <legend>Employment type</legend>
             <div className="check-grid">

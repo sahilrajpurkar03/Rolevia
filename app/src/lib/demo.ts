@@ -13,6 +13,7 @@ export const demoProfile: Profile = {
   skills: ["Figma", "User research", "Design systems", "Prototyping"],
   fields: ["Product designer", "UX designer", "Design"],
   regions: ["Germany", "Berlin", "Netherlands", "Europe"],
+  availability: "Available from October 2026",
   jobTypes: ["full-time", "internship", "working-student"],
   remote: true,
   dailyChecks: true,
