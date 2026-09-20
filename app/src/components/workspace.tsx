@@ -1451,20 +1451,15 @@ export function Workspace(props: Props) {
                         <div
                           className="table-row"
                           key={application.id}
-                          role="button"
-                          tabIndex={0}
                           onClick={() => setEditing(application)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              setEditing(application);
-                            }
-                          }}
                         >
-                          <span className="application-title">
+                          <button
+                            className="application-title"
+                            onClick={() => setEditing(application)}
+                          >
                             <strong>{application.job.title}</strong>
                             <small>{application.job.company}</small>
-                          </span>
+                          </button>
                           <div
                             className={`application-row-actions ${application.status !== "saved" ? "empty" : ""}`}
                             onClick={(event) => event.stopPropagation()}
