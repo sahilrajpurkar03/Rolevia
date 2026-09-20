@@ -1389,6 +1389,16 @@ input[type="checkbox"] {
   background: #1b4145;
   color: var(--green);
 }
+.theme-dark .nav-count,
+.theme-dark .list-heading h2 > span,
+.theme-dark .match-day summary strong {
+  background: #b8f0d7;
+  color: #092b2b;
+  font-weight: 700;
+}
+.theme-dark .stats-strip small {
+  color: #b8c7d9;
+}
 .theme-dark input,
 .theme-dark textarea,
 .theme-dark select,
