@@ -209,8 +209,16 @@ export type ApplicationRecord = {
   interview_round?: string;
   interview_notes?: string;
   interview_completed?: boolean;
+  interview_history?: InterviewRecord[];
   created_at: string;
   updated_at: string;
+};
+export type InterviewRecord = {
+  id: string;
+  date: string;
+  round: string;
+  notes: string;
+  completed: boolean;
 };
 export type CheckRecord = {
   id: string;

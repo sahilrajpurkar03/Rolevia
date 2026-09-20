@@ -67,6 +67,18 @@ export const applicationSchema = z.object({
   interviewRound: z.string().trim().max(80).default(""),
   interviewNotes: z.string().max(5000).default(""),
   interviewCompleted: z.boolean().default(false),
+  interviewHistory: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(80),
+        date: z.union([z.literal(""), z.iso.date()]),
+        round: z.string().trim().max(80),
+        notes: z.string().max(5000),
+        completed: z.boolean(),
+      }),
+    )
+    .max(30)
+    .default([]),
   jobTitle: z.string().trim().min(1).max(300).default("Untitled application"),
   jobCompany: z.string().trim().min(1).max(300).default("Company not recorded"),
   jobLocation: z.string().trim().max(500).default(""),

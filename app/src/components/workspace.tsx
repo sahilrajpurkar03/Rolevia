@@ -68,6 +68,7 @@ import {
 import type {
   ApplicationRecord,
   CheckRecord,
+  InterviewRecord,
   MatchRecord,
 } from "@/lib/automation";
 
@@ -477,6 +478,7 @@ export function Workspace(props: Props) {
         interviewDate: application.interview_date ?? "",
         interviewRound: application.interview_round ?? "",
         interviewNotes: application.interview_notes ?? "",
+        interviewHistory: application.interview_history ?? [],
         jobTitle: application.job.title ?? "Untitled application",
         jobCompany: application.job.company ?? "Company not recorded",
         jobLocation: application.job.location ?? "",
@@ -2124,6 +2126,28 @@ function ApplicationEditor({
   const [draft, setDraft] = useState(application);
   const [message, setMessage] = useState<ActionResult>({});
   const [pending, startTransition] = useTransition();
+  const interviews: InterviewRecord[] = draft.interview_history?.length
+    ? draft.interview_history
+    : draft.interview_date
+      ? [{
+          id: "legacy-interview",
+          date: draft.interview_date,
+          round: draft.interview_round ?? "",
+          notes: draft.interview_notes ?? "",
+          completed: draft.interview_completed ?? false,
+        }]
+      : [];
+  function updateInterviews(next: InterviewRecord[]) {
+    const first = next[0];
+    setDraft({
+      ...draft,
+      interview_history: next,
+      interview_date: first?.date || null,
+      interview_round: first?.round ?? "",
+      interview_notes: first?.notes ?? "",
+      interview_completed: first?.completed ?? false,
+    });
+  }
   function save() {
     startTransition(async () => {
       try {
@@ -2138,6 +2162,7 @@ function ApplicationEditor({
               interviewDate: draft.interview_date ?? "",
               interviewRound: draft.interview_round ?? "",
               interviewNotes: draft.interview_notes ?? "",
+              interviewHistory: draft.interview_history ?? [],
               interviewCompleted: draft.interview_completed ?? false,
               jobTitle: draft.job.title ?? "Untitled application",
               jobCompany: draft.job.company ?? "Company not recorded",
@@ -2236,65 +2261,117 @@ function ApplicationEditor({
           />
         </label>
       </div>
-      {(draft.status === "interview" || Boolean(draft.interview_date)) && (
+      {(draft.status === "interview" || interviews.length > 0) && (
         <>
-          <div className="form-grid">
-            <label>
-              Interview date
-              <input
-                type="date"
-                value={draft.interview_date ?? ""}
-                onChange={(event) =>
-                  setDraft({
-                    ...draft,
-                    interview_date: event.target.value || null,
-                  })
-                }
-              />
-            </label>
-            <label>
-              Interview round
-              <select
-                value={draft.interview_round}
-                onChange={(event) =>
-                  setDraft({ ...draft, interview_round: event.target.value })
+          <div className="interview-history-heading">
+            <strong>Interview history</strong>
+            <button
+              type="button"
+              className="button small"
+              onClick={() =>
+                updateInterviews([
+                  ...interviews,
+                  {
+                    id: `interview-${Date.now()}`,
+                    date: "",
+                    round: "",
+                    notes: "",
+                    completed: false,
+                  },
+                ])
+              }
+            >
+              <Plus size={14} /> Add interview
+            </button>
+          </div>
+          {interviews.map((interview, index) => (
+            <div className="interview-entry" key={interview.id}>
+              <div className="form-grid">
+                <label>
+                  Interview date
+                  <input
+                    type="date"
+                    value={interview.date}
+                    onChange={(event) =>
+                      updateInterviews(
+                        interviews.map((item, itemIndex) =>
+                          itemIndex === index
+                            ? { ...item, date: event.target.value }
+                            : item,
+                        ),
+                      )
+                    }
+                  />
+                </label>
+                <label>
+                  Interview round
+                  <select
+                    value={interview.round}
+                    onChange={(event) =>
+                      updateInterviews(
+                        interviews.map((item, itemIndex) =>
+                          itemIndex === index
+                            ? { ...item, round: event.target.value }
+                            : item,
+                        ),
+                      )
+                    }
+                  >
+                    <option value="">Select round</option>
+                    <option value="Intro">Intro</option>
+                    <option value="Technical">Technical</option>
+                    <option value="Manager">Manager</option>
+                    <option value="Final">Final</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                Interview details
+                <textarea
+                  rows={3}
+                  maxLength={5000}
+                  value={interview.notes}
+                  onChange={(event) =>
+                    updateInterviews(
+                      interviews.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, notes: event.target.value }
+                          : item,
+                      ),
+                    )
+                  }
+                  placeholder="Add interviewer, format, preparation notes, or meeting link."
+                />
+              </label>
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={interview.completed}
+                  onChange={(event) =>
+                    updateInterviews(
+                      interviews.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, completed: event.target.checked }
+                          : item,
+                      ),
+                    )
+                  }
+                />
+                {interview.date === new Date().toISOString().slice(0, 10)
+                  ? "Interview completed today"
+                  : "Interview completed"}
+              </label>
+              <button
+                type="button"
+                className="text-button danger-action"
+                onClick={() =>
+                  updateInterviews(interviews.filter((_, itemIndex) => itemIndex !== index))
                 }
               >
-                <option value="">Select round</option>
-                <option value="Intro">Intro</option>
-                <option value="Technical">Technical</option>
-                <option value="Manager">Manager</option>
-                <option value="Final">Final</option>
-              </select>
-            </label>
-          </div>
-          <label>
-            Interview details
-            <textarea
-              rows={3}
-              maxLength={5000}
-              value={draft.interview_notes}
-              onChange={(event) =>
-                setDraft({ ...draft, interview_notes: event.target.value })
-              }
-              placeholder="Add the interviewer, format, preparation notes, or meeting link."
-            />
-          </label>
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={draft.interview_completed ?? false}
-              onChange={(event) =>
-                setDraft({
-                  ...draft,
-                  interview_completed: event.target.checked,
-                })
-              }
-            />
-            {draft.interview_date === new Date().toISOString().slice(0, 10)
-              ? "Interview completed today"
-              : "Interview completed"}
-          </label>
+                Remove interview
+              </button>
+            </div>
+          ))}
         </>
       )}
       <label>

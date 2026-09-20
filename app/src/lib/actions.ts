@@ -289,6 +289,7 @@ export async function updateApplication(input: unknown): Promise<ActionResult> {
       interviewDate: legacyInput.interviewDate ?? "",
       interviewRound: legacyInput.interviewRound ?? "",
       interviewNotes: legacyInput.interviewNotes ?? "",
+      interviewHistory: legacyInput.interviewHistory ?? [],
       jobTitle: legacyInput.jobTitle || "Untitled application",
       jobCompany: legacyInput.jobCompany || "Company not recorded",
       jobLocation: legacyInput.jobLocation ?? "",
@@ -328,6 +329,7 @@ export async function updateApplication(input: unknown): Promise<ActionResult> {
         interview_round: values.interviewRound,
         interview_notes: values.interviewNotes,
         interview_completed: values.interviewCompleted,
+        interview_history: values.interviewHistory,
       })
       .eq("id", values.id)
       .eq("user_id", user.id)
@@ -336,7 +338,7 @@ export async function updateApplication(input: unknown): Promise<ActionResult> {
     const missingInterviewColumns =
       response.error?.code === "42703" ||
       response.error?.code === "PGRST204" ||
-      /interview_(date|round|notes|completed).*column|column .*interview_/i.test(
+      /interview_(date|round|notes|completed|history).*column|column .*interview_/i.test(
         response.error?.message ?? "",
       );
     if (missingInterviewColumns) {
