@@ -1423,6 +1423,7 @@ export function Workspace(props: Props) {
                   <div className="application-table">
                     <div className="table-header">
                       <span>OPPORTUNITY</span>
+                      <span>ACTIONS</span>
                       <span>STATUS</span>
                       <span>FOLLOW-UP</span>
                       <span>UPDATED</span>
@@ -1463,6 +1464,39 @@ export function Workspace(props: Props) {
                             <strong>{application.job.title}</strong>
                             <small>{application.job.company}</small>
                           </span>
+                          <div
+                            className={`application-row-actions ${application.status !== "saved" ? "empty" : ""}`}
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            {application.status === "saved" && (
+                              <>
+                                <button
+                                  className="button small"
+                                  onClick={() =>
+                                    openCoverLetter(applicationMatch(application))
+                                  }
+                                >
+                                  <FileText size={14} /> Cover letter
+                                </button>
+                                <a
+                                  className="button small"
+                                  href={application.job.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <ExternalLink size={14} /> Apply
+                                </a>
+                                <button
+                                  className="button small"
+                                  onClick={() =>
+                                    logApplication(applicationMatch(application))
+                                  }
+                                >
+                                  <Check size={14} /> Log
+                                </button>
+                              </>
+                            )}
+                          </div>
                           <label className="application-status-control">
                             <span className="sr-only">Status</span>
                             <select
@@ -1491,37 +1525,6 @@ export function Workspace(props: Props) {
                           <span>
                             {dateLabel(application.updated_at)}
                           </span>
-                          {application.status === "saved" && (
-                            <div
-                              className="application-row-actions"
-                              onClick={(event) => event.stopPropagation()}
-                            >
-                              <button
-                                className="button small"
-                                onClick={() =>
-                                  openCoverLetter(applicationMatch(application))
-                                }
-                              >
-                                <FileText size={14} /> Cover letter
-                              </button>
-                              <a
-                                className="button small"
-                                href={application.job.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <ExternalLink size={14} /> Apply
-                              </a>
-                              <button
-                                className="button small"
-                                onClick={() =>
-                                  logApplication(applicationMatch(application))
-                                }
-                              >
-                                <Check size={14} /> Log
-                              </button>
-                            </div>
-                          )}
                           <button
                             className="application-delete"
                             aria-label={`Delete ${application.job.title}`}

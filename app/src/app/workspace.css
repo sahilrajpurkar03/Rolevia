@@ -1687,6 +1687,9 @@ legend {
   gap: 7px;
   white-space: nowrap;
 }
+.application-row-actions.empty {
+  min-height: 32px;
+}
 .application-delete {
   position: absolute;
   top: 10px;
@@ -2511,6 +2514,7 @@ legend {
   }
   .application-row-actions {
     grid-column: 1 / -1;
+    grid-row: 2;
     overflow-x: auto;
     padding-top: 4px;
   }
