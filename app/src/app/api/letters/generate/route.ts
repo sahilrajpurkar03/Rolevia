@@ -116,34 +116,52 @@ export async function POST(request: Request) {
     .join("\n\n");
   const prompt = letterPrompt(input, candidate);
   try {
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": process.env.GEMINI_API_KEY,
-        },
-        signal: AbortSignal.timeout(65000),
-        cache: "no-store",
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: prompt.system }] },
-          contents: [{ role: "user", parts: [{ text: prompt.data }] }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            temperature: 0.3,
-            maxOutputTokens: 4096,
-            thinkingConfig: { thinkingLevel: "low" },
-          },
-        }),
+    const request = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": process.env.GEMINI_API_KEY,
       },
+      signal: AbortSignal.timeout(65000),
+      cache: "no-store" as const,
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: prompt.system }] },
+        contents: [{ role: "user", parts: [{ text: prompt.data }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.3,
+          maxOutputTokens: 4096,
+          thinkingConfig: { thinkingLevel: "low" },
+        },
+      }),
+    };
+    let response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent",
+      request,
     );
-    if (!response.ok)
+    if (response.status >= 500 && response.status < 600) {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent",
+        request,
+      );
+    }
+    if (!response.ok) {
+      let providerDetail = "";
+      try {
+        const body = (await response.json()) as { error?: { message?: string } };
+        providerDetail = body.error?.message
+          ? ` ${body.error.message.slice(0, 240)}`
+          : "";
+      } catch {
+        // Keep the user-facing error stable when the provider body is not JSON.
+      }
       throw new Error(
         response.status === 429
           ? "Gemini free-tier quota is exhausted. Try later; your draft is unchanged."
-          : `Gemini returned HTTP ${response.status}. Check provider configuration or retry later; your draft is unchanged.`,
+          : `Gemini returned HTTP ${response.status}.${providerDetail} Your draft is unchanged.`,
       );
+    }
     const output = await response.json();
     const choice = output.candidates?.[0];
     if (choice?.finishReason !== "STOP")
