@@ -1427,6 +1427,7 @@ export function Workspace(props: Props) {
                       <span>STATUS</span>
                       <span>FOLLOW-UP</span>
                       <span>UPDATED</span>
+                      <span aria-hidden="true" />
                     </div>
                     {applications
                       .filter(

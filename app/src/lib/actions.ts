@@ -333,7 +333,13 @@ export async function updateApplication(input: unknown): Promise<ActionResult> {
       .eq("user_id", user.id)
       .select("id")
       .single();
-    if (response.error?.code === "42703") {
+    const missingInterviewColumns =
+      response.error?.code === "42703" ||
+      response.error?.code === "PGRST204" ||
+      /interview_(date|round|notes|completed).*column|column .*interview_/i.test(
+        response.error?.message ?? "",
+      );
+    if (missingInterviewColumns) {
       response = await client
         .from("applications")
         .update(baseUpdate)
@@ -343,7 +349,16 @@ export async function updateApplication(input: unknown): Promise<ActionResult> {
         .single();
     }
     const { error, data } = response;
-    if (error || !data) return { error: "Application could not be updated." };
+    if (error || !data) {
+      if (error?.code === "PGRST116")
+        return { error: "This application no longer exists." };
+      return {
+        error:
+          error?.code === "42501"
+            ? "You do not have permission to update this application."
+            : "Application could not be updated. Please apply the latest Supabase migrations.",
+      };
+    }
     revalidatePath("/workspace");
     return { success: "Application updated." };
   } catch (error) {

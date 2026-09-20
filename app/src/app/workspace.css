@@ -1614,7 +1614,7 @@ legend {
   grid-template-columns: minmax(0, 2.1fr) minmax(90px, 1fr) minmax(
       90px,
       0.9fr
-    ) minmax(85px, 0.8fr) auto;
+    ) minmax(85px, 0.8fr) 32px;
   gap: 16px;
   align-items: center;
   padding: 17px 14px;
@@ -1691,9 +1691,6 @@ legend {
   min-height: 32px;
 }
 .application-delete {
-  position: absolute;
-  top: 10px;
-  right: 10px;
   display: grid;
   place-items: center;
   width: 27px;
@@ -1702,6 +1699,7 @@ legend {
   border-radius: 50%;
   background: transparent;
   color: var(--muted);
+  justify-self: center;
 }
 .application-delete:hover {
   background: #fbeceb;
@@ -2517,6 +2515,11 @@ legend {
     grid-row: 2;
     overflow-x: auto;
     padding-top: 4px;
+  }
+  .application-delete {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
   }
   .table-row > span:nth-child(3)::before {
     content: "Follow-up: ";
