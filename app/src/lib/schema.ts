@@ -70,7 +70,8 @@ export const applicationSchema = z.object({
   jobTitle: z.string().trim().min(1).max(300).default("Untitled application"),
   jobCompany: z.string().trim().min(1).max(300).default("Company not recorded"),
   jobLocation: z.string().trim().max(500).default(""),
-  jobUrl: safeJobUrl,
+  // Older imported applications may not have retained their original URL.
+  jobUrl: z.union([z.literal(""), safeJobUrl]).default(""),
   jobDescription: z.string().max(20000).default(""),
 });
 export const manualJobSchema = z.object({
