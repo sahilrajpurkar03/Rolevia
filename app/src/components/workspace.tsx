@@ -1383,35 +1383,71 @@ export function Workspace(props: Props) {
           </div>
           <div className="modal-footer">
             <button
-              className="button primary"
-              disabled={
-                pending ||
-                applications.some(
-                  (application) =>
-                    application.job.sourceId === selected.job.sourceId,
-                )
-              }
+              className={`button small ${
+                matchApplication(selected)?.saved !== false &&
+                matchApplication(selected)
+                  ? "saved"
+                  : ""
+              }`}
+              disabled={Boolean(pendingActions[`${selected.id}:save`])}
               onClick={() => save(selected)}
             >
-              <Bookmark size={16} />
-              {applications.some(
-                (application) =>
-                  application.job.sourceId === selected.job.sourceId,
-              )
-                ? "Saved"
-                : "Save job"}
+              <Bookmark
+                size={14}
+                fill={
+                  matchApplication(selected)?.saved !== false &&
+                  matchApplication(selected)
+                    ? "currentColor"
+                    : "none"
+                }
+              />
+              Save
             </button>
-            {!props.demo && (
-              <a
-                className="button"
-                href={selected.job.url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Original listing
-                <ExternalLink size={16} />
-              </a>
-            )}
+            <button
+              className="button small"
+              onClick={() => {
+                setSelected(null);
+                openCoverLetter(selected);
+              }}
+            >
+              <FileText size={14} /> Cover letter
+            </button>
+            <a
+              className="button small"
+              href={selected.job.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink size={14} /> Apply
+            </a>
+            <button
+              className={`button small ${
+                matchApplication(selected)?.status === "applied"
+                  ? "saved"
+                  : ""
+              }`}
+              disabled={Boolean(pendingActions[`${selected.id}:log`])}
+              onClick={() => logApplication(selected)}
+            >
+              <Check
+                size={14}
+                fill={
+                  matchApplication(selected)?.status === "applied"
+                    ? "currentColor"
+                    : "none"
+                }
+              /> Log
+            </button>
+            <button
+              className="button small"
+              disabled={Boolean(pendingActions[`${selected.id}:dismiss`])}
+              onClick={() => {
+                dismiss(selected);
+                setSelected(null);
+              }}
+            >
+              <X size={14} /> Dismiss
+            </button>
           </div>
         </Modal>
       )}
