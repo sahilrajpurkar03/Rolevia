@@ -67,11 +67,11 @@ export const applicationSchema = z.object({
   interviewRound: z.string().trim().max(80).default(""),
   interviewNotes: z.string().max(5000).default(""),
   interviewCompleted: z.boolean().default(false),
-  jobTitle: z.string().trim().min(1).max(300),
-  jobCompany: z.string().trim().min(1).max(300),
-  jobLocation: z.string().trim().max(500),
+  jobTitle: z.string().trim().min(1).max(300).default("Untitled application"),
+  jobCompany: z.string().trim().min(1).max(300).default("Company not recorded"),
+  jobLocation: z.string().trim().max(500).default(""),
   jobUrl: safeJobUrl,
-  jobDescription: z.string().max(20000),
+  jobDescription: z.string().max(20000).default(""),
 });
 export const manualJobSchema = z.object({
   title: z.string().trim().min(2).max(200),

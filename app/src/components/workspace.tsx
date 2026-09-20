@@ -467,11 +467,11 @@ export function Workspace(props: Props) {
         interviewDate: application.interview_date ?? "",
         interviewRound: application.interview_round ?? "",
         interviewNotes: application.interview_notes ?? "",
-        jobTitle: application.job.title,
-        jobCompany: application.job.company,
-        jobLocation: application.job.location,
+        jobTitle: application.job.title ?? "Untitled application",
+        jobCompany: application.job.company ?? "Company not recorded",
+        jobLocation: application.job.location ?? "",
         jobUrl: application.job.url,
-        jobDescription: application.job.description,
+        jobDescription: application.job.description ?? "",
         interviewCompleted: application.interview_completed ?? false,
       });
       setMessage(result);
@@ -2122,11 +2122,11 @@ function ApplicationEditor({
               interviewRound: draft.interview_round ?? "",
               interviewNotes: draft.interview_notes ?? "",
               interviewCompleted: draft.interview_completed ?? false,
-              jobTitle: draft.job.title,
-              jobCompany: draft.job.company,
-              jobLocation: draft.job.location,
+              jobTitle: draft.job.title ?? "Untitled application",
+              jobCompany: draft.job.company ?? "Company not recorded",
+              jobLocation: draft.job.location ?? "",
               jobUrl: draft.job.url,
-              jobDescription: draft.job.description,
+              jobDescription: draft.job.description ?? "",
             });
         setMessage(result);
         if (!result.error) {
