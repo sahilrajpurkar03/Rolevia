@@ -1471,7 +1471,6 @@ export function Workspace(props: Props) {
                           </span>
                           <span>
                             {dateLabel(application.updated_at)}
-                            <ChevronRight size={15} />
                           </span>
                           {application.status === "saved" && (
                             <div

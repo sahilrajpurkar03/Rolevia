@@ -1518,14 +1518,23 @@ legend {
   background: #f1f6ed;
 }
 .application-status-control select {
-  width: 86px;
+  width: 96px;
   min-width: 0;
-  padding: 5px 5px;
+  padding: 6px 8px;
   border: 1px solid var(--line);
   border-radius: 6px;
+  background: #f8faf7;
+  color: #24332b;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+.application-status-control option {
+  padding: 6px;
   background: #fff;
-  color: inherit;
-  font-size: 10px;
+  color: #24332b;
+  font-weight: 500;
 }
 .application-status-control select:focus {
   outline: 2px solid var(--green);
@@ -1554,8 +1563,9 @@ legend {
 .application-row-actions {
   grid-column: 1 / -1;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 7px;
+  white-space: nowrap;
 }
 .application-delete {
   position: absolute;
