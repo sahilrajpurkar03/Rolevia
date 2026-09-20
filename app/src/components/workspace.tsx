@@ -230,12 +230,21 @@ export function Workspace(props: Props) {
       window.localStorage.getItem("rolevia-theme") === "dark",
   );
   const router = useRouter();
-  const [view, setView] = useState<View>("matches");
+  const [view, setView] = useState<View>(() => {
+    if (typeof window === "undefined") return "matches";
+    const stored = window.localStorage.getItem("rolevia-view");
+    return stored && ["matches", "search", "applications", "calendar", "letters", "activity", "profile", "cv"].includes(stored)
+      ? (stored as View)
+      : "matches";
+  });
+  useEffect(() => {
+    window.localStorage.setItem("rolevia-view", view);
+  }, [view]);
   useEffect(() => {
     window.localStorage.setItem("rolevia-theme", darkMode ? "dark" : "light");
   }, [darkMode]);
-  const [cvOpened, setCvOpened] = useState(false);
-  const [lettersOpened, setLettersOpened] = useState(false);
+  const [cvOpened, setCvOpened] = useState(() => view === "cv");
+  const [lettersOpened, setLettersOpened] = useState(() => view === "letters");
   const [onboardingDraft, setOnboardingDraft] = useState(emptyProfile);
   const [sampleProfile, setSampleProfile] = useState(props.profile);
   const [sampleMatches, setSampleMatches] = useState(props.matches);
@@ -2285,7 +2294,20 @@ function ApplicationEditor({
             </button>
           </div>
           {interviews.map((interview, index) => (
-            <div className="interview-entry" key={interview.id}>
+            <details
+              className="interview-entry"
+              key={interview.id}
+              open={index === 0}
+            >
+              <summary>
+                <span>
+                  {interview.round || "Interview"}{" "}
+                  {interview.date ? `· ${dateLabel(interview.date)}` : ""}
+                </span>
+                <span className="muted">
+                  {interview.completed ? "Completed" : "Not completed"}
+                </span>
+              </summary>
               <div className="form-grid">
                 <label>
                   Interview date
@@ -2370,7 +2392,7 @@ function ApplicationEditor({
               >
                 Remove interview
               </button>
-            </div>
+            </details>
           ))}
         </>
       )}
