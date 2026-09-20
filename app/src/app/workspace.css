@@ -1161,20 +1161,28 @@ input[type="checkbox"] {
   gap: 8px;
 }
 .search-result-row {
+  display: grid;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fbfcfa;
+}
+.search-result-row:hover {
+  border-color: #97ad98;
+  background: #f3f7f1;
+}
+.search-result-main {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   width: 100%;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: #fbfcfa;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
   text-align: left;
-}
-.search-result-row:hover {
-  border-color: #97ad98;
-  background: #f3f7f1;
 }
 .search-result-row strong,
 .search-result-row small {
@@ -1188,6 +1196,11 @@ input[type="checkbox"] {
 .search-result-row b {
   color: var(--green);
   white-space: nowrap;
+}
+.search-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
 }
 @media (max-width: 800px) {
   .job-search-controls {
@@ -1499,9 +1512,23 @@ legend {
   border-radius: 0;
   font-size: 12px;
   min-height: 80px;
+  position: relative;
 }
 .table-row:hover {
   background: #f1f6ed;
+}
+.application-status-control select {
+  min-width: 104px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+  font-size: 11px;
+}
+.application-status-control select:focus {
+  outline: 2px solid var(--green);
+  outline-offset: 1px;
 }
 .application-title {
   min-width: 0;
@@ -1522,6 +1549,29 @@ legend {
   align-items: center;
   justify-content: space-between;
   color: var(--muted);
+}
+.application-row-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.application-delete {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+}
+.application-delete:hover {
+  background: #fbeceb;
+  color: #a0443f;
 }
 .badge {
   border-radius: 4px;
@@ -1844,6 +1894,9 @@ legend {
 }
 .job-description p {
   margin: 0 0 12px;
+}
+.job-description-paragraph {
+  max-width: 78ch;
 }
 .job-description-item {
   position: relative;

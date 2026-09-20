@@ -301,6 +301,21 @@ export async function updateApplication(input: unknown): Promise<ActionResult> {
     return failure(error);
   }
 }
+export async function deleteApplication(id: string): Promise<ActionResult> {
+  try {
+    const { client, user } = await requireUser();
+    const { error } = await client
+      .from("applications")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
+    if (error) return { error: "Application could not be deleted." };
+    revalidatePath("/workspace");
+    return { success: "Application deleted." };
+  } catch (error) {
+    return failure(error);
+  }
+}
 export async function addApplication(input: unknown): Promise<ActionResult> {
   try {
     const values = manualJobSchema.parse(input);

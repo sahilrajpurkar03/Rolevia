@@ -50,13 +50,13 @@ import {
   dismissMatch,
   dismissMatchesForDay,
   dismissAllMatches,
-  generateLetter,
+  deleteApplication,
   toggleMatchLog,
   toggleMatchSaved,
   updateApplication,
 } from "@/lib/actions";
 import { logout } from "@/lib/auth-actions";
-import { draftLetter, refreshMatches, type Job } from "@/lib/matching";
+import { refreshMatches, type Job } from "@/lib/matching";
 import {
   emptyProfile,
   statuses,
@@ -140,12 +140,17 @@ function download(text: string, name: string, type = "text/plain") {
 const descriptionHeadings = [
   "Your mission",
   "What you'll do",
+  "What we're looking for",
+  "What we are looking for",
   "Duties And Responsibilities",
   "Professional competencies",
   "Personal competencies",
   "Requirements",
   "Responsibilities",
+  "Responsibilities and tasks for this role",
   "Qualifications",
+  "Must-have qualifications & competencies",
+  "Nice to have qualifications & competencies",
   "Benefits",
   "About the role",
   "About you",
@@ -156,24 +161,63 @@ const descriptionHeadings = [
   "Who you are",
   "Side quest",
   "What we offer",
+  "Good to know",
 ];
-function formatJobDescription(value: string) {
-  let text = value.replace(/\r\n?/g, "\n").replace(/\s+/g, " ").trim();
+type DescriptionPart = {
+  text: string;
+  kind: "heading" | "bullet" | "paragraph";
+};
+
+function formatJobDescription(value: string): DescriptionPart[] {
+  let text = value
+    .replace(/\r\n?/g, "\n")
+    .replace(/\\([*#-])/g, "$1")
+    .replace(/#{1,6}\s*/g, "\n\u0001")
+    .replace(/\s+/g, " ")
+    .trim();
   const firstHeading = descriptionHeadings.reduce((position, heading) => {
-    const index = text.indexOf(heading);
+    const index = text.toLocaleLowerCase().indexOf(heading.toLocaleLowerCase());
     return index >= 0 && (position < 0 || index < position) ? index : position;
   }, -1);
   if (firstHeading > 0) text = text.slice(firstHeading);
-  for (const heading of descriptionHeadings)
-    text = text.replace(new RegExp(`\\s*(${heading})\\s*`, "gi"), "\n$1\n");
+  for (const heading of [...descriptionHeadings].sort(
+    (a, b) => b.length - a.length,
+  )) {
+    text = text.replace(
+      new RegExp(`\\s*(${heading.replace(/[&]/g, "\\&")})\\s*`, "gi"),
+      "\n$1\n",
+    );
+  }
+  text = text.replace(/\s+(?=[*-]\s+)/g, "\n");
+  text = text.replace(/(?:^|\n)\s*[*-]\s+/g, "\n\u0000");
   text = text.replace(
     /\s+(?=(?:You|Your|Several|Experience|Technologies|Strong|M\.Sc\.|Keen|A requirement|Making|Being|Ambitious|We're)\b)/g,
     "\n",
   );
   return text
     .split("\n")
-    .map((part) => part.trim())
-    .filter(Boolean);
+    .map((part) => {
+      const bullet = part.includes("\u0000");
+      const markdownHeading = part.includes("\u0001");
+      const clean = part
+        .replace(/[\u0000\u0001]/g, "")
+        .trim()
+        .replace(/\s+/g, " ");
+      const heading = descriptionHeadings.some(
+        (candidate) => candidate.toLocaleLowerCase() === clean.toLocaleLowerCase(),
+      );
+      const kind: DescriptionPart["kind"] =
+        markdownHeading || heading
+          ? "heading"
+          : bullet
+            ? "bullet"
+            : "paragraph";
+      return {
+        text: clean,
+        kind,
+      };
+    })
+    .filter((part) => part.text.length > 0);
 }
 
 export function Workspace(props: Props) {
@@ -394,6 +438,62 @@ export function Workspace(props: Props) {
           )
         : [...applications, { ...localApplication(match, "applied"), saved: false }];
     runMatchAction(match, () => toggleMatchLog(match.id), nextApplications, "log");
+  }
+  function changeApplicationStatus(
+    application: ApplicationRecord,
+    status: ApplicationRecord["status"],
+  ) {
+    if (status === application.status) return;
+    const updated = { ...application, status, updated_at: new Date().toISOString() };
+    if (props.demo) {
+      setSampleApplications((current) =>
+        current.map((item) => (item.id === application.id ? updated : item)),
+      );
+      return;
+    }
+    setOptimisticApplications((current) =>
+      (current ?? applications).map((item) =>
+        item.id === application.id ? updated : item,
+      ),
+    );
+    startTransition(async () => {
+      const result = await updateApplication({
+        id: application.id,
+        status,
+        notes: application.notes,
+        letter: application.letter,
+        followUp: application.follow_up ?? "",
+      });
+      setMessage(result);
+      if (result.error) setOptimisticApplications(null);
+      else router.refresh();
+    });
+  }
+  function applicationMatch(application: ApplicationRecord): MatchRecord {
+    return {
+      id: application.id,
+      job: application.job,
+      score: 0,
+      reasons: [],
+      created_at: application.created_at,
+    };
+  }
+  function removeApplication(application: ApplicationRecord) {
+    if (props.demo) {
+      setSampleApplications((current) =>
+        current.filter((item) => item.id !== application.id),
+      );
+      return;
+    }
+    setOptimisticApplications(
+      applications.filter((item) => item.id !== application.id),
+    );
+    startTransition(async () => {
+      const result = await deleteApplication(application.id);
+      setMessage(result);
+      if (result.error) setOptimisticApplications(null);
+      else router.refresh();
+    });
   }
   function dismissDay(day: string) {
     if (props.demo) {
@@ -694,22 +794,82 @@ export function Workspace(props: Props) {
                       </div>
                       {searchResults.length ? (
                         <div className="search-results-list">
-                          {searchResults.map((match) => (
-                            <button
-                              type="button"
-                              className="search-result-row"
-                              key={match.id}
-                              onClick={() => setSelected(match)}
-                            >
-                              <span>
-                                <strong>{match.job.title}</strong>
-                                <small>
-                                  {match.job.company} · {match.job.location}
-                                </small>
-                              </span>
-                              <b>{match.score}%</b>
-                            </button>
-                          ))}
+                          {searchResults.map((match) => {
+                            const application = matchApplication(match);
+                            const saved = Boolean(
+                              application && application.saved !== false,
+                            );
+                            return (
+                              <article className="search-result-row" key={match.id}>
+                                <button
+                                  type="button"
+                                  className="search-result-main"
+                                  onClick={() => setSelected(match)}
+                                >
+                                  <span>
+                                    <strong>{match.job.title}</strong>
+                                    <small>
+                                      {match.job.company} · {match.job.location}
+                                    </small>
+                                  </span>
+                                  <b>{match.score}%</b>
+                                </button>
+                                <div className="search-result-actions">
+                                  <button
+                                    className={`button small ${saved ? "saved" : ""}`}
+                                    disabled={Boolean(pendingActions[`${match.id}:save`])}
+                                    onClick={() => save(match)}
+                                  >
+                                    <Bookmark
+                                      size={14}
+                                      fill={saved ? "currentColor" : "none"}
+                                    />{" "}
+                                    Save
+                                  </button>
+                                  <button
+                                    className="button small"
+                                    onClick={() => openCoverLetter(match)}
+                                  >
+                                    <FileText size={14} /> Cover letter
+                                  </button>
+                                  <a
+                                    className="button small"
+                                    href={match.job.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <ExternalLink size={14} /> Apply
+                                  </a>
+                                  <button
+                                    className={`button small ${
+                                      application?.status === "applied" ? "saved" : ""
+                                    }`}
+                                    disabled={Boolean(pendingActions[`${match.id}:log`])}
+                                    onClick={() => logApplication(match)}
+                                  >
+                                    <Check
+                                      size={14}
+                                      fill={
+                                        application?.status === "applied"
+                                          ? "currentColor"
+                                          : "none"
+                                      }
+                                    />{" "}
+                                    Log
+                                  </button>
+                                  <button
+                                    className="button small"
+                                    disabled={Boolean(
+                                      pendingActions[`${match.id}:dismiss`],
+                                    )}
+                                    onClick={() => dismiss(match)}
+                                  >
+                                    <X size={14} /> Dismiss
+                                  </button>
+                                </div>
+                              </article>
+                            );
+                          })}
                         </div>
                       ) : (
                         <p className="muted">No ranked matches were found for these settings.</p>
@@ -1256,18 +1416,43 @@ export function Workspace(props: Props) {
                             .includes(search.toLowerCase()),
                       )
                       .map((application) => (
-                        <button
+                        <div
                           className="table-row"
                           key={application.id}
+                          role="button"
+                          tabIndex={0}
                           onClick={() => setEditing(application)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              setEditing(application);
+                            }
+                          }}
                         >
                           <span className="application-title">
                             <strong>{application.job.title}</strong>
                             <small>{application.job.company}</small>
                           </span>
-                          <span className={`badge ${application.status}`}>
-                            {application.status}
-                          </span>
+                          <label className="application-status-control">
+                            <span className="sr-only">Status</span>
+                            <select
+                              value={application.status}
+                              onClick={(event) => event.stopPropagation()}
+                              onChange={(event) => {
+                                event.stopPropagation();
+                                changeApplicationStatus(
+                                  application,
+                                  event.target.value as ApplicationRecord["status"],
+                                );
+                              }}
+                            >
+                              {statuses.map((option) => (
+                                <option key={option} value={option}>
+                                  {option}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
                           <span>
                             {application.follow_up
                               ? dateLabel(application.follow_up)
@@ -1277,7 +1462,49 @@ export function Workspace(props: Props) {
                             {dateLabel(application.updated_at)}
                             <ChevronRight size={15} />
                           </span>
-                        </button>
+                          {application.status === "saved" && (
+                            <div
+                              className="application-row-actions"
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              <button
+                                className="button small"
+                                onClick={() =>
+                                  openCoverLetter(applicationMatch(application))
+                                }
+                              >
+                                <FileText size={14} /> Cover letter
+                              </button>
+                              <a
+                                className="button small"
+                                href={application.job.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <ExternalLink size={14} /> Apply
+                              </a>
+                              <button
+                                className="button small"
+                                onClick={() =>
+                                  logApplication(applicationMatch(application))
+                                }
+                              >
+                                <Check size={14} /> Log
+                              </button>
+                            </div>
+                          )}
+                          <button
+                            className="application-delete"
+                            aria-label={`Delete ${application.job.title}`}
+                            title="Delete application"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              removeApplication(application);
+                            }}
+                          >
+                            <X size={15} />
+                          </button>
+                        </div>
                       ))}
                   </div>
                   {!applications.length && (
@@ -1432,13 +1659,18 @@ export function Workspace(props: Props) {
           </div>
           <div className="job-description">
             {formatJobDescription(selected.job.description).map((part, index) =>
-              descriptionHeadings.some(
-                (heading) => heading.toLowerCase() === part.toLowerCase(),
-              ) ? (
-                <h3 key={index}>{part}</h3>
+              part.kind === "heading" ? (
+                <h3 key={index}>{part.text}</h3>
               ) : (
-                <p className="job-description-item" key={index}>
-                  {part}
+                <p
+                  className={
+                    part.kind === "bullet"
+                      ? "job-description-item"
+                      : "job-description-paragraph"
+                  }
+                  key={index}
+                >
+                  {part.text}
                 </p>
               ),
             )}
@@ -1525,7 +1757,6 @@ export function Workspace(props: Props) {
         <ApplicationEditor
           key={editing.id}
           application={editing}
-          profile={profile}
           demo={props.demo}
           onClose={() => setEditing(null)}
           onSaved={(updated) => {
@@ -1836,13 +2067,11 @@ function MatchLetterEditor({
 
 function ApplicationEditor({
   application,
-  profile,
   demo,
   onClose,
   onSaved,
 }: {
   application: ApplicationRecord;
-  profile: Profile;
   demo?: boolean;
   onClose: () => void;
   onSaved: (application: ApplicationRecord) => void;
@@ -1850,60 +2079,6 @@ function ApplicationEditor({
   const [draft, setDraft] = useState(application);
   const [message, setMessage] = useState<ActionResult>({});
   const [pending, startTransition] = useTransition();
-  const [previousLetter, setPreviousLetter] = useState<string | null>(null);
-  const [exportFormat, setExportFormat] = useState("txt");
-  async function exportApplicationLetter() {
-    if (exportFormat === "txt") {
-      download(draft.letter, "cover-letter.txt");
-      return;
-    }
-    startTransition(async () => {
-      try {
-        const document = {
-          ...newLetter(null),
-          title: application.job.company,
-          fullName: "",
-          subject: "",
-          recipient: "",
-          date: "",
-          body: draft.letter,
-          salutation: "",
-          closing: "",
-        };
-        const blob =
-          exportFormat === "pdf"
-            ? await (await import("@/lib/cv-pdf")).buildLetterPdf(document)
-            : await (
-                await import("@/lib/letter-word")
-              ).buildLetterWord(document);
-        const url = URL.createObjectURL(blob);
-        const anchor = window.document.createElement("a");
-        anchor.href = url;
-        anchor.download = `cover-letter.${exportFormat}`;
-        anchor.click();
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
-      } catch {
-        setMessage({ error: "Export failed. Your letter is unchanged." });
-      }
-    });
-  }
-  function generate() {
-    startTransition(async () => {
-      try {
-        const result = demo
-          ? {
-              letter: draftLetter(profile, application.job),
-              success: "Sample draft ready for review.",
-            }
-          : await generateLetter(application.id);
-        if (result.letter)
-          setDraft((current) => ({ ...current, letter: result.letter! }));
-        setMessage(result);
-      } catch {
-        setMessage({ error: "Could not draft the letter. Try again." });
-      }
-    });
-  }
   function save() {
     startTransition(async () => {
       try {
@@ -1929,6 +2104,24 @@ function ApplicationEditor({
   return (
     <Modal title={application.job.title} onClose={onClose}>
       <p className="muted">{application.job.company}</p>
+      <div className="application-job-description">
+        {formatJobDescription(application.job.description).map((part, index) =>
+          part.kind === "heading" ? (
+            <h3 key={index}>{part.text}</h3>
+          ) : (
+            <p
+              className={
+                part.kind === "bullet"
+                  ? "job-description-item"
+                  : "job-description-paragraph"
+              }
+              key={index}
+            >
+              {part.text}
+            </p>
+          ),
+        )}
+      </div>
       <div className="form-grid">
         <label>
           Status
@@ -1968,83 +2161,6 @@ function ApplicationEditor({
           }
         />
       </label>
-      <div className="editor-heading">
-        <h3>Cover letter</h3>
-        <button
-          className="button small"
-          onClick={generate}
-          disabled={pending || Boolean(draft.letter)}
-        >
-          <Sparkles size={15} />
-          Draft from profile
-        </button>
-      </div>
-      <label>
-        <span className="sr-only">Cover letter text</span>
-        <textarea
-          className="letter-text"
-          rows={12}
-          maxLength={15000}
-          value={draft.letter}
-          onChange={(event) =>
-            setDraft({ ...draft, letter: event.target.value })
-          }
-          placeholder="Your letter will appear here. Review and personalize before sending."
-        />
-      </label>
-      <details className="application-generator">
-        <summary>Generate with AI</summary>
-        <LetterGenerator
-          job={application.job}
-          demo={demo}
-          disabled={pending}
-          onUse={(result, input) => {
-            if (
-              draft.letter &&
-              !window.confirm(
-                "Replace the application letter with this draft? You can undo this replacement.",
-              )
-            )
-              return;
-            setPreviousLetter(draft.letter);
-            const greeting =
-              input.language === "German"
-                ? "Sehr geehrtes Recruiting-Team,"
-                : "Dear Hiring Team,";
-            const closing =
-              input.language === "German"
-                ? "Mit freundlichen Gruessen,"
-                : "Kind regards,";
-            setDraft((current) => ({
-              ...current,
-              letter: [
-                greeting,
-                ...result.paragraphs,
-                closing,
-                profile.fullName,
-              ].join("\n\n"),
-            }));
-            setMessage({
-              success: "AI draft inserted. Review it, then save changes.",
-            });
-          }}
-        />
-      </details>
-      {previousLetter !== null && (
-        <button
-          className="button"
-          onClick={() => {
-            setDraft((current) => ({ ...current, letter: previousLetter }));
-            setPreviousLetter(null);
-          }}
-        >
-          Undo generated draft
-        </button>
-      )}
-      <p className="field-note">
-        Drafts use your profile text and matching skills. No application is
-        submitted automatically.
-      </p>
       {(message.error || message.success) && (
         <p
           role={message.error ? "alert" : "status"}
@@ -2061,23 +2177,6 @@ function ApplicationEditor({
             <Check size={16} />
           )}
           Save changes
-        </button>
-        <select
-          aria-label="Application letter export format"
-          value={exportFormat}
-          onChange={(event) => setExportFormat(event.target.value)}
-        >
-          <option value="txt">Text</option>
-          <option value="pdf">PDF</option>
-          <option value="docx">Word</option>
-        </select>
-        <button
-          className="button"
-          disabled={!draft.letter || pending}
-          onClick={() => void exportApplicationLetter()}
-        >
-          <ArrowDownToLine size={16} />
-          Download
         </button>
         {!demo && (
           <a
