@@ -167,7 +167,7 @@ function formatJobDescription(value: string) {
   for (const heading of descriptionHeadings)
     text = text.replace(new RegExp(`\\s*(${heading})\\s*`, "gi"), "\n$1\n");
   text = text.replace(
-    /\s+(?=(?:You|Your|Several|Experience|Technologies|M\.Sc\.|Keen|A requirement|Making|Being|Ambitious|We're)\b)/g,
+    /\s+(?=(?:You|Your|Several|Experience|Technologies|Strong|M\.Sc\.|Keen|A requirement|Making|Being|Ambitious|We're)\b)/g,
     "\n",
   );
   return text
@@ -1397,7 +1397,9 @@ export function Workspace(props: Props) {
               ) ? (
                 <h3 key={index}>{part}</h3>
               ) : (
-                <p key={index}>{part}</p>
+                <p className="job-description-item" key={index}>
+                  {part}
+                </p>
               ),
             )}
           </div>

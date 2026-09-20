@@ -1795,6 +1795,18 @@ legend {
 .job-description p {
   margin: 0 0 12px;
 }
+.job-description-item {
+  position: relative;
+  padding-left: 19px;
+}
+.job-description-item::before {
+  position: absolute;
+  top: 0;
+  left: 4px;
+  color: var(--green);
+  content: "•";
+  font-weight: 700;
+}
 .letter-job-description {
   max-height: 180px;
   overflow: auto;
