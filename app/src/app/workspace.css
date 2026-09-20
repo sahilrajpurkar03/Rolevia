@@ -1735,6 +1735,8 @@ legend {
   justify-self: start;
 }
 .application-actions-heading {
+  justify-self: start;
+  width: 100%;
   text-align: left;
 }
 .application-row-actions.empty {
