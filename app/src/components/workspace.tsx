@@ -22,11 +22,13 @@ import {
   ListFilter,
   LoaderCircle,
   LogOut,
+  Moon,
   Plus,
   RefreshCw,
   Search,
   Settings2,
   Sparkles,
+  Sun,
   X,
 } from "lucide-react";
 import { ProfileForm } from "./profile-form";
@@ -221,8 +223,16 @@ function formatJobDescription(value: string): DescriptionPart[] {
 }
 
 export function Workspace(props: Props) {
+  const [darkMode, setDarkMode] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.localStorage.getItem("rolevia-theme") === "dark",
+  );
   const router = useRouter();
   const [view, setView] = useState<View>("matches");
+  useEffect(() => {
+    window.localStorage.setItem("rolevia-theme", darkMode ? "dark" : "light");
+  }, [darkMode]);
   const [cvOpened, setCvOpened] = useState(false);
   const [lettersOpened, setLettersOpened] = useState(false);
   const [onboardingDraft, setOnboardingDraft] = useState(emptyProfile);
@@ -525,7 +535,7 @@ export function Workspace(props: Props) {
       });
   }
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${darkMode ? "theme-dark" : "theme-light"}`}>
       <a className="skip-link" href="#main">
         Skip to content
       </a>
@@ -602,6 +612,15 @@ export function Workspace(props: Props) {
             </strong>
           </div>
           <div className="topbar-actions">
+            <button
+              className="theme-toggle"
+              title={darkMode ? "Use light mode" : "Use dark mode"}
+              aria-label={darkMode ? "Use light mode" : "Use dark mode"}
+              onClick={() => setDarkMode((current) => !current)}
+            >
+              {darkMode ? <Sun size={17} /> : <Moon size={17} />}
+              <span>{darkMode ? "Light" : "Dark"}</span>
+            </button>
             {props.demo ? (
               <Link href="/signup" className="preview-link">
                 Sample data <span>/</span> Create account

@@ -57,15 +57,15 @@
 }
 .application-generator { margin: 16px 0; }
 :root {
-  --paper: #fafbf9;
+  --paper: #f6f8fc;
   --white: #fff;
-  --ink: #202c29;
-  --muted: #69756f;
-  --line: #e2e7e2;
-  --green: #245c48;
-  --green-soft: #eaf1e9;
-  --accent: #bcdb83;
-  --danger: #a43a43;
+  --ink: #172033;
+  --muted: #5e6b80;
+  --line: #dfe6f1;
+  --green: #176b67;
+  --green-soft: #e5f6f2;
+  --accent: #a9ebd6;
+  --danger: #b43f55;
 }
 * {
   box-sizing: border-box;
@@ -76,7 +76,7 @@ body {
   background: var(--paper);
   color: var(--ink);
   font:
-    14px/1.55 "DM Sans",
+    15px/1.6 "DM Sans",
     sans-serif;
 }
 button,
@@ -304,6 +304,23 @@ svg {
   display: flex;
   align-items: center;
   gap: 13px;
+}
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+.theme-toggle:hover {
+  border-color: var(--green);
+  color: var(--green);
 }
 .topbar strong {
   font-weight: 500;
@@ -1313,6 +1330,110 @@ input[type="checkbox"] {
   color: var(--green);
   border-bottom-color: var(--green);
   font-weight: 600;
+}
+
+/* Calm, high-contrast dark theme. Text colors meet WCAG AA for normal copy. */
+.theme-dark {
+  --paper: #101827;
+  --white: #172236;
+  --ink: #edf4ff;
+  --muted: #aab8cb;
+  --line: #2b3a50;
+  --green: #75e0c1;
+  --green-soft: #193f43;
+  --accent: #8ae5c9;
+  --danger: #ff9daf;
+}
+.theme-dark .sidebar,
+.theme-dark .topbar {
+  background: #131d2d;
+}
+.theme-dark .sidebar {
+  border-right-color: var(--line);
+}
+.theme-dark .nav-item,
+.theme-dark .workspace-label,
+.theme-dark .private-label,
+.theme-dark .job-title p,
+.theme-dark .job-snippet,
+.theme-dark .source-label,
+.theme-dark .match-row,
+.theme-dark .daily-indicator {
+  color: var(--muted);
+}
+.theme-dark .nav-item:hover,
+.theme-dark .stats-strip > button:hover,
+.theme-dark .search-result-row:hover,
+.theme-dark .button:hover:not(:disabled) {
+  background: #1d2b40;
+}
+.theme-dark .nav-item.active {
+  background: #1b4145;
+  color: var(--green);
+}
+.theme-dark input,
+.theme-dark textarea,
+.theme-dark select,
+.theme-dark .search-box,
+.theme-dark .type-filter,
+.theme-dark .button,
+.theme-dark .theme-toggle,
+.theme-dark .date-tile {
+  background: var(--white);
+  color: var(--ink);
+  border-color: var(--line);
+}
+.theme-dark .match-day,
+.theme-dark .search-result-row {
+  background: #152238;
+}
+.theme-dark .job-card,
+.theme-dark .search-results-panel,
+.theme-dark .generated-review {
+  background: #172236;
+}
+.theme-dark .job-card-bottom,
+.theme-dark .account {
+  border-color: var(--line);
+}
+.theme-dark .upload-zone {
+  background: repeating-linear-gradient(
+    135deg,
+    #172b3a 0,
+    #172b3a 8px,
+    #193241 8px,
+    #193241 9px
+  );
+  border-color: #4d8c85;
+}
+.theme-dark .button.primary {
+  background: var(--green);
+  color: #09201f;
+}
+.theme-dark .button.saved,
+.theme-dark .match-score,
+.theme-dark .file-row {
+  background: var(--green-soft);
+  color: var(--green);
+}
+.theme-dark .notice {
+  background: #183d3b;
+  border-color: #2f6b65;
+  color: #b9f4df;
+}
+.theme-dark .notice.error {
+  background: #472534;
+  border-color: #814153;
+  color: #ffb7c2;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .app-shell,
+  .app-shell * {
+    transition:
+      background-color 180ms ease,
+      border-color 180ms ease,
+      color 180ms ease;
+  }
 }
 @media (max-width: 600px) {
   .role-suggestions-filters {
