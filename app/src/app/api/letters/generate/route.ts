@@ -143,11 +143,12 @@ export async function POST(request: Request) {
           },
         }),
       };
-      response = await fetch(
+      const modelResponse = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
         request,
       );
-      if (response.status >= 500 && response.status < 600) {
+      response = modelResponse;
+      if (modelResponse.status >= 500 && modelResponse.status < 600) {
         await new Promise((resolve) => setTimeout(resolve, 800));
         response = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
@@ -158,9 +159,12 @@ export async function POST(request: Request) {
         break;
     }
     if (!response?.ok) {
+      const failedResponse = response;
       let providerDetail = "";
       try {
-        const body = (await response.json()) as { error?: { message?: string } };
+        const body = (await failedResponse?.json()) as {
+          error?: { message?: string };
+        };
         providerDetail = body.error?.message
           ? ` ${body.error.message.slice(0, 240)}`
           : "";
