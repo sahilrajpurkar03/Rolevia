@@ -1611,10 +1611,8 @@ legend {
 .table-header,
 .table-row {
   display: grid;
-  grid-template-columns: minmax(0, 2.1fr) minmax(90px, 1fr) minmax(
-      90px,
-      0.9fr
-    ) minmax(85px, 0.8fr) 32px;
+  grid-template-columns: minmax(220px, 2fr) minmax(300px, 2.2fr) 110px 100px
+    100px 32px;
   gap: 16px;
   align-items: center;
   padding: 17px 14px;
