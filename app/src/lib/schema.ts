@@ -43,6 +43,12 @@ export const searchPreferencesSchema = profileSchema
     resultsPerRequest: z.number().int().min(10).max(100).default(20),
   });
 export type SearchPreferences = z.infer<typeof searchPreferencesSchema>;
+export const safeJobUrl = z
+  .url()
+  .refine(
+    (value) => new URL(value).protocol === "https:",
+    "Use an HTTPS job link",
+  );
 export const statuses = [
   "saved",
   "applied",
@@ -61,13 +67,12 @@ export const applicationSchema = z.object({
   interviewRound: z.string().trim().max(80).default(""),
   interviewNotes: z.string().max(5000).default(""),
   interviewCompleted: z.boolean().default(false),
+  jobTitle: z.string().trim().min(1).max(300),
+  jobCompany: z.string().trim().min(1).max(300),
+  jobLocation: z.string().trim().max(500),
+  jobUrl: safeJobUrl,
+  jobDescription: z.string().max(20000),
 });
-export const safeJobUrl = z
-  .url()
-  .refine(
-    (value) => new URL(value).protocol === "https:",
-    "Use an HTTPS job link",
-  );
 export const manualJobSchema = z.object({
   title: z.string().trim().min(2).max(200),
   company: z.string().trim().min(1).max(200),

@@ -467,6 +467,11 @@ export function Workspace(props: Props) {
         interviewDate: application.interview_date ?? "",
         interviewRound: application.interview_round ?? "",
         interviewNotes: application.interview_notes ?? "",
+        jobTitle: application.job.title,
+        jobCompany: application.job.company,
+        jobLocation: application.job.location,
+        jobUrl: application.job.url,
+        jobDescription: application.job.description,
         interviewCompleted: application.interview_completed ?? false,
       });
       setMessage(result);
@@ -2117,6 +2122,11 @@ function ApplicationEditor({
               interviewRound: draft.interview_round ?? "",
               interviewNotes: draft.interview_notes ?? "",
               interviewCompleted: draft.interview_completed ?? false,
+              jobTitle: draft.job.title,
+              jobCompany: draft.job.company,
+              jobLocation: draft.job.location,
+              jobUrl: draft.job.url,
+              jobDescription: draft.job.description,
             });
         setMessage(result);
         if (!result.error) {
@@ -2130,24 +2140,56 @@ function ApplicationEditor({
   }
   return (
     <Modal title={application.job.title} onClose={onClose}>
-      <p className="muted">{application.job.company}</p>
-      <div className="application-job-description">
-        {formatJobDescription(application.job.description).map((part, index) =>
-          part.kind === "heading" ? (
-            <h3 key={index}>{part.text}</h3>
-          ) : (
-            <p
-              className={
-                part.kind === "bullet"
-                  ? "job-description-item"
-                  : "job-description-paragraph"
-              }
-              key={index}
-            >
-              {part.text}
-            </p>
-          ),
-        )}
+      <div className="form-grid">
+        <label>
+          Job title
+          <input
+            value={draft.job.title}
+            onChange={(event) =>
+              setDraft({
+                ...draft,
+                job: { ...draft.job, title: event.target.value },
+              })
+            }
+          />
+        </label>
+        <label>
+          Company
+          <input
+            value={draft.job.company}
+            onChange={(event) =>
+              setDraft({
+                ...draft,
+                job: { ...draft.job, company: event.target.value },
+              })
+            }
+          />
+        </label>
+        <label>
+          Location
+          <input
+            value={draft.job.location}
+            onChange={(event) =>
+              setDraft({
+                ...draft,
+                job: { ...draft.job, location: event.target.value },
+              })
+            }
+          />
+        </label>
+        <label>
+          Job link
+          <input
+            type="url"
+            value={draft.job.url}
+            onChange={(event) =>
+              setDraft({
+                ...draft,
+                job: { ...draft.job, url: event.target.value },
+              })
+            }
+          />
+        </label>
       </div>
       <div className="form-grid">
         <label>

@@ -281,6 +281,14 @@ export async function updateApplication(input: unknown): Promise<ActionResult> {
   try {
     const values = applicationSchema.parse(input);
     const { client, user } = await requireUser();
+    const current = await client
+      .from("applications")
+      .select("job")
+      .eq("id", values.id)
+      .eq("user_id", user.id)
+      .single();
+    if (current.error || !current.data)
+      return { error: "Application could not be loaded." };
     const { error, data } = await client
       .from("applications")
       .update({
@@ -292,6 +300,14 @@ export async function updateApplication(input: unknown): Promise<ActionResult> {
         interview_round: values.interviewRound,
         interview_notes: values.interviewNotes,
         interview_completed: values.interviewCompleted,
+        job: {
+          ...(current.data.job as Job),
+          title: values.jobTitle,
+          company: values.jobCompany,
+          location: values.jobLocation,
+          url: values.jobUrl,
+          description: values.jobDescription,
+        },
         updated_at: new Date().toISOString(),
       })
       .eq("id", values.id)
