@@ -614,6 +614,8 @@ export function Workspace(props: Props) {
                             const decoder = new TextDecoder();
                             let buffer = "";
                             let finished = false;
+                            let nextResults: MatchRecord[] | null = null;
+                            let nextMessage = "";
                             const processEvent = (line: string) => {
                               if (!line.trim()) return;
                               const event = JSON.parse(line);
@@ -622,9 +624,8 @@ export function Workspace(props: Props) {
                               if (event.type === "error")
                                 throw new Error(event.error);
                               if (event.type === "result") {
-                                setSearchResults(event.matches ?? []);
-                                setMessage({ success: event.message });
-                                setView("matches");
+                                nextResults = event.matches ?? [];
+                                nextMessage = event.message;
                                 finished = true;
                               }
                             };
@@ -643,7 +644,9 @@ export function Workspace(props: Props) {
                               throw new Error(
                                 "Search connection ended before completion. Your previous results are unchanged; check Activity and retry.",
                               );
-                            router.refresh();
+                            setSearchResults(nextResults ?? []);
+                            setMessage({ success: nextMessage });
+                            setView("matches");
                           } catch (error) {
                             setMessage({
                               error:
