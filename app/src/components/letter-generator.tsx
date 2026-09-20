@@ -234,37 +234,9 @@ export function LetterGenerator({
       )}
       {result && (
         <div className="generated-review" aria-label="Generated letter review">
-          <h4>Draft For Review</h4>
           {result.letter.paragraphs.map((paragraph, index) => (
             <p key={index}>{paragraph}</p>
           ))}
-          <details>
-            <summary>Job requirements and supporting evidence</summary>
-            <ul>
-              {result.letter.requirements.map((item, index) => (
-                <li key={index}>{item}</li>
-              ))}
-            </ul>
-            {result.letter.evidence.map((item, index) => (
-              <p key={index}>
-                <strong>{item.requirement}</strong>: {item.quote}
-              </p>
-            ))}
-            {result.letter.gaps.length > 0 && (
-              <>
-                <h4>Missing Evidence</h4>
-                <ul>
-                  {result.letter.gaps.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
-              </>
-            )}
-          </details>
-          <p className="field-note">
-            Review every claim before sending. Evidence checks do not guarantee
-            factual accuracy.
-          </p>
           <button
             type="button"
             className="button"
