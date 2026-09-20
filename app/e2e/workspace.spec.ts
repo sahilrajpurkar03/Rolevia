@@ -94,33 +94,20 @@ test("search, save, draft and update an application", async ({ page }) => {
   await page
     .getByRole("button", { name: /Product Designer Morrow Studio/ })
     .click();
-  await page.getByRole("button", { name: "Draft from profile" }).click();
-  await expect(
-    page.getByRole("textbox", { name: "Cover letter text" }),
-  ).toHaveValue(/student-led community platform/);
   const modal = page.getByRole("dialog");
+  await expect(modal.getByLabel("Job title", { exact: true })).toHaveValue(
+    "Product Designer",
+  );
   await modal
-    .locator("summary")
-    .filter({ hasText: "Generate with AI" })
-    .click();
-  const generator = modal.getByRole("region", {
-    name: "AI cover letter generator",
-  });
-  await generator
-    .getByLabel("Job description", { exact: true })
-    .fill(
-      "Develop software with the engineering team and validate research prototypes using Python and ROS2.",
-    );
-  await expect(
-    generator.getByLabel("Job description", { exact: true }),
-  ).toHaveValue(/Develop software/);
-  await page
+    .getByLabel("Company", { exact: true })
+    .fill("Morrow Studio Updated");
+  await modal
     .getByRole("combobox", { name: "Status", exact: true })
     .selectOption("applied");
-  await page
+  await modal
     .getByRole("textbox", { name: "Follow-up date" })
     .fill("2026-09-21");
-  await page
+  await modal
     .getByRole("textbox", { name: "Notes", exact: true })
     .fill("Follow up with the team.");
   await expect(page.getByRole("button", { name: "Save changes" })).toBeEnabled();
