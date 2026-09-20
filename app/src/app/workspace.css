@@ -1139,6 +1139,56 @@ input[type="checkbox"] {
   min-height: 44px;
   cursor: pointer;
 }
+.search-results-panel {
+  margin: 26px 0;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+.search-results-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.search-results-heading h2 {
+  margin-top: 4px;
+}
+.search-results-list {
+  display: grid;
+  gap: 8px;
+}
+.search-result-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fbfcfa;
+  text-align: left;
+}
+.search-result-row:hover {
+  border-color: #97ad98;
+  background: #f3f7f1;
+}
+.search-result-row strong,
+.search-result-row small {
+  display: block;
+}
+.search-result-row small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.search-result-row b {
+  color: var(--green);
+  white-space: nowrap;
+}
 @media (max-width: 800px) {
   .job-search-controls {
     grid-template-columns: minmax(0, 1fr);

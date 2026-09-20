@@ -577,16 +577,15 @@ export function Workspace(props: Props) {
                       if (props.demo) {
                         const next = { ...profile, ...preferences };
                         setSampleProfile(next);
-                        setSampleMatches(
-                          refreshMatches(props.matches, next)
+                          const nextMatches = refreshMatches(props.matches, next)
                             .sort((first, second) => second.score - first.score)
-                            .slice(0, preferences.listSize),
-                        );
+                            .slice(0, preferences.listSize);
+                          setSampleMatches(nextMatches);
+                          setSearchResults(nextMatches);
                         setMessage({
                           success:
                             "Search complete. Showing matching sample jobs; live searches require your account.",
                         });
-                        setView("matches");
                       } else {
                         setMessage({});
                         setSearchProgress({
@@ -646,7 +645,6 @@ export function Workspace(props: Props) {
                               );
                             setSearchResults(nextResults ?? []);
                             setMessage({ success: nextMessage });
-                            setView("matches");
                           } catch (error) {
                             setMessage({
                               error:
@@ -677,6 +675,45 @@ export function Workspace(props: Props) {
                         max={Math.max(1, searchProgress.total)}
                         aria-label="Search progress"
                       />
+                    </section>
+                  )}
+                  {searchResults && !searchProgress && (
+                    <section className="search-results-panel" aria-label="Search results">
+                      <div className="search-results-heading">
+                        <div>
+                          <p className="eyebrow">SEARCH RESULTS</p>
+                          <h2>{searchResults.length} ranked matches</h2>
+                        </div>
+                        <button
+                          type="button"
+                          className="button small"
+                          onClick={() => setView("matches")}
+                        >
+                          View full matches
+                        </button>
+                      </div>
+                      {searchResults.length ? (
+                        <div className="search-results-list">
+                          {searchResults.map((match) => (
+                            <button
+                              type="button"
+                              className="search-result-row"
+                              key={match.id}
+                              onClick={() => setSelected(match)}
+                            >
+                              <span>
+                                <strong>{match.job.title}</strong>
+                                <small>
+                                  {match.job.company} · {match.job.location}
+                                </small>
+                              </span>
+                              <b>{match.score}%</b>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="muted">No ranked matches were found for these settings.</p>
+                      )}
                     </section>
                   )}
                 </>

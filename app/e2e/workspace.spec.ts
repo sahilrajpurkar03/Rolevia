@@ -22,10 +22,15 @@ test("three search selections return matching jobs directly", async ({
   await form.getByLabel("Full-time", { exact: true }).uncheck();
   await form.getByLabel("Working student", { exact: true }).uncheck();
   await form.getByRole("button", { name: "Search jobs", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "2 ranked matches" }),
+  ).toBeVisible();
+  await expect(page.locator(".search-result-row")).toHaveCount(2);
+  await page.getByRole("button", { name: "View full matches" }).click();
   await expect(page.locator(".job-card")).toHaveCount(2);
   await expect(
     page.getByRole("heading", { name: "Your matches 2" }),
-  ).toBeFocused();
+  ).toBeVisible();
   await expect(page.locator(".job-card").first()).toContainText("Netherlands");
   await expect(
     page.getByRole("status").filter({ hasText: "Search complete" }),
@@ -33,6 +38,10 @@ test("three search selections return matching jobs directly", async ({
   await page.getByRole("button", { name: "Find jobs", exact: true }).click();
   await form.getByLabel("Country or city", { exact: true }).fill("Canada");
   await form.getByRole("button", { name: "Search jobs", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "0 ranked matches" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "View full matches" }).click();
   await expect(page.locator(".job-card")).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "No jobs match these selections yet" }),
