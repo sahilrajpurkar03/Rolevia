@@ -1742,6 +1742,12 @@ legend {
   color: var(--muted);
   font-size: 9px;
   border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.table-header > span {
+  justify-self: start;
+  width: 100%;
+  text-align: left;
 }
 .table-row {
   width: 100%;
