@@ -210,6 +210,8 @@ function CvPdf({
 let queue: Promise<unknown> = Promise.resolve();
 export function buildLetterPdf(document: LetterDocument): Promise<Blob> {
   const modern = document.format === "modern";
+  const accent = modern ? "#17675f" : "#243331";
+  const contact = [document.email, document.phone].filter(Boolean).join(" | ");
   const result = queue.then(() =>
     pdf(
       <Document title={document.title} author={document.fullName} language="en">
@@ -226,33 +228,54 @@ export function buildLetterPdf(document: LetterDocument): Promise<Blob> {
         >
           <View
             style={{
-              marginBottom: 20,
-              borderBottomWidth: modern ? 2 : 0,
-              borderBottomColor: "#17675f",
-              paddingBottom: 12,
+              marginBottom: 26,
+              paddingBottom: 14,
+              borderBottomWidth: 1.5,
+              borderBottomColor: accent,
             }}
           >
             <Text
               style={{
-                fontSize: modern ? 22 : 15,
+                fontSize: modern ? 24 : 20,
                 fontWeight: 700,
-                color: modern ? "#17675f" : "#243331",
+                color: accent,
+                letterSpacing: 0.4,
               }}
             >
-              {document.fullName}
+              {document.fullName || "Your name"}
             </Text>
-            <Text>{document.address}</Text>
-            <Text>
-              {[document.email, document.phone].filter(Boolean).join(" | ")}
+            {document.address && (
+              <Text style={{ marginTop: 5, color: "#53635D" }}>
+                {document.address}
+              </Text>
+            )}
+            {contact && (
+              <Text style={{ marginTop: 3, color: "#53635D", fontSize: 9.5 }}>
+                {contact}
+              </Text>
+            )}
+          </View>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              gap: 24,
+              marginBottom: 22,
+            }}
+          >
+            <Text style={{ flex: 1 }}>{document.recipient}</Text>
+            <Text style={{ color: "#53635D", textAlign: "right" }}>
+              {document.date}
             </Text>
           </View>
-          <Text style={{ marginBottom: 12 }}>{document.recipient}</Text>
-          <Text style={{ marginBottom: 18, textAlign: "right" }}>
-            {document.date}
-          </Text>
           <Text
             minPresenceAhead={45}
-            style={{ fontWeight: 700, marginBottom: 18 }}
+            style={{
+              fontWeight: 700,
+              color: accent,
+              fontSize: 12,
+              marginBottom: 18,
+            }}
           >
             {document.subject}
           </Text>
@@ -264,7 +287,6 @@ export function buildLetterPdf(document: LetterDocument): Promise<Blob> {
           </Text>
           <View wrap={false}>
             <Text>{document.closing}</Text>
-            <Text style={{ marginTop: 16 }}>{document.fullName}</Text>
           </View>
         </Page>
       </Document>,

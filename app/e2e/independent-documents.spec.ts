@@ -162,6 +162,7 @@ test("CVs and letters work before onboarding and retain drafts across tabs", asy
         const text = (await parser.getText()).text;
         expect(text).toContain("Independent Person");
         expect(text).toContain("developed software");
+        expect(text.match(/Independent Person/g)?.length).toBe(1);
       } finally {
         await parser.destroy();
       }
