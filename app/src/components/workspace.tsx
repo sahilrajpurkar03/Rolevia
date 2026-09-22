@@ -1948,10 +1948,15 @@ function CalendarView({
           if (day < 1) return <span className="calendar-empty" key={index} />;
           const date = `${month.getUTCFullYear()}-${String(month.getUTCMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
           const event = interviewsByDay.get(date);
+          const interviewClass = event
+            ? date < today
+              ? "has-interview interview-done"
+              : "has-interview interview-upcoming"
+            : "";
           return (
             <button
               type="button"
-              className={`calendar-day ${date === today ? "today" : ""} ${event ? "has-interview" : ""}`}
+              className={`calendar-day ${date === today ? "today" : ""} ${interviewClass}`}
               key={date}
               onClick={() => event && onSelect(event.application)}
               disabled={!event}

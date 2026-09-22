@@ -1559,12 +1559,18 @@ input[type="checkbox"] {
   background: #75e0c1;
   color: #09201f;
 }
-.theme-dark .calendar-day.has-interview {
+.theme-dark .calendar-day.interview-upcoming {
   box-shadow: inset 0 -3px 0 #75e0c1;
+}
+.theme-dark .calendar-day.interview-done {
+  box-shadow: inset 0 -3px 0 var(--muted);
 }
 .theme-dark .calendar-day small,
 .theme-dark .calendar-event strong {
   color: #8aefd0;
+}
+.theme-dark .calendar-day.interview-done small {
+  color: var(--muted);
 }
 .theme-dark .calendar-event {
   color: var(--ink);
@@ -2305,8 +2311,11 @@ legend {
   background: var(--green);
   color: #fff;
 }
-.calendar-day.has-interview {
+.calendar-day.interview-upcoming {
   box-shadow: inset 0 -3px 0 var(--green);
+}
+.calendar-day.interview-done {
+  box-shadow: inset 0 -3px 0 var(--muted);
 }
 .calendar-day small {
   overflow: hidden;
@@ -2315,6 +2324,9 @@ legend {
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.calendar-day.interview-done small {
+  color: var(--muted);
 }
 .calendar-upcoming {
   margin-top: 28px;
@@ -2337,6 +2349,9 @@ legend {
 .calendar-event strong {
   color: var(--green);
   font-size: 12px;
+}
+.calendar-event.interview-done strong {
+  color: var(--muted);
 }
 .calendar-event span {
   font-size: 13px;
