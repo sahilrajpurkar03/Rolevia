@@ -1,5 +1,5 @@
 "use client";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Check, Link2, LoaderCircle, Sparkles } from "lucide-react";
 import {
   generatedLetterSchema,
@@ -47,6 +47,14 @@ export function LetterGenerator({
     letter: GeneratedLetter;
     input: GenerationInput;
   } | null>(null);
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (cooldownUntil <= Date.now()) return;
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [cooldownUntil]);
+  const cooldownRemaining = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
   async function importLink() {
     setLinkError("");
     let parsedUrl: string | null = null;
@@ -111,6 +119,10 @@ export function LetterGenerator({
         body: JSON.stringify(parsed.data),
       });
       const body = await response.json();
+      if (typeof body.retryAfter === "number") {
+        setCooldownUntil(Date.now() + body.retryAfter * 1000);
+        setNow(Date.now());
+      }
       if (!response.ok)
         throw new Error(
           body.error ?? "Generation failed. Your letter is unchanged.",
@@ -292,6 +304,7 @@ export function LetterGenerator({
         <button
           type="button"
           className="button primary"
+          disabled={busy || cooldownRemaining > 0}
           onClick={() => void generate()}
         >
           {busy ? (
@@ -301,11 +314,19 @@ export function LetterGenerator({
           )}
           {busy
             ? "Analyzing and drafting..."
-            : result
-              ? "Regenerate with AI"
-              : "Generate with AI"}
+            : cooldownRemaining > 0
+              ? `Wait ${cooldownRemaining}s`
+              : result
+                ? "Regenerate with AI"
+                : "Generate with AI"}
         </button>
       </fieldset>
+      {cooldownRemaining > 0 && !busy && (
+        <p className="field-note">
+          Generation is limited to once per minute. You can generate again in{" "}
+          {cooldownRemaining}s.
+        </p>
+      )}
       {error && (
         <p role="alert" className="notice error">
           {error}

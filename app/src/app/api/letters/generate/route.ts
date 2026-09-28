@@ -89,6 +89,8 @@ export async function POST(request: Request) {
       },
       429,
     );
+  const minuteStartMs = Math.floor(Date.now() / 60000) * 60000;
+  const retryAfter = Math.ceil((minuteStartMs + 60000 - Date.now()) / 1000);
   const claim = await client
     .from("check_runs")
     .insert({
@@ -97,14 +99,21 @@ export async function POST(request: Request) {
     })
     .select("id")
     .single();
-  if (claim.error)
+  if (claim.error) {
+    if (claim.error.code === "23505")
+      return reply(
+        {
+          error:
+            "Generation already started in this minute. Please wait before retrying.",
+          retryAfter,
+        },
+        429,
+      );
     return reply(
-      {
-        error:
-          "Generation already started in this minute. Please wait before retrying.",
-      },
-      claim.error.code === "23505" ? 429 : 503,
+      { error: "Could not start generation. Please retry." },
+      503,
     );
+  }
   const candidate = [
     `Profile headline:\n${profile.data.headline}`,
     `Profile summary:\n${profile.data.summary}`,
@@ -200,7 +209,7 @@ export async function POST(request: Request) {
       })
       .eq("id", claim.data.id)
       .eq("user_id", user.id);
-    return reply({ result });
+    return reply({ result, retryAfter });
   } catch (error) {
     const message =
       error instanceof Error && /^(Gemini|AI returned)/.test(error.message)
@@ -211,6 +220,6 @@ export async function POST(request: Request) {
       .update({ state: "failed", message })
       .eq("id", claim.data.id)
       .eq("user_id", user.id);
-    return reply({ error: message }, 502);
+    return reply({ error: message, retryAfter }, 502);
   }
 }
