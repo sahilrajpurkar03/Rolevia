@@ -140,40 +140,46 @@ export function prepareLegacyProfile(
   const data: Record<string, unknown> = { ...current, ...profile };
   if (!current.cvEditor) {
     const drafts = createCvDrafts(profile, email);
-    for (const version of ["one", "two"] as const) {
+    const links = [
+      legacy.PERSONAL.linkedin
+        ? { id: crypto.randomUUID(), label: "LinkedIn", url: legacy.PERSONAL.linkedin }
+        : null,
+      legacy.PERSONAL.github
+        ? { id: crypto.randomUUID(), label: "GitHub", url: legacy.PERSONAL.github }
+        : null,
+    ].flatMap((link) => (link ? [link] : []));
+    for (const version of ["resume", "cv"] as const) {
       const document = drafts[version];
       document.fullName = legacy.PERSONAL.name;
       document.phone = legacy.PERSONAL.phone;
       document.location = legacy.PERSONAL.address;
-      document.links = [legacy.PERSONAL.linkedin, legacy.PERSONAL.github].join(
-        " | ",
-      );
+      document.links = links;
       document.photo = photo;
-      document.fontSize = version === "one" ? 9 : 10;
+      document.fontSize = version === "resume" ? 9 : 10;
       document.sections = [
         {
           id: `legacy-${version}-experience`,
           title: "Professional Experience",
-          page: 1,
           entries: legacy.EXPERIENCES.map((entry) => ({
             id: entry.id,
             title: entry.title,
+            detail: "",
             organization: entry.company ?? "",
             location: entry.location ?? "",
             dates: entry.period ?? "",
             description:
-              version === "one" ? entry.text_general : entry.text_specific,
+              version === "resume" ? entry.text_general : entry.text_specific,
             bullets: [],
           })),
         },
         {
           id: `legacy-${version}-skills`,
           title: "Technical Skills",
-          page: version === "one" ? 1 : 2,
           entries: [
             {
               id: "skills",
               title: "",
+              detail: "",
               organization: "",
               location: "",
               dates: "",
@@ -185,11 +191,11 @@ export function prepareLegacyProfile(
         {
           id: `legacy-${version}-education`,
           title: "Education",
-          page: version === "one" ? 1 : 2,
           entries: [
             {
               id: "education",
               title: "",
+              detail: "",
               organization: "",
               location: "",
               dates: "",
@@ -198,15 +204,15 @@ export function prepareLegacyProfile(
             },
           ],
         },
-        ...(version === "two"
+        ...(version === "cv"
           ? [
               {
                 id: "legacy-projects",
                 title: "Projects & Research",
-                page: 2 as const,
                 entries: legacy.PROJECTS.map((entry) => ({
                   id: entry.id,
                   title: entry.title,
+                  detail: "",
                   organization: "",
                   location: "",
                   dates: entry.period ?? "",

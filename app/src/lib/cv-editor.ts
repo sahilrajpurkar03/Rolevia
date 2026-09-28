@@ -1,11 +1,18 @@
 import { z } from "zod";
 import type { Profile } from "./schema.ts";
 import { parseCvText } from "./cv-text.ts";
+import { inferLinkIcon } from "./cv-icons.ts";
 
 const shortText = z.string().max(180);
+export const cvLinkSchema = z.object({
+  id: z.string().min(1).max(80),
+  label: shortText,
+  url: z.union([z.literal(""), z.url().max(300)]),
+});
 export const cvEntrySchema = z.object({
   id: z.string().min(1).max(80),
   title: shortText,
+  detail: z.string().max(80).default(""),
   organization: shortText,
   location: shortText,
   dates: shortText,
@@ -19,7 +26,7 @@ export const cvDocumentSchema = z
     email: shortText,
     phone: shortText,
     location: shortText,
-    links: z.string().max(600),
+    links: z.array(cvLinkSchema).max(6).default([]),
     summary: z.string().max(3000),
     photo: z
       .string()
@@ -32,7 +39,6 @@ export const cvDocumentSchema = z
         z.object({
           id: z.string().min(1).max(80),
           title: shortText,
-          page: z.union([z.literal(1), z.literal(2)]),
           entries: z.array(cvEntrySchema).max(20),
         }),
       )
@@ -53,14 +59,47 @@ export const cvDocumentSchema = z
       ),
     "Section and entry IDs must be unique.",
   );
-export const cvDraftsSchema = z.object({
-  one: cvDocumentSchema,
-  two: cvDocumentSchema,
-});
+
+// Reads either the current {resume, cv} shape or the legacy {one, two} shape (with a
+// freeform `links` string and a per-section `page` number, both removed from the current
+// schema) so saved drafts from before the Resume/CV split keep working without data loss.
+function migrateCvDraftsInput(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object") return raw;
+  const value = raw as Record<string, unknown>;
+  if ("resume" in value || "cv" in value) return value;
+  if (!("one" in value) && !("two" in value)) return value;
+  const migrateDocument = (input: unknown) => {
+    if (!input || typeof input !== "object") return input;
+    const document = input as Record<string, unknown>;
+    const links =
+      typeof document.links === "string"
+        ? document.links.trim()
+          ? [{ id: crypto.randomUUID(), label: document.links.trim(), url: "" }]
+          : []
+        : document.links;
+    return { ...document, links };
+  };
+  return {
+    resume: migrateDocument(value.one),
+    cv: migrateDocument(value.two),
+  };
+}
+export const cvDraftsSchema = z.preprocess(
+  migrateCvDraftsInput,
+  z.object({
+    resume: cvDocumentSchema,
+    cv: cvDocumentSchema,
+  }),
+);
+export type CvLink = z.infer<typeof cvLinkSchema>;
 export type CvEntry = z.infer<typeof cvEntrySchema>;
 export type CvDocument = z.infer<typeof cvDocumentSchema>;
 export type CvDrafts = z.infer<typeof cvDraftsSchema>;
 export type CvVersion = keyof CvDrafts;
+export const cvVersionLabels: Record<CvVersion, string> = {
+  resume: "Resume",
+  cv: "CV",
+};
 export const cvColors = {
   teal: "#006F70",
   black: "#262626",
@@ -71,6 +110,7 @@ export function newCvEntry(): CvEntry {
   return {
     id: crypto.randomUUID(),
     title: "",
+    detail: "",
     organization: "",
     location: "",
     dates: "",
@@ -78,12 +118,14 @@ export function newCvEntry(): CvEntry {
     bullets: [],
   };
 }
+export function newCvLink(label = "", url = ""): CvLink {
+  return { id: crypto.randomUUID(), label, url };
+}
 
 export function createCvDrafts(profile: Profile, email = ""): CvDrafts {
-  const section = (title: string, description: string, page: 1 | 2 = 1) => ({
+  const section = (title: string, description: string) => ({
     id: crypto.randomUUID(),
     title,
-    page,
     entries: Array.from(
       { length: Math.max(1, Math.ceil(description.length / 3000)) },
       (_, index) => ({
@@ -92,36 +134,30 @@ export function createCvDrafts(profile: Profile, email = ""): CvDrafts {
       }),
     ),
   });
+  const sections = [
+    section("Professional Experience", profile.experience),
+    section("Technical Skills", profile.skills.join(", ")),
+    section("Education", profile.education),
+  ];
   const base: CvDocument = {
     fullName: profile.fullName,
     headline: profile.headline,
     email,
     phone: "",
     location: "",
-    links: "",
+    links: email ? [newCvLink("Portfolio", "")] : [],
     summary: profile.summary,
     photo: "",
     fontSize: 10,
     accent: "teal",
-    sections: [
-      section("Professional Experience", profile.experience),
-      section("Technical Skills", profile.skills.join(", ")),
-      section("Education", profile.education),
-    ],
+    sections: structuredClone(sections),
   };
   return {
-    one: base,
-    two: {
+    resume: base,
+    cv: {
       ...structuredClone(base),
       fontSize: 11,
       accent: "black",
-      sections: [
-        section("Professional Experience", profile.experience),
-        section("Technical Skills", profile.skills.join(", ")),
-        section("Education", profile.education, 2),
-        section("Projects & Research", "", 2),
-        section("Achievements", "", 2),
-      ],
     },
   };
 }
@@ -136,6 +172,7 @@ export function createImportedCvDrafts(
     (line) =>
       line !== parsed.fullName &&
       line !== parsed.headline &&
+      !parsed.links.some((link) => line.includes(link.url)) &&
       !parsed.summary.split("\n").includes(line),
   );
   const sourceSections = [
@@ -150,27 +187,23 @@ export function createImportedCvDrafts(
       kind: "other",
       lines: [text],
     });
-  const build = (version: CvVersion): CvDocument => ({
+  const build = (): CvDocument => ({
     fullName: parsed.fullName,
     headline: parsed.headline,
     email: parsed.email || email,
     phone: parsed.phone,
     location: "",
-    links: "",
+    links: parsed.links.map((link) => newCvLink(link.label, link.url)),
     summary: parsed.summary,
     photo,
     fontSize: 9,
     accent: "black",
-    sections: sourceSections.map((section, index) => {
+    sections: sourceSections.map((section) => {
       const description = section.lines.join("\n");
       const chunks = description.match(/[\s\S]{1,3000}/g) ?? [""];
       return {
         id: crypto.randomUUID(),
         title: section.title,
-        page:
-          version === "two" && index >= Math.ceil(sourceSections.length / 2)
-            ? 2
-            : 1,
         entries: chunks.map((chunk) => ({
           ...newCvEntry(),
           description: chunk,
@@ -178,7 +211,7 @@ export function createImportedCvDrafts(
       };
     }),
   });
-  return cvDraftsSchema.parse({ one: build("one"), two: build("two") });
+  return cvDraftsSchema.parse({ resume: build(), cv: build() });
 }
 
 export function writingSuggestion(
@@ -205,31 +238,32 @@ export function writingSuggestion(
   return null;
 }
 
-export function cvPlainText(document: CvDocument, version: CvVersion): string {
+export function cvPlainText(document: CvDocument): string {
   return [
     document.fullName,
     document.headline,
     [document.email, document.phone, document.location]
       .filter(Boolean)
       .join(" | "),
-    document.links,
+    document.links
+      .map((link) => [link.label, link.url].filter(Boolean).join(": "))
+      .filter(Boolean)
+      .join(" | "),
     document.summary,
-    ...[...document.sections]
-      .sort((first, second) =>
-        version === "one" ? 0 : first.page - second.page,
-      )
-      .flatMap((section) => [
-        section.title,
-        ...section.entries.flatMap((entry) => [
-          entry.title,
-          [entry.organization, entry.location, entry.dates]
-            .filter(Boolean)
-            .join(" | "),
-          entry.description,
-          ...entry.bullets.filter(Boolean).map((point) => `- ${point}`),
-        ]),
+    ...document.sections.flatMap((section) => [
+      section.title,
+      ...section.entries.flatMap((entry) => [
+        [entry.title, entry.detail].filter(Boolean).join(", "),
+        [entry.organization, entry.location, entry.dates]
+          .filter(Boolean)
+          .join(" | "),
+        entry.description,
+        ...entry.bullets.filter(Boolean).map((point) => `- ${point}`),
       ]),
+    ]),
   ]
     .filter(Boolean)
     .join("\n\n");
 }
+
+export { inferLinkIcon };

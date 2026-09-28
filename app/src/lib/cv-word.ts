@@ -10,7 +10,7 @@ export async function buildCvWord(
   const paragraph = (text: string, bold = false, accent = false) =>
     new Paragraph({
       children: [new TextRun({ text, bold, color: accent ? color : "243331" })],
-      spacing: { after: version === "one" ? 60 : 100 },
+      spacing: { after: version === "resume" ? 60 : 100 },
     });
   const children: Paragraph[] = [
     new Paragraph({
@@ -54,66 +54,61 @@ export async function buildCvWord(
         .join(" | "),
     ),
   );
-  if (document.links) children.push(paragraph(document.links));
+  if (document.links.length)
+    children.push(
+      paragraph(
+        document.links
+          .map((link) => [link.label, link.url].filter(Boolean).join(": "))
+          .filter(Boolean)
+          .join(" | "),
+      ),
+    );
   if (document.summary) children.push(paragraph(document.summary));
-  for (const pageNumber of version === "one" ? [1] : [1, 2]) {
-    if (pageNumber === 2)
-      children.push(
-        new Paragraph({
-          text: `${document.fullName} | Curriculum vitae`,
-          pageBreakBefore: true,
-        }),
-      );
-    for (const section of document.sections.filter(
-      (section) => version === "one" || section.page === pageNumber,
-    )) {
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: section.title,
-              bold: true,
-              color,
-              size: size + 4,
-            }),
-          ],
-          spacing: { before: 180, after: 80 },
-          keepNext: true,
-          border: { bottom: { color: "C5CED1", style: "single", size: 4 } },
-        }),
-      );
-      for (const entry of section.entries) {
-        if (entry.title || entry.dates)
-          children.push(
-            paragraph(
-              [entry.title, entry.dates].filter(Boolean).join(" | "),
-              true,
-            ),
-          );
-        if (entry.organization || entry.location)
-          children.push(
-            paragraph(
-              [entry.organization, entry.location].filter(Boolean).join(" | "),
-              false,
-              true,
-            ),
-          );
-        if (entry.description) children.push(paragraph(entry.description));
-        for (const point of entry.bullets.filter(Boolean))
-          children.push(
-            new Paragraph({
-              text: point,
-              bullet: { level: 0 },
-              spacing: { after: 45 },
-            }),
-          );
-      }
+  for (const section of document.sections) {
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: section.title,
+            bold: true,
+            color,
+            size: size + 4,
+          }),
+        ],
+        spacing: { before: 180, after: 80 },
+        keepNext: true,
+        border: { bottom: { color: "C5CED1", style: "single", size: 4 } },
+      }),
+    );
+    for (const entry of section.entries) {
+      const title = [entry.title, entry.detail].filter(Boolean).join(", ");
+      if (title || entry.dates)
+        children.push(
+          paragraph([title, entry.dates].filter(Boolean).join(" | "), true),
+        );
+      if (entry.organization || entry.location)
+        children.push(
+          paragraph(
+            [entry.organization, entry.location].filter(Boolean).join(" | "),
+            false,
+            true,
+          ),
+        );
+      if (entry.description) children.push(paragraph(entry.description));
+      for (const point of entry.bullets.filter(Boolean))
+        children.push(
+          new Paragraph({
+            text: point,
+            bullet: { level: 0 },
+            spacing: { after: 45 },
+          }),
+        );
     }
   }
   return Packer.toBlob(
     new Document({
       creator: document.fullName,
-      title: `${document.fullName} - CV`,
+      title: `${document.fullName} - ${version === "resume" ? "Resume" : "CV"}`,
       styles: {
         default: {
           document: {

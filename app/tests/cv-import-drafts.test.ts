@@ -18,8 +18,8 @@ test("uploaded CV recovery retains all sections, header details and uncapped ski
   assert.ok(profile.skills.includes("ROS2"));
   assert.equal(profile.skills.length, 25);
   const drafts = createImportedCvDrafts(text);
-  for (const version of ["one", "two"] as const) {
-    const content = cvPlainText(drafts[version], version);
+  for (const version of ["resume", "cv"] as const) {
+    const content = cvPlainText(drafts[version]);
     for (const term of [
       "First place award",
       "Example research paper",
@@ -32,6 +32,21 @@ test("uploaded CV recovery retains all sections, header details and uncapped ski
     assert.equal(content.includes("-- 1 of 1 --"), false);
     assert.equal(drafts[version].email, "example@example.invalid");
   }
+});
+
+test("markdown-style header links become structured, icon-mapped links; body links stay as plain text", () => {
+  const text = `Example Person\n[example@example.invalid](mailto:example@example.invalid)\n[linkedin.com/in/example](https://www.linkedin.com/in/example) [github.com/example](https://github.com/example)\nBuilds robots.\nProjects\nRobot Arm [§](https://github.com/example/robot-arm): a pick and place demo.`;
+  const drafts = createImportedCvDrafts(text);
+  assert.deepEqual(
+    drafts.resume.links.map((link) => [link.label, link.url]),
+    [
+      ["linkedin.com/in/example", "https://www.linkedin.com/in/example"],
+      ["github.com/example", "https://github.com/example"],
+    ],
+  );
+  const content = cvPlainText(drafts.resume);
+  assert.match(content, /Robot Arm §: a pick and place demo\./);
+  assert.equal(content.includes("[§]"), false);
 });
 
 test("long imported profile sections become valid editable entries without dropping text", () => {

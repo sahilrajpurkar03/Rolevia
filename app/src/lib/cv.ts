@@ -67,7 +67,7 @@ export async function extractCv(buffer: Buffer, filename: string) {
       const info = await parser.getInfo();
       if (info.total > 15)
         throw new Error("Please use a CV with 15 pages or fewer.");
-      text = (await parser.getText()).text;
+      text = (await parser.getText({ parseHyperlinks: true })).text;
     } finally {
       await parser.destroy();
     }

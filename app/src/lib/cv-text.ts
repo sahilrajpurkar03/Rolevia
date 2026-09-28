@@ -5,6 +5,26 @@ export function cleanCvText(text: string) {
     .trim();
 }
 
+// Matches any `[label](scheme:...)` link (mailto:/tel:/https:) so all of them can be
+// reduced to plain label text; only http(s) links are surfaced as structured contact links.
+const markdownLinkPattern = /\[([^\]\n]{1,160})\]\(([a-z][a-z0-9+.-]*:[^\s)]+)\)/gi;
+
+function stripMarkdownLinks(text: string) {
+  return text.replace(markdownLinkPattern, "$1");
+}
+
+function extractMarkdownLinks(text: string) {
+  const links: { label: string; url: string }[] = [];
+  const seen = new Set<string>();
+  for (const match of text.matchAll(markdownLinkPattern)) {
+    const url = match[2];
+    if (!/^https?:/i.test(url) || seen.has(url)) continue;
+    seen.add(url);
+    links.push({ label: match[1].trim(), url });
+  }
+  return links;
+}
+
 export function parseCvText(text: string) {
   const lines = cleanCvText(text)
     .split(/\r?\n/)
@@ -43,22 +63,31 @@ export function parseCvText(text: string) {
     ],
   ];
   for (const line of lines) {
-    const title = line.replace(/:$/, "");
+    const title = stripMarkdownLinks(line).replace(/:$/, "");
     const heading = headings.find(([pattern]) => pattern.test(title));
-    const inline = /^(Languages|Sprachen|Certifications):\s*(.+)$/i.exec(line);
+    const inline = /^(Languages|Sprachen|Certifications):\s*(.+)$/i.exec(
+      stripMarkdownLinks(line),
+    );
     if (heading) sections.push({ title, kind: heading[1], lines: [] });
     else if (inline)
       sections.push({ title: inline[1], kind: "other", lines: [inline[2]] });
     else if (sections.length) sections[sections.length - 1].lines.push(line);
     else header.push(line);
   }
+  // Header links (contact row) are the ones worth surfacing as structured, clickable
+  // links; markdown links deeper in the document (e.g. a project's inline GitHub icon)
+  // stay as plain body text once stripped below.
+  const links = extractMarkdownLinks(header.join("\n"));
+  const plainHeader = header.map(stripMarkdownLinks);
+  for (const section of sections) section.lines = section.lines.map(stripMarkdownLinks);
   const name =
-    header.find((line) => !/^(curriculum vitae|resume|cv)$/i.test(line)) ?? "";
+    plainHeader.find((line) => !/^(curriculum vitae|resume|cv)$/i.test(line)) ??
+    "";
   const fullName =
     name.length <= 120 && name.split(/\s+/).length <= 6 && !/[\d@:/]/.test(name)
       ? name
       : "";
-  const afterName = header.slice(header.indexOf(name) + 1);
+  const afterName = plainHeader.slice(plainHeader.indexOf(name) + 1);
   const headline =
     afterName[0] &&
     !/[@\d]|https?:|www\./.test(afterName[0]) &&
@@ -77,8 +106,9 @@ export function parseCvText(text: string) {
   return {
     fullName,
     headline,
-    header,
+    header: plainHeader,
     sections,
+    links,
     summary: sectionText("summary") || intro.join("\n"),
     experience: sectionText("experience"),
     education: sectionText("education"),
@@ -88,17 +118,17 @@ export function parseCvText(text: string) {
           .filter((section) => section.kind === "skills")
           .flatMap((section) => section.lines)
           .flatMap((line) =>
-            line.replace(/^[^:]{1,60}:\s*/, "").split(/[,;|\u2022]/),
+            line.replace(/^[^:]{1,60}:\s*/, "").split(/[,;|•]/),
           )
           .map((skill) => skill.trim())
           .filter((skill) => skill.length > 0 && skill.length <= 100),
       ),
     ].slice(0, 25),
     email:
-      header.join(" ").match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] ??
+      plainHeader.join(" ").match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] ??
       "",
     phone:
-      header
+      plainHeader
         .join(" ")
         .match(/\+\d[\d ()-]{6,}\d/)?.[0]
         ?.trim() ?? "",

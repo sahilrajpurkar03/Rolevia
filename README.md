@@ -45,7 +45,7 @@ Follow sections 1-3 for your first search, then sections 4-7 as needed. **Bold t
 | **Matches** | Search for jobs and review ranked results. |
 | **Applications** | Save opportunities, update progress and edit application letters. |
 | **Cover letters** | Create, edit, save and export independent letter drafts. |
-| **CV editor** | Maintain one-page and two-page CV versions. |
+| **CV editor** | Maintain an independent Resume (1-2 page) and CV (2-3 page) document. |
 | **Activity** | Review job-check outcomes and source warnings. |
 | **Profile & preferences** | Maintain candidate details, skills and search roles. |
 
@@ -153,22 +153,22 @@ Results are deduplicated, exclude already logged applications and appear in best
 
 ### 7. Editing and Exporting Your CV
 
-1. Open **CV editor** and select **One page** or **Two pages**.
+1. Open **CV editor** and select **Resume** (a compact, 1-2 page document) or **CV** (a fuller, 2-3 page document). These are two fully independent, separately saved documents with their own styling, so you can tailor each and pick which one to send for a given application.
 2. Choose the appropriate starting action below.
-3. Review and edit every section, contact detail and optional photo.
-4. Choose **Save CVs** to save both versions.
+3. Review and edit every section, contact detail, link and optional photo.
+4. Choose **Save CVs** to save both documents.
 5. Inspect the actual preview. Resolve overflow before attempting PDF or Word export.
-6. Choose an export format and download your CV.
+6. Choose an export format and download the document you need for that application.
 
 | Starting action | Content used |
 | --- | --- |
-| **Use profile** | Builds a CV from the shorter profile fields. |
-| **Use uploaded CV** | Recovers the full saved extracted upload, including recognized research, awards, projects, publications and languages. |
+| **Use profile** | Builds a document from the shorter profile fields. |
+| **Use uploaded CV** | Recovers the full saved extracted upload, including recognized research, awards, projects, publications and languages. Use this again any time you upload a newer CV on **Profile & preferences**, since saving a new upload there does not automatically refresh an already-edited Resume or CV. |
 | **Import PDF / DOCX** | Imports a new document directly into the selected editor version. |
 
-**Replacement safety:** Import/recovery replacement asks for confirmation and supports Undo. The other CV version remains unchanged.
+**Replacement safety:** Import/recovery replacement asks for confirmation and supports Undo. The other document (Resume vs. CV) remains unchanged.
 
-> **Format limits:** The editor reconstructs editable content, not the original PDF or LaTeX layout. Fonts, columns, icons, links and extraction errors may differ. Dense content may require two pages or layout changes. The original uploaded file is not retained, so keep your own copy.
+> **Format limits:** The editor reconstructs editable content, not the original PDF or LaTeX layout. Extraction errors may differ by source document. Dense content may require more pages or layout changes. The original uploaded file is not retained, so keep your own copy.
 
 ### 8. Saving and Backing Up Your Work
 

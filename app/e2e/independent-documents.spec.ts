@@ -31,10 +31,10 @@ test("CVs and letters work before onboarding and retain drafts across tabs", asy
   await cv.getByRole("button", { name: "New CV", exact: true }).click();
   await expect(cv.getByLabel("Full name", { exact: true })).toHaveValue("");
   await cv.getByLabel("Full name", { exact: true }).fill("Independent Person");
-  await cv.getByRole("button", { name: "Two pages", exact: true }).click();
+  await cv.getByRole("button", { name: "CV", exact: true }).click();
   await cv.getByRole("button", { name: "New CV", exact: true }).click();
   await cv.getByLabel("Full name", { exact: true }).fill("Extended Person");
-  await cv.getByRole("button", { name: "One page", exact: true }).click();
+  await cv.getByRole("button", { name: "Resume", exact: true }).click();
   await expect(cv.getByLabel("Full name", { exact: true })).toHaveValue(
     "Independent Person",
   );

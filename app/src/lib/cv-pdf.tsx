@@ -2,12 +2,16 @@ import {
   Document,
   Font,
   Image as PdfImage,
+  Link as PdfLink,
   Page,
+  Path,
+  Svg,
   Text,
   View,
   pdf,
 } from "@react-pdf/renderer";
-import { cvColors, type CvDocument, type CvVersion } from "./cv-editor";
+import { cvColors, inferLinkIcon, type CvDocument, type CvVersion } from "./cv-editor";
+import { cvIcons, type CvIconName } from "./cv-icons";
 import type { LetterDocument } from "./letter-editor";
 
 Font.register({
@@ -17,192 +21,457 @@ Font.register({
     { src: "/cv-assets/dm-sans-700.woff", fontWeight: 700 },
   ],
 });
+// A metric-compatible Helvetica/Arial clone (matches the Resume template's original
+// `helvet`-based LaTeX source), used instead of react-pdf's built-in base-14 Helvetica
+// because that base font does not reliably render an italic/oblique style.
+Font.register({
+  family: "CvArimo",
+  fonts: [
+    { src: "/cv-assets/arimo-400-normal.woff", fontWeight: 400 },
+    { src: "/cv-assets/arimo-700-normal.woff", fontWeight: 700 },
+    {
+      src: "/cv-assets/arimo-400-italic.woff",
+      fontWeight: 400,
+      fontStyle: "italic",
+    },
+    {
+      src: "/cv-assets/arimo-700-italic.woff",
+      fontWeight: 700,
+      fontStyle: "italic",
+    },
+  ],
+});
+Font.register({
+  family: "CvSerif",
+  fonts: [
+    { src: "/cv-assets/texgyrepagella-regular.otf", fontWeight: 400 },
+    { src: "/cv-assets/texgyrepagella-bold.otf", fontWeight: 700 },
+    {
+      src: "/cv-assets/texgyrepagella-italic.otf",
+      fontWeight: 400,
+      fontStyle: "italic",
+    },
+    {
+      src: "/cv-assets/texgyrepagella-bolditalic.otf",
+      fontWeight: 700,
+      fontStyle: "italic",
+    },
+  ],
+});
 Font.registerHyphenationCallback((word) =>
   word.length > 28 ? (word.match(/.{1,24}/g) ?? [word]) : [word],
 );
 
-function CvPdf({
-  document,
-  version,
+function CvIcon({
+  name,
+  size,
+  color,
 }: {
-  document: CvDocument;
-  version: CvVersion;
+  name: CvIconName;
+  size: number;
+  color: string;
 }) {
+  const icon = cvIcons[name];
+  return (
+    <Svg
+      viewBox={`0 0 ${icon.viewBox[0]} ${icon.viewBox[1]}`}
+      style={{ width: size, height: size, flexShrink: 0 }}
+    >
+      <Path d={icon.path} fill={color} />
+    </Svg>
+  );
+}
+
+function IconText({
+  icon,
+  text,
+  href,
+  size,
+  color,
+  gap = 4,
+}: {
+  icon: CvIconName;
+  text: string;
+  href?: string;
+  size: number;
+  color: string;
+  gap?: number;
+}) {
+  if (!text) return null;
+  const label = href ? (
+    <PdfLink src={href} style={{ color, textDecoration: "none" }}>
+      {text}
+    </PdfLink>
+  ) : (
+    <Text>{text}</Text>
+  );
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap }}>
+      <CvIcon name={icon} size={size} color={color} />
+      <Text style={{ fontSize: size + 1 }}>{label}</Text>
+    </View>
+  );
+}
+
+function SplitLine({
+  left,
+  right,
+  leftStyle,
+  rightStyle,
+}: {
+  left: string;
+  right?: string;
+  leftStyle?: object;
+  rightStyle?: object;
+}) {
+  if (!left && !right) return null;
+  return (
+    <View
+      minPresenceAhead={20}
+      style={{
+        flexDirection: "row",
+        gap: 12,
+        justifyContent: "space-between",
+      }}
+    >
+      <Text style={{ flexShrink: 1, ...leftStyle }}>{left}</Text>
+      {right && (
+        <Text
+          style={{
+            color: "#53635D",
+            maxWidth: "38%",
+            textAlign: "right",
+            ...rightStyle,
+          }}
+        >
+          {right}
+        </Text>
+      )}
+    </View>
+  );
+}
+
+function EntryBody({
+  description,
+  bullets,
+}: {
+  description: string;
+  bullets: string[];
+}) {
+  return (
+    <>
+      {description && (
+        <Text style={{ marginTop: 2 }} orphans={2} widows={2}>
+          {description}
+        </Text>
+      )}
+      {bullets.filter(Boolean).map((point, index) => (
+        <View key={index} style={{ flexDirection: "row", marginTop: 2 }}>
+          <Text style={{ width: 10 }}>•</Text>
+          <Text style={{ flex: 1 }} orphans={2} widows={2}>
+            {point}
+          </Text>
+        </View>
+      ))}
+    </>
+  );
+}
+
+function ResumeDocument({ document }: { document: CvDocument }) {
   const accent = cvColors[document.accent];
-  const compact = version === "one";
-  const pages = compact ? [1] : [1, 2];
+  return (
+    <Page
+      size="A4"
+      style={{
+        padding: 34,
+        paddingBottom: 38,
+        fontFamily: "CvArimo",
+        fontSize: document.fontSize,
+        lineHeight: 1.3,
+        color: "#243331",
+      }}
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          gap: 14,
+          borderBottomWidth: 1.5,
+          borderBottomColor: accent,
+          paddingBottom: 10,
+          marginBottom: 10,
+        }}
+      >
+        <View style={{ flexGrow: 1, flexShrink: 1 }}>
+          <Text style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.15 }}>
+            {document.fullName || "Your name"}
+          </Text>
+          {document.headline && (
+            <Text
+              style={{
+                color: accent,
+                fontSize: document.fontSize + 2,
+                marginTop: 4,
+              }}
+            >
+              {document.headline}
+            </Text>
+          )}
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 10,
+              marginTop: 6,
+            }}
+          >
+            <IconText icon="location" text={document.location} size={8} color="#243331" />
+            <IconText icon="phone" text={document.phone} size={8} color="#243331" />
+            <IconText
+              icon="email"
+              text={document.email}
+              href={document.email ? `mailto:${document.email}` : undefined}
+              size={8}
+              color="#243331"
+            />
+          </View>
+          {document.links.length > 0 && (
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 10,
+                marginTop: 3,
+              }}
+            >
+              {document.links.map((link) => (
+                <IconText
+                  key={link.id}
+                  icon={inferLinkIcon(link.url || link.label)}
+                  text={link.label}
+                  href={link.url || undefined}
+                  size={8}
+                  color="#243331"
+                />
+              ))}
+            </View>
+          )}
+        </View>
+        {document.photo && (
+          <PdfImage
+            src={document.photo}
+            style={{ width: 64, height: 80, objectFit: "cover" }}
+          />
+        )}
+      </View>
+      {document.summary && (
+        <Text style={{ marginBottom: 7, color: "#53635D" }}>
+          {document.summary}
+        </Text>
+      )}
+      {document.sections.map((section) => (
+        <View key={section.id}>
+          <Text
+            minPresenceAhead={30}
+            style={{
+              fontWeight: 700,
+              fontSize: document.fontSize + 2,
+              color: accent,
+              borderBottomWidth: 0.5,
+              borderBottomColor: "#C5CED1",
+              paddingBottom: 3,
+              marginTop: 8,
+              marginBottom: 5,
+            }}
+          >
+            {section.title}
+          </Text>
+          {section.entries.map((entry) => (
+            <View key={entry.id} style={{ marginBottom: 5 }}>
+              <SplitLine
+                left={[entry.title, entry.detail].filter(Boolean).join(", ")}
+                right={entry.dates}
+                leftStyle={{ fontWeight: 700 }}
+              />
+              {(entry.organization || entry.location) && (
+                <SplitLine
+                  left={entry.organization}
+                  right={entry.location}
+                  leftStyle={{ color: accent, fontStyle: "italic", marginTop: 1 }}
+                  rightStyle={{ fontStyle: "italic" }}
+                />
+              )}
+              <EntryBody description={entry.description} bullets={entry.bullets} />
+            </View>
+          ))}
+        </View>
+      ))}
+      <Text
+        fixed
+        render={({ pageNumber, totalPages }) =>
+          totalPages > 1 ? `${pageNumber} / ${totalPages}` : ""
+        }
+        style={{
+          position: "absolute",
+          bottom: 20,
+          right: 34,
+          color: "#53635D",
+          fontSize: 8,
+        }}
+      />
+    </Page>
+  );
+}
+
+function CvDocumentPage({ document }: { document: CvDocument }) {
+  const accent = cvColors[document.accent];
+  return (
+    <Page
+      size="A4"
+      style={{
+        padding: 40,
+        paddingBottom: 44,
+        fontFamily: "CvSerif",
+        fontSize: document.fontSize,
+        lineHeight: 1.35,
+        color: "#1B2D38",
+      }}
+    >
+      {document.photo && (
+        <PdfImage
+          src={document.photo}
+          style={{
+            position: "absolute",
+            top: 30,
+            right: 40,
+            width: 68,
+            height: 85,
+            objectFit: "cover",
+          }}
+        />
+      )}
+      <View style={{ alignItems: "center", marginBottom: 14 }}>
+        <Text style={{ fontSize: 22, fontWeight: 700 }}>
+          {document.fullName || "Your name"}
+        </Text>
+        {document.headline && (
+          <Text style={{ fontSize: document.fontSize + 1, marginTop: 4 }}>
+            {document.headline}
+          </Text>
+        )}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            flexWrap: "wrap",
+            gap: 12,
+            marginTop: 8,
+          }}
+        >
+          <IconText icon="location" text={document.location} size={8} color="#1B2D38" />
+          <IconText icon="phone" text={document.phone} size={8} color="#1B2D38" />
+          <IconText
+            icon="email"
+            text={document.email}
+            href={document.email ? `mailto:${document.email}` : undefined}
+            size={8}
+            color="#1B2D38"
+          />
+        </View>
+        {document.links.length > 0 && (
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              flexWrap: "wrap",
+              gap: 12,
+              marginTop: 4,
+            }}
+          >
+            {document.links.map((link) => (
+              <IconText
+                key={link.id}
+                icon={inferLinkIcon(link.url || link.label)}
+                text={link.label}
+                href={link.url || undefined}
+                size={8}
+                color="#1B2D38"
+              />
+            ))}
+          </View>
+        )}
+        <View
+          style={{
+            width: "100%",
+            borderBottomWidth: 1,
+            borderBottomColor: accent,
+            marginTop: 12,
+          }}
+        />
+      </View>
+      {document.sections.map((section) => (
+        <View key={section.id}>
+          <Text
+            minPresenceAhead={30}
+            style={{
+              fontWeight: 700,
+              fontSize: document.fontSize + 2,
+              color: accent,
+              borderBottomWidth: 0.75,
+              borderBottomColor: accent,
+              paddingBottom: 3,
+              marginTop: 12,
+              marginBottom: 6,
+            }}
+          >
+            {section.title}
+          </Text>
+          {section.entries.map((entry) => (
+            <View key={entry.id} style={{ marginBottom: 8 }}>
+              {(entry.organization || entry.location) && (
+                <SplitLine
+                  left={entry.organization}
+                  right={entry.location}
+                  leftStyle={{ fontWeight: 700 }}
+                />
+              )}
+              <SplitLine
+                left={[entry.title, entry.detail].filter(Boolean).join(", ")}
+                right={entry.dates}
+                leftStyle={{ fontStyle: "italic", marginTop: 1 }}
+                rightStyle={{ fontStyle: "italic" }}
+              />
+              <EntryBody description={entry.description} bullets={entry.bullets} />
+            </View>
+          ))}
+        </View>
+      ))}
+      <Text
+        fixed
+        render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
+        style={{
+          position: "absolute",
+          bottom: 22,
+          right: 40,
+          color: "#53635D",
+          fontSize: 8,
+        }}
+      />
+    </Page>
+  );
+}
+
+function CvPdf({ document, version }: { document: CvDocument; version: CvVersion }) {
   return (
     <Document
-      title={`${document.fullName || "Untitled"} - CV`}
+      title={`${document.fullName || "Untitled"} - ${version === "resume" ? "Resume" : "CV"}`}
       author={document.fullName}
       language="en"
     >
-      {pages.map((pageNumber) => (
-        <Page
-          key={pageNumber}
-          size="A4"
-          style={{
-            padding: compact ? 34 : 40,
-            paddingBottom: 38,
-            fontFamily: "CvSans",
-            fontSize: document.fontSize,
-            lineHeight: 1.3,
-            color: "#243331",
-          }}
-        >
-          {pageNumber === 1 ? (
-            <>
-              <View
-                style={{
-                  flexDirection: "row",
-                  gap: 14,
-                  borderBottomWidth: 1.5,
-                  borderBottomColor: accent,
-                  paddingBottom: 10,
-                  marginBottom: 10,
-                }}
-              >
-                <View style={{ flexGrow: 1, flexShrink: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: compact ? 24 : 26,
-                      fontWeight: 700,
-                      lineHeight: 1.15,
-                    }}
-                  >
-                    {document.fullName || "Your name"}
-                  </Text>
-                  {document.headline && (
-                    <Text
-                      style={{
-                        color: accent,
-                        fontSize: document.fontSize + 2,
-                        marginTop: 4,
-                      }}
-                    >
-                      {document.headline}
-                    </Text>
-                  )}
-                  <Text style={{ fontSize: 9, marginTop: 6 }}>
-                    {[document.location, document.phone, document.email]
-                      .filter(Boolean)
-                      .join(" | ")}
-                  </Text>
-                  {document.links && (
-                    <Text style={{ fontSize: 9, marginTop: 3 }}>
-                      {document.links}
-                    </Text>
-                  )}
-                </View>
-                {document.photo && (
-                  <PdfImage
-                    src={document.photo}
-                    style={{ width: 62, height: 78, objectFit: "cover" }}
-                  />
-                )}
-              </View>
-              {document.summary && (
-                <Text style={{ marginBottom: 7, color: "#53635D" }}>
-                  {document.summary}
-                </Text>
-              )}
-            </>
-          ) : (
-            <Text style={{ fontSize: 10, color: "#53635D", marginBottom: 12 }}>
-              {document.fullName} | Curriculum vitae
-            </Text>
-          )}
-          {document.sections
-            .filter((section) => compact || section.page === pageNumber)
-            .map((section) => (
-              <View key={section.id}>
-                <Text
-                  minPresenceAhead={30}
-                  style={{
-                    fontWeight: 700,
-                    fontSize: document.fontSize + 2,
-                    color: accent,
-                    borderBottomWidth: 0.5,
-                    borderBottomColor: "#C5CED1",
-                    paddingBottom: 3,
-                    marginTop: compact ? 8 : 12,
-                    marginBottom: 5,
-                  }}
-                >
-                  {section.title}
-                </Text>
-                {section.entries.map((entry) => (
-                  <View
-                    key={entry.id}
-                    style={{ marginBottom: compact ? 5 : 8 }}
-                  >
-                    {(entry.title || entry.dates) && (
-                      <View
-                        minPresenceAhead={20}
-                        style={{
-                          flexDirection: "row",
-                          gap: 12,
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <Text style={{ fontWeight: 700, flexShrink: 1 }}>
-                          {entry.title}
-                        </Text>
-                        <Text
-                          style={{
-                            color: "#53635D",
-                            maxWidth: "36%",
-                            textAlign: "right",
-                          }}
-                        >
-                          {entry.dates}
-                        </Text>
-                      </View>
-                    )}
-                    {(entry.organization || entry.location) && (
-                      <Text style={{ color: accent, marginTop: 1 }}>
-                        {[entry.organization, entry.location]
-                          .filter(Boolean)
-                          .join(" | ")}
-                      </Text>
-                    )}
-                    {entry.description && (
-                      <Text style={{ marginTop: 2 }} orphans={2} widows={2}>
-                        {entry.description}
-                      </Text>
-                    )}
-                    {entry.bullets.filter(Boolean).map((point, index) => (
-                      <View
-                        key={index}
-                        style={{ flexDirection: "row", marginTop: 2 }}
-                      >
-                        <Text style={{ width: 10 }}>•</Text>
-                        <Text style={{ flex: 1 }} orphans={2} widows={2}>
-                          {point}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                ))}
-              </View>
-            ))}
-          {!compact && (
-            <Text
-              fixed
-              style={{
-                position: "absolute",
-                bottom: 20,
-                right: 40,
-                color: "#53635D",
-                fontSize: 8,
-              }}
-              render={({ pageNumber, totalPages }) =>
-                `${pageNumber} / ${totalPages}`
-              }
-            />
-          )}
-        </Page>
-      ))}
+      {version === "resume" ? (
+        <ResumeDocument document={document} />
+      ) : (
+        <CvDocumentPage document={document} />
+      )}
     </Document>
   );
 }

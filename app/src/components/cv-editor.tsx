@@ -9,6 +9,7 @@ import {
   Eye,
   FileText,
   ImagePlus,
+  Link2,
   LoaderCircle,
   Pencil,
   Plus,
@@ -25,7 +26,9 @@ import {
   cvColors,
   cvDraftsSchema,
   cvPlainText,
+  cvVersionLabels,
   newCvEntry,
+  newCvLink,
   writingSuggestion,
   type CvDocument,
   type CvDrafts,
@@ -125,7 +128,7 @@ export function CvEditor({
   const [drafts, setDrafts] = useState(
     () => initialDrafts ?? createCvDrafts(profile, email),
   );
-  const [version, setVersion] = useState<CvVersion>("one");
+  const [version, setVersion] = useState<CvVersion>("resume");
   const [mobileView, setMobileView] = useState("edit");
   const [saved, setSaved] = useState(() =>
     initialDrafts ? JSON.stringify(initialDrafts) : "",
@@ -150,7 +153,7 @@ export function CvEditor({
   const dirty = serialized !== saved;
   const ready =
     preview?.source === source && Boolean(preview.blob) && !preview.error;
-  const target = version === "one" ? 1 : 2;
+  const target = version === "resume" ? 2 : 3;
   const overflow = ready && preview!.count > target;
 
   useEffect(() => {
@@ -403,7 +406,7 @@ export function CvEditor({
         .trim()
         .replace(/[^\p{L}\p{N} _-]/gu, "")
         .slice(0, 80) || "CV"
-    }-${version === "one" ? "one-page" : "two-page"}`;
+    }-${cvVersionLabels[version]}`;
     try {
       if (exportType === "json")
         downloadBlob(
@@ -414,7 +417,7 @@ export function CvEditor({
         );
       else if (exportType === "txt")
         downloadBlob(
-          new Blob([cvPlainText(document, version)], {
+          new Blob([cvPlainText(document)], {
             type: "text/plain;charset=utf-8",
           }),
           `${name}.txt`,
@@ -518,16 +521,16 @@ export function CvEditor({
       <div className="cv-toolbar">
         <div className="cv-segment" role="group" aria-label="CV version">
           <button
-            aria-pressed={version === "one"}
-            onClick={() => setVersion("one")}
+            aria-pressed={version === "resume"}
+            onClick={() => setVersion("resume")}
           >
-            One page
+            Resume
           </button>
           <button
-            aria-pressed={version === "two"}
-            onClick={() => setVersion("two")}
+            aria-pressed={version === "cv"}
+            onClick={() => setVersion("cv")}
           >
-            Two pages
+            CV
           </button>
         </div>
         <button
@@ -548,24 +551,18 @@ export function CvEditor({
         </button>
         <button
           className="icon-button"
-          title="Copy this CV to the other version"
+          title="Copy this document to the other version"
           disabled={photoBusy}
           onClick={() => {
             if (
               window.confirm(
-                "Replace the other CV version with this content? You can undo this change.",
+                "Replace the other version with this content? You can undo this change.",
               )
             ) {
-              const other = version === "one" ? "two" : "one";
+              const other: CvVersion = version === "resume" ? "cv" : "resume";
               commit({
                 ...drafts,
-                [other]: {
-                  ...structuredClone(document),
-                  sections: document.sections.map((section) => ({
-                    ...structuredClone(section),
-                    page: 1,
-                  })),
-                },
+                [other]: structuredClone(document),
               });
             }
           }}
@@ -711,13 +708,71 @@ export function CvEditor({
                 value={document.location}
                 onChange={(location) => change({ ...document, location })}
               />
-              <Field
-                label="Links"
-                value={document.links}
-                multiline
-                maxLength={600}
-                onChange={(links) => change({ ...document, links })}
-              />
+              <div className="cv-field cv-links">
+                <label>Links</label>
+                {document.links.map((link, index) => (
+                  <div className="cv-field-pair cv-link-row" key={link.id}>
+                    <input
+                      aria-label={`Link ${index + 1} label`}
+                      placeholder="Label (e.g. LinkedIn)"
+                      value={link.label}
+                      maxLength={180}
+                      onChange={(event) =>
+                        change({
+                          ...document,
+                          links: document.links.map((item, itemIndex) =>
+                            itemIndex === index
+                              ? { ...item, label: event.target.value }
+                              : item,
+                          ),
+                        })
+                      }
+                    />
+                    <input
+                      aria-label={`Link ${index + 1} URL`}
+                      placeholder="https://..."
+                      value={link.url}
+                      maxLength={300}
+                      onChange={(event) =>
+                        change({
+                          ...document,
+                          links: document.links.map((item, itemIndex) =>
+                            itemIndex === index
+                              ? { ...item, url: event.target.value }
+                              : item,
+                          ),
+                        })
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="icon-button"
+                      title={`Remove link ${index + 1}`}
+                      onClick={() =>
+                        change({
+                          ...document,
+                          links: document.links.filter(
+                            (_, itemIndex) => itemIndex !== index,
+                          ),
+                        })
+                      }
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="button"
+                  disabled={document.links.length >= 6}
+                  onClick={() =>
+                    change({ ...document, links: [...document.links, newCvLink()] })
+                  }
+                >
+                  <Link2 size={15} />
+                  Add link
+                </button>
+              </div>
               <Field
                 label="Summary"
                 value={document.summary}
@@ -752,31 +807,6 @@ export function CvEditor({
                   >
                     <ArrowDown size={15} />
                   </button>
-                  {version === "two" && (
-                    <label>
-                      Page
-                      <select
-                        aria-label={`Page for ${section.title}`}
-                        value={section.page}
-                        onChange={(event) =>
-                          change({
-                            ...document,
-                            sections: document.sections.map((item) =>
-                              item.id === section.id
-                                ? {
-                                    ...item,
-                                    page: Number(event.target.value) as 1 | 2,
-                                  }
-                                : item,
-                            ),
-                          })
-                        }
-                      >
-                        <option value={1}>1</option>
-                        <option value={2}>2</option>
-                      </select>
-                    </label>
-                  )}
                   <button
                     className="icon-button"
                     title={`Remove ${section.title} section`}
@@ -871,13 +901,23 @@ export function CvEditor({
                         <Trash2 size={14} />
                       </button>
                     </div>
-                    <Field
-                      label="Title / qualification"
-                      value={entry.title}
-                      onChange={(title) =>
-                        updateEntry(section.id, entry.id, { title })
-                      }
-                    />
+                    <div className="cv-field-pair">
+                      <Field
+                        label="Title / qualification"
+                        value={entry.title}
+                        onChange={(title) =>
+                          updateEntry(section.id, entry.id, { title })
+                        }
+                      />
+                      <Field
+                        label="Detail (e.g. grade)"
+                        value={entry.detail}
+                        maxLength={80}
+                        onChange={(detail) =>
+                          updateEntry(section.id, entry.id, { detail })
+                        }
+                      />
+                    </div>
                     <Field
                       label="Organization / institution"
                       value={entry.organization}
@@ -1006,7 +1046,6 @@ export function CvEditor({
                     {
                       id: crypto.randomUUID(),
                       title: "New section",
-                      page: version === "two" ? 2 : 1,
                       entries: [newCvEntry()],
                     },
                   ],
@@ -1023,7 +1062,7 @@ export function CvEditor({
             <h2>Preview</h2>
             <span role="status" aria-label="CV page count">
               {ready
-                ? `${preview!.count} / ${target} ${target === 1 ? "page" : "pages"}`
+                ? `${preview!.count} / ${target} pages`
                 : preview?.source === source && preview.error
                   ? "Preview unavailable"
                   : "Updating..."}
@@ -1080,12 +1119,10 @@ export function CvEditor({
           </div>
           {overflow && (
             <div className="notice error" role="alert">
-              This CV exceeds {target} {target === 1 ? "page" : "pages"}.
-              Shorten the content, reduce text size
-              {version === "two"
-                ? ", or move a section to the other page"
-                : ", or copy it to the two-page version"}
-              . PDF and Word export are paused.
+              This {cvVersionLabels[version]} exceeds {target} pages. Shorten
+              the content, reduce text size, or trim a section
+              {version === "resume" ? ", or switch to the CV version" : ""}.
+              PDF and Word export are paused.
             </div>
           )}
           {preview?.source === source && preview.error && (
@@ -1154,7 +1191,7 @@ export function CvEditor({
           </div>
           <details className="cv-text-preview">
             <summary>Document text</summary>
-            <pre>{cvPlainText(document, version)}</pre>
+            <pre>{cvPlainText(document)}</pre>
           </details>
         </aside>
       </div>

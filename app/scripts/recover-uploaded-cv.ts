@@ -67,11 +67,11 @@ async function main() {
   const text = z.string().min(40).max(60000).parse(current.data.data.cvText);
   const old = current.data.data.cvEditor;
   const drafts = createImportedCvDrafts(text, email);
-  for (const version of ["one", "two"] as const) {
+  for (const version of ["resume", "cv"] as const) {
     drafts[version].photo = old?.[version]?.photo ?? "";
     const normalize = (value: string) =>
       value.replace(/:\s*/g, " ").replace(/\s+/g, " ").trim();
-    const content = normalize(cvPlainText(drafts[version], version));
+    const content = normalize(cvPlainText(drafts[version]));
     const missing = cleanCvText(text)
       .split(/\r?\n/)
       .map(normalize)
@@ -83,7 +83,7 @@ async function main() {
   }
   const summary = {
     uploadedTextCharacters: text.length,
-    sections: drafts.one.sections.map((section) => section.title),
+    sections: drafts.resume.sections.map((section) => section.title),
     allExtractedLinesRetained: true,
     profileAndLettersPreserved: true,
     mode: args.includes("--apply") ? "apply" : "preview",
@@ -91,7 +91,7 @@ async function main() {
   console.log(JSON.stringify(summary));
   if (!args.includes("--apply")) return;
   if (
-    !old?.one?.sections?.some((section: { id: string }) =>
+    !old?.resume?.sections?.some((section: { id: string }) =>
       section.id.startsWith("legacy-"),
     )
   )

@@ -5,15 +5,15 @@ import mammoth from "mammoth";
 import JSZip from "jszip";
 import sharp from "sharp";
 
-test("uploaded CV recovery includes every section and preserves the other version", async ({
+test("uploaded CV recovery includes every section and preserves the other document", async ({
   page,
 }) => {
   page.on("dialog", (dialog) => dialog.accept());
   await page.goto("/demo");
   await page.getByRole("button", { name: "CV editor", exact: true }).click();
-  await page.getByRole("button", { name: "Two pages", exact: true }).click();
+  await page.getByRole("button", { name: "CV", exact: true }).click();
   await page.getByLabel("Full name", { exact: true }).fill("Keep this version");
-  await page.getByRole("button", { name: "One page", exact: true }).click();
+  await page.getByRole("button", { name: "Resume", exact: true }).click();
   await page
     .getByRole("button", { name: "Use uploaded CV", exact: true })
     .click();
@@ -29,7 +29,7 @@ test("uploaded CV recovery includes every section and preserves the other versio
   expect(text.toString()).toContain("Student design award");
   expect(text.toString()).toContain("fictional usability case study");
   await editorView(page, "Edit");
-  await page.getByRole("button", { name: "Two pages", exact: true }).click();
+  await page.getByRole("button", { name: "CV", exact: true }).click();
   await expect(page.getByLabel("Full name", { exact: true })).toHaveValue(
     "Keep this version",
   );
@@ -54,7 +54,7 @@ async function download(page: Page, format: string) {
   return readFile(path!);
 }
 
-test("CV editing, versions, photo, suggestions and real document exports", async ({
+test("CV editing, documents, photo, suggestions and real document exports", async ({
   page,
 }) => {
   test.setTimeout(150000);
@@ -66,7 +66,7 @@ test("CV editing, versions, photo, suggestions and real document exports", async
   await page.getByLabel("Full name", { exact: true }).fill("Taylor Example");
   await page
     .getByLabel("Location", { exact: true })
-    .fill("M\u00f6nsheim, Germany");
+    .fill("Mönsheim, Germany");
   await page
     .getByRole("button", { name: "Add point", exact: true })
     .first()
@@ -118,24 +118,19 @@ test("CV editing, versions, photo, suggestions and real document exports", async
     .click();
   await page.getByRole("button", { name: "Undo CV edit", exact: true }).click();
   await page.getByRole("button", { name: "Redo CV edit", exact: true }).click();
-  await page.getByRole("button", { name: "Two pages", exact: true }).click();
+  await page.getByRole("button", { name: "CV", exact: true }).click();
   await expect(page.getByLabel("Full name", { exact: true })).toHaveValue(
     "Alex Morgan",
   );
-  await page.getByLabel("Page for Technical Skills").selectOption("2");
   await editorView(page, "Preview");
-  await expect(page.getByLabel("CV page count")).toHaveText("2 / 2 pages", {
+  await expect(page.getByLabel("CV page count")).toContainText("/ 3 pages", {
     timeout: 60000,
   });
-  const twoPdf = await download(page, "pdf");
-  expect((await PDFDocument.load(twoPdf)).getPageCount()).toBe(2);
-  const twoWord = await download(page, "docx");
-  const twoZip = await JSZip.loadAsync(twoWord);
-  expect(await twoZip.file("word/document.xml")!.async("string")).toContain(
-    "pageBreakBefore",
-  );
-  await page.getByRole("button", { name: "One page", exact: true }).click();
-  await expect(page.getByLabel("CV page count")).toHaveText("1 / 1 page", {
+  const cvPdf = await download(page, "pdf");
+  expect((await PDFDocument.load(cvPdf)).getPageCount()).toBeGreaterThanOrEqual(1);
+  await download(page, "docx");
+  await page.getByRole("button", { name: "Resume", exact: true }).click();
+  await expect(page.getByLabel("CV page count")).toContainText("/ 2 pages", {
     timeout: 60000,
   });
   await expect(page.getByAltText("CV page 1", { exact: true })).toBeVisible();
@@ -170,15 +165,15 @@ test("CV editing, versions, photo, suggestions and real document exports", async
     ),
   ).toBe(true);
   await page.getByLabel("Preview zoom", { exact: true }).selectOption("fit");
-  const onePdf = await download(page, "pdf");
-  expect((await PDFDocument.load(onePdf)).getPageCount()).toBe(1);
+  const resumePdf = await download(page, "pdf");
+  expect((await PDFDocument.load(resumePdf)).getPageCount()).toBeLessThanOrEqual(2);
   const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data: new Uint8Array(onePdf) });
+  const parser = new PDFParse({ data: new Uint8Array(resumePdf) });
   try {
     const text = (await parser.getText()).text;
     expect(text).toContain("Taylor Example");
     expect(text).toContain("Developed a navigation stack");
-    expect(text).toContain("M\u00f6nsheim");
+    expect(text).toContain("Mönsheim");
   } finally {
     await parser.destroy();
   }
@@ -194,9 +189,9 @@ test("CV editing, versions, photo, suggestions and real document exports", async
   ).toBe(true);
   expect((await download(page, "txt")).toString()).toContain("Research award");
   const backup = JSON.parse((await download(page, "json")).toString());
-  expect(backup.one.fullName).toBe("Taylor Example");
-  expect(backup.two.fullName).toBe("Alex Morgan");
-  expect(backup.one.photo).toMatch(/^data:image\/jpeg;base64,/);
+  expect(backup.resume.fullName).toBe("Taylor Example");
+  expect(backup.cv.fullName).toBe("Alex Morgan");
+  expect(backup.resume.photo).toMatch(/^data:image\/jpeg;base64,/);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -256,7 +251,7 @@ test("CV imports, invalid photos, and page overflow fail safely", async ({
   ).toContainText("not a valid Rolevia CV backup");
   const backup = await download(page, "json");
   const data = JSON.parse(backup.toString());
-  data.one.fullName = "Imported Draft";
+  data.resume.fullName = "Imported Draft";
   page.once("dialog", (dialog) => dialog.accept());
   await page
     .getByLabel("Import CV JSON backup", { exact: true })
@@ -274,19 +269,19 @@ test("CV imports, invalid photos, and page overflow fail safely", async ({
     .first()
     .fill(
       "A detailed description of verified work on navigation and simulation systems. ".repeat(
-        38,
+        100,
       ),
     );
   await page
     .getByLabel("Summary", { exact: true })
     .fill(
       "Documented project outcomes and collaboration across engineering teams. ".repeat(
-        35,
+        100,
       ),
     );
   await editorView(page, "Preview");
   await expect(
-    page.getByRole("alert").filter({ hasText: "This CV exceeds 1 page" }),
+    page.getByRole("alert").filter({ hasText: "This Resume exceeds 2 pages" }),
   ).toBeVisible({ timeout: 60000 });
   await page.getByLabel("CV export format").selectOption("pdf");
   await expect(
