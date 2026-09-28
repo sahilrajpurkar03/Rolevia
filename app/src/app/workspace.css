@@ -38,6 +38,22 @@
 }
 .generator-consent input { flex-shrink: 0; margin-top: 3px; }
 .generator-fields > button { justify-self: start; }
+.job-link-import {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+}
+.job-link-row {
+  display: flex;
+  gap: 8px;
+}
+.job-link-row input {
+  flex: 1;
+  min-width: 0;
+}
+.job-link-row button {
+  flex-shrink: 0;
+}
 .generated-review {
   max-width: 760px;
   margin-top: 20px;

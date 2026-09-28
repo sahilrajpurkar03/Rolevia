@@ -1,6 +1,6 @@
 "use client";
 import { useId, useState } from "react";
-import { Check, LoaderCircle, Sparkles } from "lucide-react";
+import { Check, Link2, LoaderCircle, Sparkles } from "lucide-react";
 import {
   generatedLetterSchema,
   generationInputSchema,
@@ -40,10 +40,56 @@ export function LetterGenerator({
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [linkError, setLinkError] = useState("");
   const [result, setResult] = useState<{
     letter: GeneratedLetter;
     input: GenerationInput;
   } | null>(null);
+  async function importLink() {
+    setLinkError("");
+    let parsedUrl: string | null = null;
+    try {
+      const url = new URL(linkUrl.trim());
+      parsedUrl = url.protocol === "https:" ? url.href : null;
+    } catch {
+      parsedUrl = null;
+    }
+    if (!parsedUrl) {
+      setLinkError("Enter a valid HTTPS job posting link.");
+      return;
+    }
+    if (demo) {
+      setLinkError("Sign in to import a job link. No demo data was sent.");
+      return;
+    }
+    setLinkBusy(true);
+    try {
+      const response = await fetch("/api/jobs/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: parsedUrl }),
+      });
+      const body = await response.json();
+      if (!response.ok)
+        throw new Error(body.error ?? "Could not import that job link.");
+      setInput((current) => ({
+        ...current,
+        title: body.job.title || current.title,
+        company: body.job.company || current.company,
+        description: body.job.description || current.description,
+      }));
+    } catch (reason) {
+      setLinkError(
+        reason instanceof Error
+          ? reason.message
+          : "Could not import that job link.",
+      );
+    } finally {
+      setLinkBusy(false);
+    }
+  }
   async function generate() {
     setError("");
     const parsed = generationInputSchema.safeParse(input);
@@ -90,6 +136,39 @@ export function LetterGenerator({
     >
       <h3>Generate Cover Letter</h3>
       <fieldset disabled={busy || disabled} className="generator-fields">
+        <div className="job-link-import">
+          <label htmlFor={`${prefix}-link`}>
+            Paste a job posting link (optional)
+          </label>
+          <div className="job-link-row">
+            <input
+              id={`${prefix}-link`}
+              type="url"
+              placeholder="https://company.com/careers/job-id"
+              value={linkUrl}
+              disabled={linkBusy}
+              onChange={(event) => setLinkUrl(event.target.value)}
+            />
+            <button
+              type="button"
+              className="button"
+              disabled={linkBusy || !linkUrl.trim()}
+              onClick={() => void importLink()}
+            >
+              {linkBusy ? (
+                <LoaderCircle size={16} className="spin" />
+              ) : (
+                <Link2 size={16} />
+              )}
+              {linkBusy ? "Importing..." : "Import details"}
+            </button>
+          </div>
+          {linkError && (
+            <p role="alert" className="notice error">
+              {linkError}
+            </p>
+          )}
+        </div>
         {jobs.length > 0 && (
           <label htmlFor={`${prefix}-job`}>
             Matched or logged job
