@@ -37,6 +37,8 @@ import { ProfileForm } from "./profile-form";
 import { EmailTest } from "./email-test";
 import { JobSearchForm } from "./job-search-form";
 import { LetterGenerator } from "./letter-generator";
+import { Modal } from "./modal";
+import { AccountSettings } from "./account-settings";
 import { newLetter } from "@/lib/letter-editor";
 import type { CvDrafts } from "@/lib/cv-editor";
 import type { LetterDrafts } from "@/lib/letter-editor";
@@ -1369,11 +1371,8 @@ export function Workspace(props: Props) {
                     <p className="muted">
                       {props.demo ? "Fictional sample account" : props.email}
                     </p>
+                    <AccountSettings demo={props.demo} />
                     <div className="modal-footer">
-                      <Link href="/forgot-password" className="button">
-                        Change password
-                        <ArrowRight size={16} />
-                      </Link>
                       {!props.demo && (
                         <form action={logout}>
                           <button className="button">
@@ -1984,47 +1983,6 @@ function CalendarView({
         )}
       </div>
     </section>
-  );
-}
-function Modal({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const element = dialog.current;
-    element?.showModal();
-    return () => element?.close();
-  }, []);
-  return (
-    <dialog
-      ref={dialog}
-      className="modal"
-      aria-labelledby="modal-title"
-      onCancel={onClose}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div className="modal-content">
-        <header>
-          <h2 id="modal-title">{title}</h2>
-          <button
-            className="icon-button"
-            title="Close dialog"
-            onClick={onClose}
-          >
-            <X size={20} />
-          </button>
-        </header>
-        {children}
-      </div>
-    </dialog>
   );
 }
 

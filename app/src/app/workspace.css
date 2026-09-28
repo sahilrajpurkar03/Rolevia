@@ -1021,6 +1021,37 @@ svg {
 .account-settings > p {
   margin-top: 8px;
 }
+.account-password,
+.account-danger {
+  margin-top: 24px;
+}
+.account-password h3,
+.account-danger h3 {
+  margin-bottom: 12px;
+  font-size: 15px;
+}
+.account-danger {
+  padding: 16px;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+}
+.account-danger h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--danger);
+}
+.account-danger > p {
+  margin-bottom: 12px;
+}
+.button.danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.button.danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: #fff;
+}
 .step-count {
   font-family: "Space Grotesk", sans-serif;
   font-size: 16px;
