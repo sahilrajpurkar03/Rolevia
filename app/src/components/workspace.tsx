@@ -249,6 +249,9 @@ export function Workspace(props: Props) {
   const [lettersOpened, setLettersOpened] = useState(() => view === "letters");
   const [onboardingDraft, setOnboardingDraft] = useState(emptyProfile);
   const [sampleProfile, setSampleProfile] = useState(props.profile);
+  const [optimisticProfile, setOptimisticProfile] = useState<Profile | null>(
+    null,
+  );
   const [sampleMatches, setSampleMatches] = useState(props.matches);
   const [searchResults, setSearchResults] = useState<MatchRecord[] | null>(
     null,
@@ -265,7 +268,9 @@ export function Workspace(props: Props) {
   const [optimisticApplications, setOptimisticApplications] = useState<
     ApplicationRecord[] | null
   >(null);
-  const profile = props.demo ? sampleProfile : props.profile;
+  const profile = props.demo
+    ? sampleProfile
+    : (optimisticProfile ?? props.profile);
   const matches = props.demo ? sampleMatches : (searchResults ?? props.matches);
   const applications = props.demo
     ? sampleApplications
@@ -499,7 +504,6 @@ export function Workspace(props: Props) {
       });
       setMessage(result);
       if (result.error) setOptimisticApplications(null);
-      else router.refresh();
     });
     if (status === "interview") setEditing(updated);
   }
@@ -526,7 +530,6 @@ export function Workspace(props: Props) {
       const result = await deleteApplication(application.id);
       setMessage(result);
       if (result.error) setOptimisticApplications(null);
-      else router.refresh();
     });
   }
   function dismissDay(day: string) {
@@ -690,8 +693,8 @@ export function Workspace(props: Props) {
                 demo={props.demo}
                 onDraftChange={setOnboardingDraft}
                 onSave={(next) => {
-                  setSampleProfile(next);
-                  router.refresh();
+                  if (props.demo) setSampleProfile(next);
+                  else setOptimisticProfile(next);
                 }}
               />
             </div>
@@ -1356,9 +1359,9 @@ export function Workspace(props: Props) {
                     initial={profile}
                     demo={props.demo}
                     onSave={(next) => {
-                      setSampleProfile(next);
+                      if (props.demo) setSampleProfile(next);
+                      else setOptimisticProfile(next);
                       setSearchResults(null);
-                      router.refresh();
                     }}
                   />
                   <section className="account-settings">
@@ -1807,7 +1810,12 @@ export function Workspace(props: Props) {
                   item.id === updated.id ? updated : item,
                 ),
               );
-            router.refresh();
+            else
+              setOptimisticApplications((current) =>
+                (current ?? applications).map((item) =>
+                  item.id === updated.id ? updated : item,
+                ),
+              );
             setMessage({
               success: props.demo
                 ? "Sample application updated."
@@ -1821,21 +1829,23 @@ export function Workspace(props: Props) {
           demo={props.demo}
           onClose={() => setAdding(false)}
           onAdded={(job, status) => {
+            const record: ApplicationRecord = {
+              id: crypto.randomUUID(),
+              job,
+              status,
+              notes: "",
+              letter: "",
+              follow_up: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
             if (props.demo)
-              setSampleApplications((current) => [
-                ...current,
-                {
-                  id: crypto.randomUUID(),
-                  job,
-                  status,
-                  notes: "",
-                  letter: "",
-                  follow_up: null,
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                },
+              setSampleApplications((current) => [...current, record]);
+            else
+              setOptimisticApplications((current) => [
+                ...(current ?? applications),
+                record,
               ]);
-            router.refresh();
           }}
         />
       )}
