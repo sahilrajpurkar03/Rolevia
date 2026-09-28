@@ -264,14 +264,15 @@ test("CV imports, invalid photos, and page overflow fail safely", async ({
   await expect(page.getByLabel("Full name", { exact: true })).toHaveValue(
     "Imported Draft",
   );
-  await page
-    .getByLabel("Description", { exact: true })
-    .first()
-    .fill(
-      "A detailed description of verified work on navigation and simulation systems. ".repeat(
-        100,
-      ),
+  // Each Description field is capped at 3000 characters, so filling only one is not
+  // enough to force overflow past 2 pages; fill every entry's description (the sample
+  // document has several) plus every bullet slot to add enough real content.
+  const filler =
+    "A detailed description of verified work on navigation and simulation systems. ".repeat(
+      100,
     );
+  for (const field of await page.getByLabel("Description", { exact: true }).all())
+    await field.fill(filler);
   await page
     .getByLabel("Summary", { exact: true })
     .fill(
@@ -279,7 +280,20 @@ test("CV imports, invalid photos, and page overflow fail safely", async ({
         100,
       ),
     );
+  for (let index = 0; index < 3; index++) {
+    await page.getByRole("button", { name: "Add point", exact: true }).first().click();
+    await page
+      .getByLabel(`Point ${index + 1}`, { exact: true })
+      .first()
+      .fill(
+        "Delivered a verified, measurable outcome across a cross-functional engineering initiative. ".repeat(
+          8,
+        ),
+      );
+  }
   await editorView(page, "Preview");
+  // Also maximize the text size to make the overflow margin as large as possible.
+  await page.getByLabel("CV text size", { exact: true }).selectOption("12");
   await expect(
     page.getByRole("alert").filter({ hasText: "This Resume exceeds 2 pages" }),
   ).toBeVisible({ timeout: 60000 });
