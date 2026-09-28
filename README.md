@@ -249,6 +249,8 @@ Snapshot from 14 September 2026: three robotics queries, counts before deduplica
 
 Daily automation attempts the same sources as interactive search, within a time limit; Google and StepStone can still be unavailable. The cloud-only scheduler supports up to 100 opted-in accounts through 25 daily batches of at most four attempts each. Batches are scheduled between 07:00 and 19:00 UTC, with the last invocation possible by 19:59 UTC. Accounts get at most one attempt per UTC day, including failed attempts; accounts enabled after the final batch wait until the next day. Free hosting and source quotas still apply, and 100-account production load has not been verified. Gmail delivery is configured. In **Activity**, use **Send test email** to check delivery to your confirmed account address (one attempt per UTC day), and review job-check outcomes and source warnings. Daily digests are sent only when new matches are saved.
 
+Separately, every daily batch invocation also checks all accounts for an interview scheduled that UTC day (any round, from **Applications > Interview history**, including the older single-date field) and emails a same-day reminder to the account's address, once per interview round. This reminder does not depend on **Daily schedule** or **Email digest** being enabled.
+
 ## Technical Documentation
 
 - [Application setup, validation and architecture](app/README.md)

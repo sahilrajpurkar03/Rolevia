@@ -6,6 +6,7 @@ import type { Profile } from "./schema";
 import { searchAgency, type SearchProgress } from "./query-jobs";
 import { searchPlatforms } from "./platform-jobs";
 export { sendDigest } from "./digest-email";
+import { sendInterviewReminder } from "./digest-email";
 
 export async function runCheck(
   client: SupabaseClient,
@@ -187,6 +188,95 @@ export async function runCheck(
       .eq("user_id", userId);
     throw new Error(message);
   }
+}
+
+type InterviewApplicationRow = {
+  id: string;
+  user_id: string;
+  job: Job;
+  interview_date: string | null;
+  interview_round: string | null;
+  interview_completed: boolean | null;
+  interview_history: InterviewRecord[] | null;
+};
+
+// Notifies whoever an application belongs to on the calendar day of any interview round
+// (any status, any round), independent of the daily search / email digest preferences.
+export async function sendInterviewReminders(
+  client: SupabaseClient,
+  date: string,
+) {
+  const { data, error } = await client
+    .from("applications")
+    .select(
+      "id,user_id,job,interview_date,interview_round,interview_completed,interview_history",
+    )
+    .limit(2000);
+  if (error) throw new Error("Could not load interviews for reminders.");
+  const rows = (data ?? []) as InterviewApplicationRow[];
+  const due = rows.flatMap((row) => {
+    const history = row.interview_history?.length
+      ? row.interview_history
+      : row.interview_date
+        ? [
+            {
+              id: "legacy-interview",
+              date: row.interview_date,
+              round: row.interview_round ?? "",
+              notes: "",
+              completed: row.interview_completed ?? false,
+            },
+          ]
+        : [];
+    return history
+      .filter((interview) => interview.date === date)
+      .map((interview) => ({ row, interview }));
+  });
+  let sent = 0;
+  let failed = 0;
+  const emailCache = new Map<string, string | null>();
+  for (const { row, interview } of due) {
+    const claim = await client
+      .from("check_runs")
+      .insert({
+        user_id: row.user_id,
+        run_key: `interview-reminder:${date}:${row.id}:${interview.id}`,
+      })
+      .select("id")
+      .single();
+    if (claim.error) continue; // already reminded (or transient failure); never re-attempt today
+    if (!emailCache.has(row.user_id)) {
+      const { data: user } = await client.auth.admin.getUserById(row.user_id);
+      emailCache.set(row.user_id, user?.user?.email ?? null);
+    }
+    const email = emailCache.get(row.user_id);
+    const message = email
+      ? await sendInterviewReminder(
+          email,
+          row.job,
+          interview.round,
+          date,
+          row.user_id,
+          `${row.id}:${interview.id}`,
+        )
+      : "No email address found.";
+    if (message) {
+      failed++;
+      await client
+        .from("check_runs")
+        .update({ state: "failed", message })
+        .eq("id", claim.data.id)
+        .eq("user_id", row.user_id);
+    } else {
+      sent++;
+      await client
+        .from("check_runs")
+        .update({ state: "completed", message: "Interview reminder sent." })
+        .eq("id", claim.data.id)
+        .eq("user_id", row.user_id);
+    }
+  }
+  return { sent, failed };
 }
 
 export type MatchRecord = {

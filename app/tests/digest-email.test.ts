@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import nodemailer from "nodemailer";
-import { digestEmailReady, sendDigest } from "../src/lib/digest-email.ts";
+import {
+  digestEmailReady,
+  sendDigest,
+  sendInterviewReminder,
+} from "../src/lib/digest-email.ts";
 
 const gmail = {
   SMTP_USER: "sender@example.invalid",
@@ -73,6 +77,80 @@ test("SMTP errors and rejected recipients are sanitized with no retry or fallbac
   }
   assert.equal(closed, 2);
   assert.equal(calls, 2);
+});
+
+test("interview reminders include the round, use a per-entry idempotency key, and send regardless of digest settings", async (context) => {
+  context.mock.method(nodemailer, "createTransport", () => ({
+    async sendMail(message: Record<string, unknown>) {
+      assert.equal(
+        message.subject,
+        "Interview today: Robotics Engineer / Example GmbH (Technical round)",
+      );
+      assert.match(String(message.text), /Technical round/);
+      assert.match(String(message.text), /2026-09-29/);
+      assert.match(String(message.text), /https:\/\/example.invalid\/workspace/);
+      assert.match(String(message.text), /regardless of your daily search/);
+      return { accepted: ["recipient@example.invalid"], rejected: [] };
+    },
+    close() {},
+  }));
+  assert.equal(
+    await sendInterviewReminder(
+      "recipient@example.invalid",
+      { title: "Robotics Engineer", company: "Example GmbH" },
+      "Technical round",
+      "2026-09-29",
+      "user-1",
+      "application-1:entry-1",
+      gmail,
+    ),
+    null,
+  );
+});
+
+test("interview reminders omit the round when none is set", async (context) => {
+  context.mock.method(nodemailer, "createTransport", () => ({
+    async sendMail(message: Record<string, unknown>) {
+      assert.equal(message.subject, "Interview today: Robotics Engineer / Example GmbH");
+      return { accepted: ["recipient@example.invalid"], rejected: [] };
+    },
+    close() {},
+  }));
+  assert.equal(
+    await sendInterviewReminder(
+      "recipient@example.invalid",
+      { title: "Robotics Engineer", company: "Example GmbH" },
+      "",
+      "2026-09-29",
+      "user-1",
+      "application-1:entry-1",
+      gmail,
+    ),
+    null,
+  );
+});
+
+test("interview reminders use a per-entry Resend idempotency key and report a distinct failure message", async (context) => {
+  const env = { NEXT_PUBLIC_SITE_URL: gmail.NEXT_PUBLIC_SITE_URL, RESEND_API_KEY: "test", DIGEST_FROM: "sender@example.invalid" };
+  context.mock.method(globalThis, "fetch", async (_url: string, options: RequestInit) => {
+    assert.equal(
+      (options.headers as Record<string, string>)["Idempotency-Key"],
+      "interview-user-1-2026-09-29-application-1:entry-1",
+    );
+    return new Response(null, { status: 500 });
+  });
+  assert.equal(
+    await sendInterviewReminder(
+      "recipient@example.invalid",
+      { title: "Robotics Engineer", company: "Example GmbH" },
+      "",
+      "2026-09-29",
+      "user-1",
+      "application-1:entry-1",
+      env,
+    ),
+    "Email delivery failed; check your workspace for interview details.",
+  );
 });
 
 test("Resend retains its daily idempotency key and handles network failure", async (context) => {

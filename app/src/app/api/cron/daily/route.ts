@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { discoverJobs } from "@/lib/jobs";
-import { runCheck, sendDigest } from "@/lib/automation";
+import { runCheck, sendDigest, sendInterviewReminders } from "@/lib/automation";
 import { profileSchema } from "@/lib/schema";
 import { runDailyBatch } from "@/lib/daily-schedule";
 
@@ -31,6 +31,19 @@ export async function GET(request: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY,
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
+  const date = new Date().toISOString().slice(0, 10);
+  // Interview reminders are independent of the dailyChecks/emailDigest search automation
+  // below: they run every invocation for every account with an interview today, regardless
+  // of those preferences. Failures here must never block the job-search checks below.
+  let interviewsSent = 0;
+  let interviewsFailed = 0;
+  try {
+    const reminders = await sendInterviewReminders(client, date);
+    interviewsSent = reminders.sent;
+    interviewsFailed = reminders.failed;
+  } catch {
+    interviewsFailed = -1;
+  }
   const { data, error } = await client
     .from("profiles")
     .select("id,data")
@@ -39,7 +52,7 @@ export async function GET(request: NextRequest) {
     .limit(101);
   if (error)
     return NextResponse.json(
-      { error: "Could not load scheduled profiles." },
+      { error: "Could not load scheduled profiles.", interviewsSent, interviewsFailed },
       { status: 500 },
     );
   if (data.length > 100)
@@ -47,24 +60,25 @@ export async function GET(request: NextRequest) {
       {
         error:
           "Daily scheduler capacity exceeded. At most 100 opted-in profiles are supported.",
+        interviewsSent,
+        interviewsFailed,
       },
       { status: 503 },
     );
-  const date = new Date().toISOString().slice(0, 10);
   const claims = await client
     .from("check_runs")
     .select("user_id")
     .eq("run_key", `daily:${date}`);
   if (claims.error)
     return NextResponse.json(
-      { error: "Could not load daily claims." },
+      { error: "Could not load daily claims.", interviewsSent, interviewsFailed },
       { status: 503, headers: { "Cache-Control": "no-store" } },
     );
   const claimed = new Set(claims.data.map((row) => row.user_id));
   const pending = data.filter((row) => !claimed.has(row.id));
   if (!pending.length)
     return NextResponse.json(
-      { completed: 0, failed: 0, deferred: 0 },
+      { completed: 0, failed: 0, deferred: 0, interviewsSent, interviewsFailed },
       { headers: { "Cache-Control": "no-store" } },
     );
   const feed = await discoverJobs();
@@ -120,7 +134,7 @@ export async function GET(request: NextRequest) {
     return true;
   });
   return NextResponse.json(
-    { completed, failed, deferred: batch.deferred },
+    { completed, failed, deferred: batch.deferred, interviewsSent, interviewsFailed },
     {
       status: failed || batch.deferred ? 207 : 200,
       headers: { "Cache-Control": "no-store" },

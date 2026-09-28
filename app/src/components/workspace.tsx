@@ -1566,34 +1566,6 @@ export function Workspace(props: Props) {
                   onSelect={setEditing}
                 />
               )}
-              {view === "letters" && (
-                <div className="letters-list">
-                  {applications.length > 0 && <h2>Application letters</h2>}
-                  {applications.map((application) => (
-                    <article className="letter-row" key={application.id}>
-                      <div className="letter-symbol">
-                        <FileText size={25} />
-                      </div>
-                      <div>
-                        <h2>{application.job.company}</h2>
-                        <p>{application.job.title}</p>
-                        <span className="muted">
-                          {application.letter
-                            ? "Draft saved"
-                            : "Not drafted yet"}
-                        </span>
-                      </div>
-                      <button
-                        className="button"
-                        onClick={() => setEditing(application)}
-                      >
-                        <Sparkles size={16} />
-                        {application.letter ? "Edit letter" : "Draft letter"}
-                      </button>
-                    </article>
-                  ))}
-                </div>
-              )}
               {view === "activity" && (
                 <>
                   <div className="automation-summary">
