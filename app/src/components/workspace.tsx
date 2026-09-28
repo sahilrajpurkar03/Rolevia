@@ -1820,14 +1820,14 @@ export function Workspace(props: Props) {
         <AddApplication
           demo={props.demo}
           onClose={() => setAdding(false)}
-          onAdded={(job) => {
+          onAdded={(job, status) => {
             if (props.demo)
               setSampleApplications((current) => [
                 ...current,
                 {
                   id: crypto.randomUUID(),
                   job,
-                  status: "saved",
+                  status,
                   notes: "",
                   letter: "",
                   follow_up: null,
@@ -2478,14 +2478,22 @@ function AddApplication({
 }: {
   demo?: boolean;
   onClose: () => void;
-  onAdded: (job: Job) => void;
+  onAdded: (job: Job, status: ApplicationRecord["status"]) => void;
 }) {
-  const [values, setValues] = useState({
+  const [values, setValues] = useState<{
+    title: string;
+    company: string;
+    location: string;
+    url: string;
+    description: string;
+    status: ApplicationRecord["status"];
+  }>({
     title: "",
     company: "",
     location: "",
     url: "",
     description: "",
+    status: "saved",
   });
   const [error, setError] = useState("");
   const [linkBusy, setLinkBusy] = useState(false);
@@ -2547,14 +2555,18 @@ function AddApplication({
                 : await addApplication(values);
               if (result.error) setError(result.error);
               else {
-                onAdded({
-                  ...values,
-                  sourceId: `manual:${values.url}`,
-                  source: "Added by you",
-                  type: "unknown",
-                  remote: false,
-                  publishedAt: null,
-                });
+                const { status, ...job } = values;
+                onAdded(
+                  {
+                    ...job,
+                    sourceId: `manual:${values.url}`,
+                    source: "Added by you",
+                    type: "unknown",
+                    remote: false,
+                    publishedAt: null,
+                  },
+                  status,
+                );
                 onClose();
               }
             } catch {
@@ -2633,6 +2645,22 @@ function AddApplication({
             />
           </label>
         </div>
+        <label>
+          Status
+          <select
+            value={values.status}
+            onChange={(event) =>
+              setValues({
+                ...values,
+                status: event.target.value as ApplicationRecord["status"],
+              })
+            }
+          >
+            {statuses.map((status) => (
+              <option key={status}>{status}</option>
+            ))}
+          </select>
+        </label>
         <label>
           Job description
           <textarea

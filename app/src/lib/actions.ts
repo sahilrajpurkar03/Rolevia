@@ -384,7 +384,7 @@ export async function deleteApplication(id: string): Promise<ActionResult> {
 }
 export async function addApplication(input: unknown): Promise<ActionResult> {
   try {
-    const values = manualJobSchema.parse(input);
+    const { status, ...values } = manualJobSchema.parse(input);
     const { client, user } = await requireUser();
     const job: Job = {
       ...values,
@@ -397,7 +397,7 @@ export async function addApplication(input: unknown): Promise<ActionResult> {
     const { error } = await client
       .from("applications")
       .upsert(
-        { user_id: user.id, source_id: job.sourceId, job },
+        { user_id: user.id, source_id: job.sourceId, job, status },
         { onConflict: "user_id,source_id", ignoreDuplicates: true },
       );
     if (error) return { error: "Could not add this application." };

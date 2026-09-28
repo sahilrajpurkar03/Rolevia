@@ -92,6 +92,7 @@ export const manualJobSchema = z.object({
   location: z.string().trim().min(1).max(200),
   url: safeJobUrl,
   description: z.string().trim().max(20000),
+  status: z.enum(statuses).default("saved"),
 });
 export const emptyProfile: Profile = {
   fullName: "",

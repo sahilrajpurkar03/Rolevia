@@ -45,6 +45,7 @@
 }
 .job-link-row {
   display: flex;
+  align-items: stretch;
   gap: 8px;
 }
 .job-link-row input {
@@ -53,6 +54,11 @@
 }
 .job-link-row button {
   flex-shrink: 0;
+  min-height: 41px;
+  border-radius: 6px;
+}
+.modal .job-link-import {
+  margin-bottom: 20px;
 }
 .generated-review {
   max-width: 760px;
