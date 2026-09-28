@@ -35,6 +35,30 @@ test("parseJobHtml prefers schema.org JobPosting data over meta fallbacks", () =
   assert.match(job.description, /Build.*ROS2.*stacks/);
 });
 
+test("parseJobHtml reads a structured job location and falls back to Remote", () => {
+  const withAddress = parseJobHtml(
+    `<script type="application/ld+json">${JSON.stringify({
+      "@type": "JobPosting",
+      title: "Engineer",
+      jobLocation: {
+        address: {
+          addressLocality: "Berlin",
+          addressCountry: "DE",
+        },
+      },
+    })}</script>`,
+  );
+  assert.equal(withAddress.location, "Berlin, DE");
+  const remoteOnly = parseJobHtml(
+    `<script type="application/ld+json">${JSON.stringify({
+      "@type": "JobPosting",
+      title: "Engineer",
+      jobLocationType: "TELECOMMUTE",
+    })}</script>`,
+  );
+  assert.equal(remoteOnly.location, "Remote");
+});
+
 test("parseJobHtml falls back to meta tags and body text when no JSON-LD is present", () => {
   const html = `<html><head>
     <title>Full Stack Engineer</title>

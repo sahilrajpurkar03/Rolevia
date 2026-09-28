@@ -3,7 +3,12 @@ import net from "node:net";
 import { load } from "cheerio";
 import { convert } from "html-to-text";
 
-export type ExtractedJob = { title: string; company: string; description: string };
+export type ExtractedJob = {
+  title: string;
+  company: string;
+  location: string;
+  description: string;
+};
 
 // Best-effort SSRF guard: rejects link-local/private/loopback/multicast targets before
 // fetching a user-supplied URL. It does not pin the resolved IP for the actual connection
@@ -103,6 +108,37 @@ async function fetchJobHtml(initialUrl: string, fetcher: typeof fetch) {
   throw new Error("unavailable");
 }
 
+function jsonLdLocation(item: Record<string, unknown>): string {
+  const remote =
+    typeof item.jobLocationType === "string" &&
+    /telecommute|remote/i.test(item.jobLocationType);
+  const raw = item.jobLocation;
+  const entries = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  const places: string[] = [];
+  for (const entry of entries) {
+    if (!entry || typeof entry !== "object") continue;
+    const place = entry as Record<string, unknown>;
+    const address =
+      place.address && typeof place.address === "object"
+        ? (place.address as Record<string, unknown>)
+        : place;
+    const locality = typeof address.addressLocality === "string" ? address.addressLocality : "";
+    const region = typeof address.addressRegion === "string" ? address.addressRegion : "";
+    const country =
+      typeof address.addressCountry === "string"
+        ? address.addressCountry
+        : address.addressCountry &&
+            typeof address.addressCountry === "object" &&
+            typeof (address.addressCountry as Record<string, unknown>).name === "string"
+          ? ((address.addressCountry as Record<string, unknown>).name as string)
+          : "";
+    const combined = [locality, region, country].filter(Boolean).join(", ");
+    if (combined) places.push(combined);
+  }
+  if (places.length) return places.join("; ").slice(0, 500);
+  return remote ? "Remote" : "";
+}
+
 function fromJsonLd(html: string): Partial<ExtractedJob> | null {
   const dom = load(html);
   let found: Partial<ExtractedJob> | null = null;
@@ -125,6 +161,7 @@ function fromJsonLd(html: string): Partial<ExtractedJob> | null {
       found = {
         title: typeof item.title === "string" ? item.title.trim() : "",
         company: company.trim(),
+        location: jsonLdLocation(item),
         description:
           typeof item.description === "string"
             ? convert(item.description, { wordwrap: false }).trim()
@@ -159,7 +196,7 @@ function fromMeta(html: string): ExtractedJob {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
   const description = bodyText || meta("og:description") || meta("description");
-  return { title, company, description };
+  return { title, company, location: "", description };
 }
 
 export function parseJobHtml(html: string): ExtractedJob {
@@ -168,6 +205,7 @@ export function parseJobHtml(html: string): ExtractedJob {
   const job: ExtractedJob = {
     title: (structured?.title || fallback.title || "").slice(0, 200),
     company: (structured?.company || fallback.company || "").slice(0, 200),
+    location: (structured?.location || fallback.location || "").slice(0, 500),
     description: (structured?.description || fallback.description || "").slice(0, 20000),
   };
   if (!job.title && !job.description) throw new Error("empty");

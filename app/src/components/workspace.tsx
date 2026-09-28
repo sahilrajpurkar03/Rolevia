@@ -20,6 +20,7 @@ import {
   ExternalLink,
   FileText,
   Inbox,
+  Link2,
   ListFilter,
   LoaderCircle,
   LogOut,
@@ -2479,21 +2480,66 @@ function AddApplication({
   onClose: () => void;
   onAdded: (job: Job) => void;
 }) {
+  const [values, setValues] = useState({
+    title: "",
+    company: "",
+    location: "",
+    url: "",
+    description: "",
+  });
   const [error, setError] = useState("");
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [linkError, setLinkError] = useState("");
   const [pending, startTransition] = useTransition();
+  async function importLink() {
+    setLinkError("");
+    let parsedUrl: string | null = null;
+    try {
+      const url = new URL(values.url.trim());
+      parsedUrl = url.protocol === "https:" ? url.href : null;
+    } catch {
+      parsedUrl = null;
+    }
+    if (!parsedUrl) {
+      setLinkError("Enter a valid HTTPS job posting link.");
+      return;
+    }
+    if (demo) {
+      setLinkError("Sign in to import a job link. No demo data was sent.");
+      return;
+    }
+    setLinkBusy(true);
+    try {
+      const response = await fetch("/api/jobs/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: parsedUrl }),
+      });
+      const body = await response.json();
+      if (!response.ok)
+        throw new Error(body.error ?? "Could not import that job link.");
+      setValues((current) => ({
+        ...current,
+        title: body.job.title || current.title,
+        company: body.job.company || current.company,
+        location: body.job.location || current.location,
+        description: body.job.description || current.description,
+      }));
+    } catch (reason) {
+      setLinkError(
+        reason instanceof Error
+          ? reason.message
+          : "Could not import that job link.",
+      );
+    } finally {
+      setLinkBusy(false);
+    }
+  }
   return (
     <Modal title="Add an application" onClose={onClose}>
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          const form = new FormData(event.currentTarget);
-          const values = {
-            title: String(form.get("title")),
-            company: String(form.get("company")),
-            location: String(form.get("location")),
-            url: String(form.get("url")),
-            description: String(form.get("description")),
-          };
           startTransition(async () => {
             try {
               const result = demo
@@ -2517,33 +2563,86 @@ function AddApplication({
           });
         }}
       >
+        <div className="job-link-import">
+          <label htmlFor="add-application-url">Job link</label>
+          <div className="job-link-row">
+            <input
+              id="add-application-url"
+              type="url"
+              required
+              pattern="https://.*"
+              placeholder="https://..."
+              value={values.url}
+              onChange={(event) =>
+                setValues({ ...values, url: event.target.value })
+              }
+            />
+            <button
+              type="button"
+              className="button"
+              disabled={linkBusy || !values.url.trim()}
+              onClick={() => void importLink()}
+            >
+              {linkBusy ? (
+                <LoaderCircle size={16} className="spin" />
+              ) : (
+                <Link2 size={16} />
+              )}
+              {linkBusy ? "Importing..." : "Import details"}
+            </button>
+          </div>
+          {linkError && (
+            <p role="alert" className="notice error">
+              {linkError}
+            </p>
+          )}
+        </div>
         <label>
           Job title
-          <input name="title" required minLength={2} maxLength={200} />
+          <input
+            required
+            minLength={2}
+            maxLength={200}
+            value={values.title}
+            onChange={(event) =>
+              setValues({ ...values, title: event.target.value })
+            }
+          />
         </label>
         <div className="form-grid">
           <label>
             Company
-            <input name="company" required maxLength={200} />
+            <input
+              required
+              maxLength={200}
+              value={values.company}
+              onChange={(event) =>
+                setValues({ ...values, company: event.target.value })
+              }
+            />
           </label>
           <label>
             Location
-            <input name="location" required maxLength={200} />
+            <input
+              required
+              maxLength={200}
+              value={values.location}
+              onChange={(event) =>
+                setValues({ ...values, location: event.target.value })
+              }
+            />
           </label>
         </div>
         <label>
-          Job link
-          <input
-            type="url"
-            name="url"
-            required
-            pattern="https://.*"
-            placeholder="https://..."
-          />
-        </label>
-        <label>
           Job description
-          <textarea name="description" rows={5} maxLength={20000} />
+          <textarea
+            rows={5}
+            maxLength={20000}
+            value={values.description}
+            onChange={(event) =>
+              setValues({ ...values, description: event.target.value })
+            }
+          />
         </label>
         {error && (
           <p className="notice error" role="alert">
