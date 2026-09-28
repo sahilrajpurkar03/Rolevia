@@ -278,6 +278,22 @@ svg {
   align-items: center;
   min-width: 0;
 }
+.account-trigger {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  padding: 4px;
+  margin: -4px;
+  border-radius: 8px;
+  text-align: left;
+}
+.account-trigger:hover {
+  background: #eef2ea;
+}
 .avatar {
   width: 33px;
   height: 33px;
@@ -290,7 +306,7 @@ svg {
   font-weight: 700;
   flex-shrink: 0;
 }
-.account > div:nth-child(2) {
+.account-trigger > div:last-child {
   min-width: 0;
 }
 .account strong {
@@ -1012,15 +1028,6 @@ svg {
 .profile-editor {
   max-width: 830px;
 }
-.account-settings {
-  max-width: 740px;
-  margin-top: 40px;
-  padding-top: 24px;
-  border-top: 1px solid var(--line);
-}
-.account-settings > p {
-  margin-top: 8px;
-}
 .account-password,
 .account-danger {
   margin-top: 24px;
@@ -1636,6 +1643,9 @@ input[type="checkbox"] {
 .theme-dark .account,
 .theme-dark .table-row {
   border-color: var(--line);
+}
+.theme-dark .account-trigger:hover {
+  background: #1b2b43;
 }
 .theme-dark .table-row:hover {
   background: #1b2b43;

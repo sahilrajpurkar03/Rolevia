@@ -310,6 +310,7 @@ export function Workspace(props: Props) {
   );
   const [editing, setEditing] = useState<ApplicationRecord | null>(null);
   const [adding, setAdding] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const latest = props.checks[0];
   const activeApplications = applications.filter(
     (application) =>
@@ -599,17 +600,23 @@ export function Workspace(props: Props) {
             </span>
           </div>
           <div className="account">
-            <div className="avatar">
-              {profile?.fullName
-                .split(" ")
-                .map((part) => part[0])
-                .slice(0, 2)
-                .join("") || "YO"}
-            </div>
-            <div>
-              <strong>{profile?.fullName || "Your account"}</strong>
-              <small>{props.demo ? "Sample account" : props.email}</small>
-            </div>
+            <button
+              type="button"
+              className="account-trigger"
+              onClick={() => setAccountOpen(true)}
+            >
+              <div className="avatar">
+                {profile?.fullName
+                  .split(" ")
+                  .map((part) => part[0])
+                  .slice(0, 2)
+                  .join("") || "YO"}
+              </div>
+              <div>
+                <strong>{profile?.fullName || "Your account"}</strong>
+                <small>{props.demo ? "Sample account" : props.email}</small>
+              </div>
+            </button>
             {!props.demo && (
               <form action={logout}>
                 <button className="icon-button" title="Sign out">
@@ -1355,35 +1362,16 @@ export function Workspace(props: Props) {
                 </div>
               )}
               {view === "profile" && (
-                <>
-                  <ProfileForm
-                    key={profile.fullName}
-                    initial={profile}
-                    demo={props.demo}
-                    onSave={(next) => {
-                      if (props.demo) setSampleProfile(next);
-                      else setOptimisticProfile(next);
-                      setSearchResults(null);
-                    }}
-                  />
-                  <section className="account-settings">
-                    <h2>Account</h2>
-                    <p className="muted">
-                      {props.demo ? "Fictional sample account" : props.email}
-                    </p>
-                    <AccountSettings demo={props.demo} />
-                    <div className="modal-footer">
-                      {!props.demo && (
-                        <form action={logout}>
-                          <button className="button">
-                            <LogOut size={16} />
-                            Sign out
-                          </button>
-                        </form>
-                      )}
-                    </div>
-                  </section>
-                </>
+                <ProfileForm
+                  key={profile.fullName}
+                  initial={profile}
+                  demo={props.demo}
+                  onSave={(next) => {
+                    if (props.demo) setSampleProfile(next);
+                    else setOptimisticProfile(next);
+                    setSearchResults(null);
+                  }}
+                />
               )}
               {view === "applications" && (
                 <>
@@ -1819,6 +1807,24 @@ export function Workspace(props: Props) {
               ]);
           }}
         />
+      )}
+      {accountOpen && (
+        <Modal title="Account" onClose={() => setAccountOpen(false)}>
+          <p className="muted">
+            {props.demo ? "Fictional sample account" : props.email}
+          </p>
+          <AccountSettings demo={props.demo} />
+          <div className="modal-footer">
+            {!props.demo && (
+              <form action={logout}>
+                <button className="button">
+                  <LogOut size={16} />
+                  Sign out
+                </button>
+              </form>
+            )}
+          </div>
+        </Modal>
       )}
     </div>
   );
