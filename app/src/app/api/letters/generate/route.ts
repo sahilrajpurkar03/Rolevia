@@ -132,38 +132,50 @@ export async function POST(request: Request) {
       configuredModel,
       ...(configuredModel === defaultGeminiModel ? [] : [defaultGeminiModel]),
     ];
-    let response: Response | undefined;
-    for (const [index, model] of models.entries()) {
-      const request = {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": process.env.GEMINI_API_KEY,
-        },
-        signal: AbortSignal.timeout(30000),
-        cache: "no-store" as const,
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: prompt.system }] },
-          contents: [{ role: "user", parts: [{ text: prompt.data }] }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            temperature: 0.3,
-            maxOutputTokens: 4096,
-          },
-        }),
-      };
-      const modelResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
-        request,
-      );
-      response = modelResponse;
-      if (modelResponse.status >= 500 && modelResponse.status < 600) {
-        await new Promise((resolve) => setTimeout(resolve, 800));
+    // Budget retries so the worst case (every model, every attempt, all 5xx) stays
+    // comfortably under maxDuration (90s): 3x20s solo, or 2x15s per model when a
+    // GEMINI_MODEL override adds a second model to try.
+    const attempts = models.length > 1 ? 2 : 3;
+    const perCallTimeout = models.length > 1 ? 15000 : 20000;
+    const apiKey = process.env.GEMINI_API_KEY;
+    const callModel = async (model: string) => {
+      let response: Response | undefined;
+      for (let attempt = 0; attempt < attempts; attempt++) {
         response = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
-          request,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": apiKey,
+            },
+            signal: AbortSignal.timeout(perCallTimeout),
+            cache: "no-store",
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: prompt.system }] },
+              contents: [{ role: "user", parts: [{ text: prompt.data }] }],
+              generationConfig: {
+                responseMimeType: "application/json",
+                temperature: 0.3,
+                maxOutputTokens: 4096,
+              },
+            }),
+          },
         );
+        // Only 5xx (server-side, transient) is retried; 4xx (bad request, quota) never is.
+        if (response.status < 500 || response.status >= 600) return response;
+        if (attempt < attempts - 1) {
+          await response.body?.cancel();
+          await new Promise((resolve) =>
+            setTimeout(resolve, 700 * 2 ** attempt + Math.random() * 300),
+          );
+        }
       }
+      return response!;
+    };
+    let response: Response | undefined;
+    for (const [index, model] of models.entries()) {
+      response = await callModel(model);
       if (
         response.ok ||
         ![404, 503].includes(response.status) ||
