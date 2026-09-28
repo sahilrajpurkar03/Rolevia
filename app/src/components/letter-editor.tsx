@@ -272,6 +272,8 @@ export function LetterEditor({
       <LetterGenerator
         jobs={jobs}
         demo={demo}
+        initialAvailability={profile?.availability ?? ""}
+        initialLocation={profile?.regions.join(", ") ?? ""}
         disabled={busy || (!document && drafts.length >= 20)}
         onUse={(result, input) => {
           if (
