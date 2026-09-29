@@ -8,7 +8,15 @@ import { profileSchema } from "@/lib/schema";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
-const defaultGeminiModel = "gemini-3.6-flash";
+// Empirically verified (5/5 succeeded in a row) against the flagship gemini-3.6-flash
+// and the newer gemini-3.8-flash, which both failed 0/5 with "high demand" 503s and
+// quota-exhausted 429s during the same test run. Flash-Lite is also Google's own
+// recommended pick for lightweight text tasks like a three-paragraph letter, and being
+// a separate model/quota pool from the flagship Flash line, is less likely to share its
+// capacity problems. The flagship model is kept as an automatic fallback in case
+// Flash-Lite itself becomes unavailable.
+const defaultGeminiModel = "gemini-3.5-flash-lite";
+const fallbackGeminiModel = "gemini-3.6-flash";
 
 export async function POST(request: Request) {
   const reply = (body: unknown, status = 200) =>
@@ -126,16 +134,19 @@ export async function POST(request: Request) {
     .join("\n\n");
   const prompt = letterPrompt(input, candidate);
   try {
-    const configuredModel =
-      process.env.GEMINI_MODEL?.trim() || defaultGeminiModel;
+    const configuredModel = process.env.GEMINI_MODEL?.trim();
     const models = [
-      configuredModel,
-      ...(configuredModel === defaultGeminiModel ? [] : [defaultGeminiModel]),
+      ...new Set(
+        [configuredModel, defaultGeminiModel, fallbackGeminiModel].filter(
+          (model): model is string => Boolean(model),
+        ),
+      ),
     ];
-    // Budget retries so the worst case (every model, every attempt, all 5xx) stays
-    // comfortably under maxDuration (90s): 3x20s solo, or 2x15s per model when a
-    // GEMINI_MODEL override adds a second model to try.
-    const attempts = models.length > 1 ? 2 : 3;
+    // Budget retries so the worst case (every model, every attempt, all failures) stays
+    // comfortably under maxDuration (90s): 3x20s solo, 2x15s with two models to try, or
+    // 1x15s each when a GEMINI_MODEL override adds a third model ahead of the two
+    // built-in tiers.
+    const attempts = models.length >= 3 ? 1 : models.length === 2 ? 2 : 3;
     const perCallTimeout = models.length > 1 ? 15000 : 20000;
     const apiKey = process.env.GEMINI_API_KEY;
     const callModel = async (model: string) => {
@@ -173,12 +184,17 @@ export async function POST(request: Request) {
       }
       return response!;
     };
+    // Falls through to the next model on a missing/unavailable model (404), a
+    // per-model quota exhaustion (429 — observed live against the flagship model), or
+    // any provider-side failure (5xx).
+    const modelSpecificFailure = (status: number) =>
+      status === 404 || status === 429 || (status >= 500 && status < 600);
     let response: Response | undefined;
     for (const [index, model] of models.entries()) {
       response = await callModel(model);
       if (
         response.ok ||
-        ![404, 503].includes(response.status) ||
+        !modelSpecificFailure(response.status) ||
         index === models.length - 1
       )
         break;
