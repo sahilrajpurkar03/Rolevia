@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Profile } from "./schema.ts";
+import type { CvDrafts } from "./cv-editor.ts";
 
 export const letterDocumentSchema = z.object({
   id: z.uuid(),
@@ -30,9 +31,22 @@ export const letterDraftsSchema = z
 export type LetterDocument = z.infer<typeof letterDocumentSchema>;
 export type LetterDrafts = z.infer<typeof letterDraftsSchema>;
 
+// The CV document is the one place a user enters their real, precise mailing
+// address/phone (unlike Profile's "Countries, cities or regions", which is a job-search
+// target, not a home address). Both the CV and Resume documents always exist once any
+// CV draft has been saved, so fall back per-field (not per-document): prefer the CV's
+// phone/location, and only use the Resume's if the CV's own field is blank.
+export function contactFromCvDrafts(cvDrafts?: CvDrafts | null) {
+  return {
+    phone: cvDrafts?.cv.phone || cvDrafts?.resume.phone || "",
+    address: cvDrafts?.cv.location || cvDrafts?.resume.location || "",
+  };
+}
+
 export function newLetter(
   profile?: Profile | null,
   email = "",
+  contact?: { phone?: string; address?: string },
 ): LetterDocument {
   return {
     id: crypto.randomUUID(),
@@ -40,8 +54,8 @@ export function newLetter(
     format: "classic",
     fullName: profile?.fullName ?? "",
     email,
-    phone: "",
-    address: "",
+    phone: contact?.phone ?? "",
+    address: contact?.address ?? "",
     recipient: "",
     date: new Date().toISOString().slice(0, 10),
     subject: "",

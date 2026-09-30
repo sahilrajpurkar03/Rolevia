@@ -39,7 +39,7 @@ import { JobSearchForm } from "./job-search-form";
 import { LetterGenerator } from "./letter-generator";
 import { Modal } from "./modal";
 import { AccountSettings } from "./account-settings";
-import { newLetter } from "@/lib/letter-editor";
+import { contactFromCvDrafts, newLetter } from "@/lib/letter-editor";
 import type { CvDrafts } from "@/lib/cv-editor";
 import type { LetterDrafts } from "@/lib/letter-editor";
 const LetterEditor = dynamic(
@@ -672,6 +672,7 @@ export function Workspace(props: Props) {
               <LetterEditor
                 profile={profile ?? onboardingDraft}
                 email={props.email}
+                cvDrafts={props.cvDrafts}
                 initialDrafts={props.letterDrafts}
                 initialRevision={props.letterRevision}
                 demo={props.demo}
@@ -1752,6 +1753,8 @@ export function Workspace(props: Props) {
         <MatchLetterEditor
           match={coverLetterMatch}
           profile={profile}
+          email={props.email}
+          cvDrafts={props.cvDrafts}
           demo={props.demo}
           onClose={() => setCoverLetterMatch(null)}
         />
@@ -1995,11 +1998,15 @@ function CalendarView({
 function MatchLetterEditor({
   match,
   profile,
+  email,
+  cvDrafts,
   demo,
   onClose,
 }: {
   match: MatchRecord;
   profile: Profile;
+  email?: string;
+  cvDrafts?: CvDrafts;
   demo?: boolean;
   onClose: () => void;
 }) {
@@ -2024,9 +2031,8 @@ function MatchLetterEditor({
     startTransition(async () => {
       try {
         const document = {
-          ...newLetter(null),
+          ...newLetter(profile, email, contactFromCvDrafts(cvDrafts)),
           title: match.job.company,
-          fullName: profile.fullName,
           body: letter,
           subject: "",
           recipient: "",

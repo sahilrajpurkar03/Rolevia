@@ -11,6 +11,7 @@ import {
   Upload,
 } from "lucide-react";
 import {
+  contactFromCvDrafts,
   letterDraftsSchema,
   letterPlainText,
   newLetter,
@@ -19,6 +20,7 @@ import {
 } from "@/lib/letter-editor";
 import { saveLetterDrafts } from "@/lib/letter-actions";
 import type { ActionResult, Profile } from "@/lib/schema";
+import type { CvDrafts } from "@/lib/cv-editor";
 import { LetterGenerator } from "./letter-generator";
 
 function download(blob: Blob, name: string) {
@@ -70,6 +72,7 @@ function Field({
 export function LetterEditor({
   profile,
   email,
+  cvDrafts,
   initialDrafts = [],
   initialRevision = null,
   demo,
@@ -78,6 +81,7 @@ export function LetterEditor({
 }: {
   profile: Profile | null;
   email?: string;
+  cvDrafts?: CvDrafts;
   initialDrafts?: LetterDrafts;
   initialRevision?: string | null;
   demo?: boolean;
@@ -88,6 +92,7 @@ export function LetterEditor({
     job: { title: string; company: string };
   }[];
 }) {
+  const contact = contactFromCvDrafts(cvDrafts);
   const [drafts, setDrafts] = useState(initialDrafts);
   const [selected, setSelected] = useState(initialDrafts[0]?.id ?? "");
   const [saved, setSaved] = useState(JSON.stringify(initialDrafts));
@@ -186,7 +191,7 @@ export function LetterEditor({
             id: crypto.randomUUID(),
             title: `${document.title.slice(0, 173)} (copy)`,
           }
-        : newLetter(profile, email);
+        : newLetter(profile, email, contact);
     if (commit([...drafts, next])) setSelected(next.id);
   }
   async function save() {
@@ -284,7 +289,7 @@ export function LetterEditor({
           )
             return;
           const next = {
-            ...(document ?? newLetter(profile, email)),
+            ...(document ?? newLetter(profile, email, contact)),
             title: `${input.company} / ${input.title}`.slice(0, 180),
             recipient: input.company,
             subject: input.title,
@@ -469,7 +474,7 @@ export function LetterEditor({
               );
               if (!application) return;
               const next = {
-                ...newLetter(profile, email),
+                ...newLetter(profile, email, contact),
                 title: application.job.company.slice(0, 180),
                 subject: application.job.title.slice(0, 240),
                 recipient: application.job.company.slice(0, 500),
