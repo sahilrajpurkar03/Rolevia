@@ -25,6 +25,22 @@ function extractMarkdownLinks(text: string) {
   return links;
 }
 
+// A header address line ("Mönsheim, Baden-Württemberg, Germany") looks a lot like a
+// headline ("Robotics Software Engineer") under the plain no-digit/no-@ heuristic below,
+// so it needs its own check: 2-3 place-name-shaped, comma-separated segments, and no
+// job-title words that would mark it as a headline instead.
+const jobTitleWords =
+  /\b(engineer|developer|manager|scientist|architect|specialist|intern|consultant|analyst|designer|researcher|lead|director|founder|student)\b/i;
+function looksLikeLocation(line: string) {
+  return (
+    line.length <= 80 &&
+    !jobTitleWords.test(line) &&
+    /^\p{L}[\p{L}.'-]*(?:\s\p{L}[\p{L}.'-]*)*(?:,\s*\p{L}[\p{L}.'-]*(?:\s\p{L}[\p{L}.'-]*)*){1,2}$/u.test(
+      line,
+    )
+  );
+}
+
 export function parseCvText(text: string) {
   const lines = cleanCvText(text)
     .split(/\r?\n/)
@@ -88,16 +104,21 @@ export function parseCvText(text: string) {
       ? name
       : "";
   const afterName = plainHeader.slice(plainHeader.indexOf(name) + 1);
-  const headline =
-    afterName[0] &&
-    !/[@\d]|https?:|www\./.test(afterName[0]) &&
-    afterName[0].length <= 160
-      ? afterName[0]
-      : "";
   const contactEnd = afterName.findLastIndex((line) =>
     /@|linkedin\.com|github\.com|https?:|\+\d[\d ()-]{5,}/i.test(line),
   );
-  const intro = afterName.slice(Math.max(contactEnd + 1, headline ? 1 : 0));
+  const preContact = contactEnd >= 0 ? afterName.slice(0, contactEnd) : afterName;
+  const location = preContact.find(looksLikeLocation) ?? "";
+  const headline =
+    preContact.find(
+      (line) =>
+        line !== location &&
+        !/[@\d]|https?:|www\./.test(line) &&
+        line.length <= 160,
+    ) ?? "";
+  const intro = afterName.filter(
+    (line, index) => index > contactEnd && line !== headline && line !== location,
+  );
   const sectionText = (kind: string) =>
     sections
       .filter((section) => section.kind === kind)
@@ -106,6 +127,7 @@ export function parseCvText(text: string) {
   return {
     fullName,
     headline,
+    location,
     header: plainHeader,
     sections,
     links,

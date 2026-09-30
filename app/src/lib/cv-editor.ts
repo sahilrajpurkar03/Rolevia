@@ -172,6 +172,7 @@ export function createImportedCvDrafts(
     (line) =>
       line !== parsed.fullName &&
       line !== parsed.headline &&
+      line !== parsed.location &&
       !parsed.links.some((link) => line.includes(link.url)) &&
       !parsed.summary.split("\n").includes(line),
   );
@@ -192,7 +193,7 @@ export function createImportedCvDrafts(
     headline: parsed.headline,
     email: parsed.email || email,
     phone: parsed.phone,
-    location: "",
+    location: parsed.location,
     links: parsed.links.map((link) => newCvLink(link.label, link.url)),
     summary: parsed.summary,
     photo,

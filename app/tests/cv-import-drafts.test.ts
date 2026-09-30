@@ -34,6 +34,29 @@ test("uploaded CV recovery retains all sections, header details and uncapped ski
   }
 });
 
+test("an address line in the header becomes the structured location, not the headline", () => {
+  const text = `Example Person\nMönsheim, Baden-Württemberg, Germany\nexample@example.invalid | +49 123456789\nBuilds robots.`;
+  const drafts = createImportedCvDrafts(text);
+  for (const version of ["resume", "cv"] as const) {
+    assert.equal(drafts[version].location, "Mönsheim, Baden-Württemberg, Germany");
+    assert.equal(drafts[version].headline, "");
+    const contactSection = drafts[version].sections.find(
+      (section) => section.title === "Contact details",
+    );
+    assert.equal(
+      contactSection?.entries.some((entry) => entry.description.includes("Mönsheim")),
+      false,
+    );
+  }
+});
+
+test("a headline followed by a separate address line keeps both fields distinct", () => {
+  const text = `Example Person\nRobotics Software Engineer\nBerlin, Germany\nexample@example.invalid | +49 123456789\nBuilds robots.`;
+  const drafts = createImportedCvDrafts(text);
+  assert.equal(drafts.resume.headline, "Robotics Software Engineer");
+  assert.equal(drafts.resume.location, "Berlin, Germany");
+});
+
 test("markdown-style header links become structured, icon-mapped links; body links stay as plain text", () => {
   const text = `Example Person\n[example@example.invalid](mailto:example@example.invalid)\n[linkedin.com/in/example](https://www.linkedin.com/in/example) [github.com/example](https://github.com/example)\nBuilds robots.\nProjects\nRobot Arm [§](https://github.com/example/robot-arm): a pick and place demo.`;
   const drafts = createImportedCvDrafts(text);
