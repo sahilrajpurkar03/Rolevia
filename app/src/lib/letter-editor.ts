@@ -43,6 +43,30 @@ export function contactFromCvDrafts(cvDrafts?: CvDrafts | null) {
   };
 }
 
+// The quick per-match/application "Cover letter" shortcut never shows or saves its own
+// contact fields, so if the CV has no location/phone yet, reuse whatever the account
+// already entered directly into a saved letter (most recently added first) rather than
+// leaving the shortcut's letters blank.
+export function contactFromLetterDrafts(letterDrafts?: LetterDrafts | null) {
+  const drafts = [...(letterDrafts ?? [])].reverse();
+  return {
+    phone: drafts.find((draft) => draft.phone)?.phone ?? "",
+    address: drafts.find((draft) => draft.address)?.address ?? "",
+  };
+}
+
+export function bestContact(
+  cvDrafts?: CvDrafts | null,
+  letterDrafts?: LetterDrafts | null,
+) {
+  const fromCv = contactFromCvDrafts(cvDrafts);
+  const fromLetters = contactFromLetterDrafts(letterDrafts);
+  return {
+    phone: fromCv.phone || fromLetters.phone,
+    address: fromCv.address || fromLetters.address,
+  };
+}
+
 export function newLetter(
   profile?: Profile | null,
   email = "",

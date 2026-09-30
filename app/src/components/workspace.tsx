@@ -39,7 +39,7 @@ import { JobSearchForm } from "./job-search-form";
 import { LetterGenerator } from "./letter-generator";
 import { Modal } from "./modal";
 import { AccountSettings } from "./account-settings";
-import { contactFromCvDrafts, newLetter } from "@/lib/letter-editor";
+import { bestContact, newLetter } from "@/lib/letter-editor";
 import type { CvDrafts } from "@/lib/cv-editor";
 import type { LetterDrafts } from "@/lib/letter-editor";
 const LetterEditor = dynamic(
@@ -1755,6 +1755,7 @@ export function Workspace(props: Props) {
           profile={profile}
           email={props.email}
           cvDrafts={props.cvDrafts}
+          letterDrafts={props.letterDrafts}
           demo={props.demo}
           onClose={() => setCoverLetterMatch(null)}
         />
@@ -2000,6 +2001,7 @@ function MatchLetterEditor({
   profile,
   email,
   cvDrafts,
+  letterDrafts,
   demo,
   onClose,
 }: {
@@ -2007,6 +2009,7 @@ function MatchLetterEditor({
   profile: Profile;
   email?: string;
   cvDrafts?: CvDrafts;
+  letterDrafts?: LetterDrafts;
   demo?: boolean;
   onClose: () => void;
 }) {
@@ -2031,7 +2034,7 @@ function MatchLetterEditor({
     startTransition(async () => {
       try {
         const document = {
-          ...newLetter(profile, email, contactFromCvDrafts(cvDrafts)),
+          ...newLetter(profile, email, bestContact(cvDrafts, letterDrafts)),
           title: match.job.company,
           body: letter,
           subject: "",

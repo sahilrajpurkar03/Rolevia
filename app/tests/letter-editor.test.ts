@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  bestContact,
   contactFromCvDrafts,
+  contactFromLetterDrafts,
   newLetter,
   letterDraftsSchema,
   letterPlainText,
@@ -51,6 +53,32 @@ test("falls back to the resume when there is no CV document, and to blank when t
   assert.equal(newLetter().phone, "");
   assert.equal(newLetter().address, "");
 });
+test("the quick shortcut falls back to an already-saved letter's address/phone when the CV has none", () => {
+  const older = { ...newLetter(), phone: "+49 111111111", address: "" };
+  const newer = { ...newLetter(), phone: "", address: "Hamburg, Germany" };
+  assert.deepEqual(contactFromLetterDrafts([older, newer]), {
+    phone: "+49 111111111",
+    address: "Hamburg, Germany",
+  });
+  assert.deepEqual(contactFromLetterDrafts([]), { phone: "", address: "" });
+  assert.deepEqual(contactFromLetterDrafts(undefined), { phone: "", address: "" });
+});
+
+test("bestContact prefers the CV, then falls back to a saved letter's contact details", () => {
+  const drafts = createCvDrafts(emptyProfile);
+  assert.deepEqual(bestContact(drafts, []), { phone: "", address: "" });
+  const saved = { ...newLetter(), phone: "+49 222222222", address: "Cologne, Germany" };
+  assert.deepEqual(bestContact(drafts, [saved]), {
+    phone: "+49 222222222",
+    address: "Cologne, Germany",
+  });
+  drafts.cv.phone = "+49 333333333";
+  assert.deepEqual(bestContact(drafts, [saved]), {
+    phone: "+49 333333333",
+    address: "Cologne, Germany",
+  });
+});
+
 test("letter validation limits size, formats and duplicate identities", () => {
   const letter = newLetter();
   assert.equal(letterDraftsSchema.safeParse([letter, letter]).success, false);
