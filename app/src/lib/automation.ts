@@ -286,12 +286,14 @@ export type MatchRecord = {
   reasons: string[];
   created_at: string;
 };
+export type ApplicationStatus =
+  "saved" | "applied" | "interview" | "offer" | "rejected" | "withdrawn";
+export type StatusHistoryEntry = { status: ApplicationStatus; date: string };
 export type ApplicationRecord = {
   id: string;
   job: Job;
   saved?: boolean;
-  status:
-    "saved" | "applied" | "interview" | "offer" | "rejected" | "withdrawn";
+  status: ApplicationStatus;
   notes: string;
   letter: string;
   follow_up: string | null;
@@ -300,6 +302,7 @@ export type ApplicationRecord = {
   interview_notes?: string;
   interview_completed?: boolean;
   interview_history?: InterviewRecord[];
+  status_history?: StatusHistoryEntry[];
   created_at: string;
   updated_at: string;
 };

@@ -42,6 +42,7 @@ import { AccountSettings } from "./account-settings";
 import { bestContact, newLetter } from "@/lib/letter-editor";
 import type { CvDrafts } from "@/lib/cv-editor";
 import type { LetterDrafts } from "@/lib/letter-editor";
+import { applicationRoadmap, nextStatusHistory } from "@/lib/application-roadmap";
 const LetterEditor = dynamic(
   () => import("./letter-editor").then((module) => module.LetterEditor),
   { ssr: false },
@@ -417,6 +418,7 @@ export function Workspace(props: Props) {
       notes: "",
       letter: "",
       follow_up: null,
+      status_history: nextStatusHistory(undefined, status),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     } satisfies ApplicationRecord;
@@ -441,11 +443,23 @@ export function Workspace(props: Props) {
           existing.status === "applied"
             ? existing.saved !== false
               ? current.map((item) =>
-                  item.id === existing.id ? { ...item, status: "saved" } : item,
+                  item.id === existing.id
+                    ? {
+                        ...item,
+                        status: "saved",
+                        status_history: nextStatusHistory(item.status_history, "saved"),
+                      }
+                    : item,
                 )
               : current.filter((item) => item.id !== existing.id)
             : current.map((item) =>
-                item.id === existing.id ? { ...item, status: "applied" } : item,
+                item.id === existing.id
+                  ? {
+                      ...item,
+                      status: "applied",
+                      status_history: nextStatusHistory(item.status_history, "applied"),
+                    }
+                  : item,
               ),
         );
       } else {
@@ -459,12 +473,24 @@ export function Workspace(props: Props) {
     const nextApplications = existing?.status === "applied"
       ? existing.saved !== false
         ? applications.map((item) =>
-            item.id === existing.id ? { ...item, status: "saved" as const } : item,
+            item.id === existing.id
+              ? {
+                  ...item,
+                  status: "saved" as const,
+                  status_history: nextStatusHistory(item.status_history, "saved"),
+                }
+              : item,
           )
         : applications.filter((item) => item.id !== existing.id)
       : existing
         ? applications.map((item) =>
-            item.id === existing.id ? { ...item, status: "applied" as const } : item,
+            item.id === existing.id
+              ? {
+                  ...item,
+                  status: "applied" as const,
+                  status_history: nextStatusHistory(item.status_history, "applied"),
+                }
+              : item,
           )
         : [...applications, { ...localApplication(match, "applied"), saved: false }];
     runMatchAction(match, () => toggleMatchLog(match.id), nextApplications, "log");
@@ -474,7 +500,13 @@ export function Workspace(props: Props) {
     status: ApplicationRecord["status"],
   ) {
     if (status === application.status) return;
-    const updated = { ...application, status, updated_at: new Date().toISOString() };
+    const statusHistory = nextStatusHistory(application.status_history, status);
+    const updated = {
+      ...application,
+      status,
+      status_history: statusHistory,
+      updated_at: new Date().toISOString(),
+    };
     if (props.demo) {
       setSampleApplications((current) =>
         current.map((item) => (item.id === application.id ? updated : item)),
@@ -498,6 +530,7 @@ export function Workspace(props: Props) {
         interviewRound: application.interview_round ?? "",
         interviewNotes: application.interview_notes ?? "",
         interviewHistory: application.interview_history ?? [],
+        statusHistory,
         jobTitle: application.job.title ?? "Untitled application",
         jobCompany: application.job.company ?? "Company not recorded",
         jobLocation: application.job.location ?? "",
@@ -2107,6 +2140,32 @@ function MatchLetterEditor({
   );
 }
 
+function ApplicationRoadmap({ application }: { application: ApplicationRecord }) {
+  const steps = applicationRoadmap(application);
+  if (steps.length < 2) return null;
+  return (
+    <div className="application-roadmap" aria-label="Application timeline">
+      {steps.map((step, index) => (
+        <div
+          className={`application-roadmap-step${step.final ? " final" : ""}`}
+          key={step.key}
+        >
+          <div className="application-roadmap-marker">
+            <span className="application-roadmap-dot" />
+            {index < steps.length - 1 && (
+              <span className="application-roadmap-line" />
+            )}
+          </div>
+          <div className="application-roadmap-label">
+            <strong>{step.label}</strong>
+            <span>{dateLabel(step.date)}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ApplicationEditor({
   application,
   demo,
@@ -2158,6 +2217,7 @@ function ApplicationEditor({
               interviewRound: draft.interview_round ?? "",
               interviewNotes: draft.interview_notes ?? "",
               interviewHistory: draft.interview_history ?? [],
+              statusHistory: draft.status_history ?? [],
               interviewCompleted: draft.interview_completed ?? false,
               jobTitle: draft.job.title ?? "Untitled application",
               jobCompany: draft.job.company ?? "Company not recorded",
@@ -2233,12 +2293,14 @@ function ApplicationEditor({
           Status
           <select
             value={draft.status}
-            onChange={(event) =>
+            onChange={(event) => {
+              const status = event.target.value as ApplicationRecord["status"];
               setDraft({
                 ...draft,
-                status: event.target.value as ApplicationRecord["status"],
-              })
-            }
+                status,
+                status_history: nextStatusHistory(draft.status_history, status),
+              });
+            }}
           >
             {statuses.map((status) => (
               <option key={status}>{status}</option>
@@ -2256,6 +2318,7 @@ function ApplicationEditor({
           />
         </label>
       </div>
+      <ApplicationRoadmap application={draft} />
       {(draft.status === "interview" || interviews.length > 0) && (
         <>
           <div className="interview-history-heading">

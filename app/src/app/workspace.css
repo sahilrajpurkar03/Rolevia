@@ -1799,6 +1799,58 @@ input[type="checkbox"] {
 .interview-entry:last-child {
   margin-bottom: 0;
 }
+.application-roadmap {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 4px 0 22px;
+}
+.application-roadmap-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 96px;
+  flex: 1 1 96px;
+}
+.application-roadmap-marker {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.application-roadmap-dot {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--green);
+  margin-left: calc(50% - 7px);
+}
+.application-roadmap-step.final .application-roadmap-dot {
+  background: var(--danger);
+}
+.application-roadmap-line {
+  flex: 1 1 auto;
+  height: 2px;
+  background: var(--line);
+  margin-left: -7px;
+}
+.application-roadmap-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+.application-roadmap-label strong {
+  font-size: 13px;
+}
+.application-roadmap-label span {
+  color: var(--muted);
+  font-size: 12px;
+}
 .form-footer {
   display: flex;
   justify-content: space-between;

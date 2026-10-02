@@ -13,8 +13,19 @@ import {
 import { draftLetter, type Job } from "./matching";
 import { runCheck } from "./automation";
 import type { ApplicationRecord } from "./automation";
+import { nextStatusHistory } from "./application-roadmap";
 import { writeProfileChange } from "./profile-storage";
 
+function isMissingColumnError(
+  error: { code?: string; message?: string } | null,
+  column: string,
+): boolean {
+  if (!error) return false;
+  if (error.code === "42703" || error.code === "PGRST204") return true;
+  return new RegExp(`column .*${column}|${column}.*column`, "i").test(
+    error.message ?? "",
+  );
+}
 function failure(error: unknown): ActionResult {
   return {
     error:
@@ -128,17 +139,42 @@ async function matchApplication(id: string) {
       .eq("user_id", user.id)
       .single();
     if (!match) return { error: "This match is no longer available." };
-    const { data: application, error } = await client
+    let { data: application, error } = await client
       .from("applications")
-      .select("id,job,status,saved,notes,letter,follow_up,interview_date,interview_round,interview_notes,interview_completed,created_at,updated_at")
+      .select("id,job,status,saved,notes,letter,follow_up,interview_date,interview_round,interview_notes,interview_completed,status_history,created_at,updated_at")
       .eq("user_id", user.id)
       .eq("source_id", match.source_id)
       .maybeSingle();
+    if (error && isMissingColumnError(error, "status_history")) {
+      ({ data: application, error } = await client
+        .from("applications")
+        .select("id,job,status,saved,notes,letter,follow_up,interview_date,interview_round,interview_notes,interview_completed,created_at,updated_at")
+        .eq("user_id", user.id)
+        .eq("source_id", match.source_id)
+        .maybeSingle());
+    }
     if (error) return { error: "Could not load this application." };
     return { client, user, match, application: application as ApplicationRecord | null };
   } catch (error) {
     return { ...failure(error), application: null };
   }
+}
+const appColumnsBase =
+  "id,job,status,saved,notes,letter,follow_up,interview_date,interview_round,interview_notes,interview_completed,created_at,updated_at";
+const appColumns = `${appColumnsBase},status_history`;
+// Supabase query builders don't share a common type across .update()/.insert() chains,
+// so this accepts the already-built query (with status_history in the payload and
+// select) and only needs to know how to retry it without that column.
+async function withStatusHistoryFallback<T>(
+  run: (
+    withStatusHistory: boolean,
+    columns: string,
+  ) => PromiseLike<{ data: T | null; error: { code?: string; message?: string } | null }>,
+) {
+  let response = await run(true, appColumns);
+  if (isMissingColumnError(response.error, "status_history"))
+    response = await run(false, appColumnsBase);
+  return response;
 }
 export async function toggleMatchSaved(id: string) {
   const result = await matchApplication(id);
@@ -156,22 +192,35 @@ export async function toggleMatchSaved(id: string) {
       revalidatePath("/workspace");
       return { success: "", application: null };
     }
-    const { data, error } = await result.client
-      .from("applications")
-      .update({ saved: !saved, updated_at: new Date().toISOString() })
-      .eq("id", result.application.id)
-      .eq("user_id", result.user.id)
-      .select("id,job,status,saved,notes,letter,follow_up,interview_date,interview_round,interview_notes,interview_completed,created_at,updated_at")
-      .single();
+    const { data, error } = await withStatusHistoryFallback((_withStatusHistory, columns) =>
+      result.client!
+        .from("applications")
+        .update({ saved: !saved, updated_at: new Date().toISOString() })
+        .eq("id", result.application!.id)
+        .eq("user_id", result.user!.id)
+        .select(columns)
+        .single(),
+    );
     if (error || !data) return { error: "Could not update the saved job." };
     revalidatePath("/workspace");
     return { success: !saved ? "Job saved." : "Job unsaved.", application: data as ApplicationRecord };
   }
-  const { data, error } = await result.client
-    .from("applications")
-    .insert({ user_id: result.user.id, source_id: result.match.source_id, job: result.match.job, saved: true, status: "saved" })
-    .select("id,job,status,saved,notes,letter,follow_up,created_at,updated_at")
-    .single();
+  const { data, error } = await withStatusHistoryFallback((withStatusHistory, columns) =>
+    result.client!
+      .from("applications")
+      .insert({
+        user_id: result.user!.id,
+        source_id: result.match!.source_id,
+        job: result.match!.job,
+        saved: true,
+        status: "saved",
+        ...(withStatusHistory
+          ? { status_history: nextStatusHistory(undefined, "saved") }
+          : {}),
+      })
+      .select(columns)
+      .single(),
+  );
   if (error || !data) return { error: "Could not save this job." };
   revalidatePath("/workspace");
   return { success: "Job saved.", application: data as ApplicationRecord };
@@ -182,13 +231,26 @@ export async function toggleMatchLog(id: string) {
     return { error: result.error ?? "Could not load this match." };
   if (result.application?.status === "applied") {
     if (result.application.saved !== false) {
-      const { data, error } = await result.client
-        .from("applications")
-        .update({ status: "saved", updated_at: new Date().toISOString() })
-        .eq("id", result.application.id)
-        .eq("user_id", result.user.id)
-        .select("id,job,status,saved,notes,letter,follow_up,created_at,updated_at")
-        .single();
+      const { data, error } = await withStatusHistoryFallback((withStatusHistory, columns) =>
+        result.client!
+          .from("applications")
+          .update({
+            status: "saved",
+            updated_at: new Date().toISOString(),
+            ...(withStatusHistory
+              ? {
+                  status_history: nextStatusHistory(
+                    result.application!.status_history,
+                    "saved",
+                  ),
+                }
+              : {}),
+          })
+          .eq("id", result.application!.id)
+          .eq("user_id", result.user!.id)
+          .select(columns)
+          .single(),
+      );
       if (error || !data) return { error: "Could not undo the application log." };
       revalidatePath("/workspace");
       return { success: "Application log undone.", application: data as ApplicationRecord };
@@ -203,24 +265,41 @@ export async function toggleMatchLog(id: string) {
     return { success: "Application log undone.", application: null };
   }
   const response = result.application
-    ? await result.client
-        .from("applications")
-        .update({ status: "applied" })
-        .eq("id", result.application.id)
-        .eq("user_id", result.user.id)
-        .select("id,job,status,saved,notes,letter,follow_up,created_at,updated_at")
-        .single()
-    : await result.client
-        .from("applications")
-        .insert({
-          user_id: result.user.id,
-          source_id: result.match.source_id,
-          job: result.match.job,
-          saved: false,
-          status: "applied",
-        })
-        .select("id,job,status,saved,notes,letter,follow_up,created_at,updated_at")
-        .single();
+    ? await withStatusHistoryFallback((withStatusHistory, columns) =>
+        result.client!
+          .from("applications")
+          .update({
+            status: "applied",
+            ...(withStatusHistory
+              ? {
+                  status_history: nextStatusHistory(
+                    result.application!.status_history,
+                    "applied",
+                  ),
+                }
+              : {}),
+          })
+          .eq("id", result.application!.id)
+          .eq("user_id", result.user!.id)
+          .select(columns)
+          .single(),
+      )
+    : await withStatusHistoryFallback((withStatusHistory, columns) =>
+        result.client!
+          .from("applications")
+          .insert({
+            user_id: result.user!.id,
+            source_id: result.match!.source_id,
+            job: result.match!.job,
+            saved: false,
+            status: "applied",
+            ...(withStatusHistory
+              ? { status_history: nextStatusHistory(undefined, "applied") }
+              : {}),
+          })
+          .select(columns)
+          .single(),
+      );
   const { data, error } = response;
   if (error || !data) return { error: "Could not log this application." };
   revalidatePath("/workspace");
@@ -290,6 +369,7 @@ export async function updateApplication(input: unknown): Promise<ActionResult> {
       interviewRound: legacyInput.interviewRound ?? "",
       interviewNotes: legacyInput.interviewNotes ?? "",
       interviewHistory: legacyInput.interviewHistory ?? [],
+      statusHistory: legacyInput.statusHistory ?? [],
       jobTitle: legacyInput.jobTitle || "Untitled application",
       jobCompany: legacyInput.jobCompany || "Company not recorded",
       jobLocation: legacyInput.jobLocation ?? "",
@@ -321,27 +401,34 @@ export async function updateApplication(input: unknown): Promise<ActionResult> {
       job,
       updated_at: new Date().toISOString(),
     };
+    const interviewUpdate = {
+      interview_date: values.interviewDate || null,
+      interview_round: values.interviewRound,
+      interview_notes: values.interviewNotes,
+      interview_completed: values.interviewCompleted,
+      interview_history: values.interviewHistory,
+    };
     let response = await client
       .from("applications")
       .update({
         ...baseUpdate,
-        interview_date: values.interviewDate || null,
-        interview_round: values.interviewRound,
-        interview_notes: values.interviewNotes,
-        interview_completed: values.interviewCompleted,
-        interview_history: values.interviewHistory,
+        ...interviewUpdate,
+        status_history: values.statusHistory,
       })
       .eq("id", values.id)
       .eq("user_id", user.id)
       .select("id")
       .single();
-    const missingInterviewColumns =
-      response.error?.code === "42703" ||
-      response.error?.code === "PGRST204" ||
-      /interview_(date|round|notes|completed|history).*column|column .*interview_/i.test(
-        response.error?.message ?? "",
-      );
-    if (missingInterviewColumns) {
+    if (isMissingColumnError(response.error, "status_history")) {
+      response = await client
+        .from("applications")
+        .update({ ...baseUpdate, ...interviewUpdate })
+        .eq("id", values.id)
+        .eq("user_id", user.id)
+        .select("id")
+        .single();
+    }
+    if (isMissingColumnError(response.error, "interview_")) {
       response = await client
         .from("applications")
         .update(baseUpdate)
@@ -394,12 +481,22 @@ export async function addApplication(input: unknown): Promise<ActionResult> {
       remote: false,
       publishedAt: null,
     };
-    const { error } = await client
-      .from("applications")
-      .upsert(
+    let { error } = await client.from("applications").upsert(
+      {
+        user_id: user.id,
+        source_id: job.sourceId,
+        job,
+        status,
+        status_history: nextStatusHistory(undefined, status),
+      },
+      { onConflict: "user_id,source_id", ignoreDuplicates: true },
+    );
+    if (isMissingColumnError(error, "status_history")) {
+      ({ error } = await client.from("applications").upsert(
         { user_id: user.id, source_id: job.sourceId, job, status },
         { onConflict: "user_id,source_id", ignoreDuplicates: true },
-      );
+      ));
+    }
     if (error) return { error: "Could not add this application." };
     revalidatePath("/workspace");
     return { success: "Application added." };

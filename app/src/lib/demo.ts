@@ -110,6 +110,19 @@ export const demoApplications: ApplicationRecord[] = [
     notes: "Portfolio conversation with the design team.",
     letter: "",
     follow_up: "2026-09-14",
+    interview_history: [
+      {
+        id: "sample-interview-1",
+        date: "2026-09-10",
+        round: "Intro",
+        notes: "",
+        completed: true,
+      },
+    ],
+    status_history: [
+      { status: "applied", date: "2026-09-08" },
+      { status: "interview", date: "2026-09-10" },
+    ],
     created_at: "2026-09-08T09:00:00Z",
     updated_at: "2026-09-10T09:00:00Z",
   },
@@ -124,6 +137,7 @@ export const demoApplications: ApplicationRecord[] = [
     notes: "Submitted CV and portfolio.",
     letter: "",
     follow_up: "2026-09-15",
+    status_history: [{ status: "applied", date: "2026-09-09" }],
     created_at: "2026-09-09T09:00:00Z",
     updated_at: "2026-09-09T09:00:00Z",
   },

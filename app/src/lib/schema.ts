@@ -79,6 +79,15 @@ export const applicationSchema = z.object({
     )
     .max(30)
     .default([]),
+  statusHistory: z
+    .array(
+      z.object({
+        status: z.enum(statuses),
+        date: z.iso.date(),
+      }),
+    )
+    .max(60)
+    .default([]),
   jobTitle: z.string().trim().min(1).max(300).default("Untitled application"),
   jobCompany: z.string().trim().min(1).max(300).default("Company not recorded"),
   jobLocation: z.string().trim().max(500).default(""),
