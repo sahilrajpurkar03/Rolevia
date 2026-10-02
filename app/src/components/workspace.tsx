@@ -2151,11 +2151,11 @@ function ApplicationRoadmap({ application }: { application: ApplicationRecord })
         >
           <div className="application-roadmap-marker">
             <span
-              className={`application-roadmap-line${index === 0 ? " hidden" : ""}`}
+              className={`application-roadmap-line${index === 0 ? " application-roadmap-line-empty" : ""}`}
             />
             <span className="application-roadmap-dot" />
             <span
-              className={`application-roadmap-line${index === steps.length - 1 ? " hidden" : ""}`}
+              className={`application-roadmap-line${index === steps.length - 1 ? " application-roadmap-line-empty" : ""}`}
             />
           </div>
           <div className="application-roadmap-label">

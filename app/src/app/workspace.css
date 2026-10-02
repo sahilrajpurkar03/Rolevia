@@ -1833,7 +1833,7 @@ input[type="checkbox"] {
   height: 2px;
   background: var(--line);
 }
-.application-roadmap-line.hidden {
+.application-roadmap-line-empty {
   visibility: hidden;
 }
 .application-roadmap-label {
