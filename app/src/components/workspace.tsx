@@ -2070,9 +2070,8 @@ function MatchLetterEditor({
           ...newLetter(profile, email, bestContact(cvDrafts, letterDrafts)),
           title: match.job.company,
           body: letter,
-          subject: "",
-          recipient: "",
-          date: "",
+          subject: match.job.title,
+          recipient: match.job.company,
           salutation: "",
           closing: "",
         };
