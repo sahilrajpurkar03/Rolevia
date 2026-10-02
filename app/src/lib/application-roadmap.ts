@@ -46,9 +46,20 @@ export function applicationRoadmap(
     "status" | "status_history" | "interview_history" | "created_at"
   >,
 ): RoadmapStep[] {
-  const history = application.status_history?.length
+  const rawHistory = application.status_history?.length
     ? application.status_history
     : [{ status: application.status, date: application.created_at.slice(0, 10) }];
+  // An application that reached interview/offer/rejected/withdrawn without ever
+  // recording a "saved"/"applied" step (added directly at a later status, or tracked
+  // before this feature existed) still implies an applied date - backfill it from
+  // created_at rather than showing the roadmap start mid-process.
+  const history =
+    rawHistory[0].status === "saved" || rawHistory[0].status === "applied"
+      ? rawHistory
+      : [
+          { status: "applied" as const, date: application.created_at.slice(0, 10) },
+          ...rawHistory,
+        ];
   const interviews: InterviewRecord[] = (application.interview_history ?? []).filter(
     (interview) => interview.date,
   );

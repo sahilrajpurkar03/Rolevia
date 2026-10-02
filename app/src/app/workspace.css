@@ -1824,7 +1824,6 @@ input[type="checkbox"] {
   height: 14px;
   border-radius: 50%;
   background: var(--green);
-  margin-left: calc(50% - 7px);
 }
 .application-roadmap-step.final .application-roadmap-dot {
   background: var(--danger);
@@ -1833,7 +1832,9 @@ input[type="checkbox"] {
   flex: 1 1 auto;
   height: 2px;
   background: var(--line);
-  margin-left: -7px;
+}
+.application-roadmap-line.hidden {
+  visibility: hidden;
 }
 .application-roadmap-label {
   display: flex;

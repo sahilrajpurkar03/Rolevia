@@ -118,6 +118,13 @@ export const demoApplications: ApplicationRecord[] = [
         notes: "",
         completed: true,
       },
+      {
+        id: "sample-interview-2",
+        date: "2026-09-19",
+        round: "Final",
+        notes: "",
+        completed: false,
+      },
     ],
     status_history: [
       { status: "applied", date: "2026-09-08" },

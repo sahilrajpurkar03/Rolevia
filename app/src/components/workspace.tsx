@@ -2150,10 +2150,13 @@ function ApplicationRoadmap({ application }: { application: ApplicationRecord })
           key={step.key}
         >
           <div className="application-roadmap-marker">
+            <span
+              className={`application-roadmap-line${index === 0 ? " hidden" : ""}`}
+            />
             <span className="application-roadmap-dot" />
-            {index < steps.length - 1 && (
-              <span className="application-roadmap-line" />
-            )}
+            <span
+              className={`application-roadmap-line${index === steps.length - 1 ? " hidden" : ""}`}
+            />
           </div>
           <div className="application-roadmap-label">
             <strong>{step.label}</strong>
@@ -2190,6 +2193,10 @@ function ApplicationEditor({
           completed: draft.interview_completed ?? false,
         }]
       : [];
+  // Expand whichever interview still needs attention (the next upcoming one), not
+  // whichever happens to be first in the list - a completed intro round shouldn't stay
+  // open while the pending final round sits collapsed.
+  const defaultOpenIndex = interviews.findIndex((interview) => !interview.completed);
   function updateInterviews(next: InterviewRecord[]) {
     const first = next[0];
     setDraft({
@@ -2345,7 +2352,7 @@ function ApplicationEditor({
             <details
               className="interview-entry"
               key={interview.id}
-              open={index === 0}
+              open={index === (defaultOpenIndex === -1 ? interviews.length - 1 : defaultOpenIndex)}
             >
               <summary>
                 <span>

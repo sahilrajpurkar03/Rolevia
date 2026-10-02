@@ -93,3 +93,23 @@ test("applications saved before this feature shipped synthesize a first step fro
     { key: "status-0-saved", label: "Saved", date: "2026-09-01", final: false },
   ]);
 });
+
+test("an application added directly at interview backfills an Applied step from created_at", () => {
+  const application = baseApplication({
+    status: "interview",
+    status_history: [{ status: "interview", date: "2026-09-15" }],
+    interview_history: [
+      { id: "i1", date: "2026-09-15", round: "Intro", notes: "", completed: true },
+      { id: "i2", date: "2026-10-07", round: "Final", notes: "", completed: false },
+    ],
+  });
+  const steps = applicationRoadmap(application);
+  assert.deepEqual(
+    steps.map((step) => [step.label, step.date]),
+    [
+      ["Applied", "2026-09-01"],
+      ["Interview: Intro", "2026-09-15"],
+      ["Interview: Final", "2026-10-07"],
+    ],
+  );
+});
