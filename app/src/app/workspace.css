@@ -1239,6 +1239,8 @@ input[type="checkbox"] {
 }
 .search-result-row {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: 16px;
   padding: 12px 14px;
   border: 1px solid var(--line);
@@ -1254,6 +1256,7 @@ input[type="checkbox"] {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  min-width: 0;
   width: 100%;
   padding: 0;
   border: 0;
@@ -1261,9 +1264,15 @@ input[type="checkbox"] {
   color: inherit;
   text-align: left;
 }
+.search-result-main > span {
+  min-width: 0;
+}
 .search-result-row strong,
 .search-result-row small {
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .search-result-row small {
   margin-top: 3px;
@@ -2785,6 +2794,12 @@ legend {
     grid-column: 1 / -1;
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+  .search-result-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .search-result-actions {
+    justify-content: flex-start;
   }
   .match-day summary {
     padding: 12px;
