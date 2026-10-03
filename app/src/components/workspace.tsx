@@ -287,6 +287,9 @@ export function Workspace(props: Props) {
   const resultsHeading = useRef<HTMLHeadingElement>(null);
   const searchRequested = useRef(false);
   useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [view]);
+  useEffect(() => {
     if (
       searchRequested.current &&
       !pending &&
