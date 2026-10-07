@@ -13,9 +13,12 @@ export const maxDuration = 90;
 // quota-exhausted 429s during the same test run. Flash-Lite is also Google's own
 // recommended pick for lightweight text tasks like a three-paragraph letter, and being
 // a separate model/quota pool from the flagship Flash line, is less likely to share its
-// capacity problems. The flagship model is kept as an automatic fallback in case
-// Flash-Lite itself becomes unavailable.
+// capacity problems. gemini-2.5-flash-lite is tried next: an older, more established
+// model line that tends to carry a more generous free-tier daily quota than a model
+// recently promoted to the free tier, so it's a separate pool worth falling back to
+// before the flagship model, which is kept as the last resort.
 const defaultGeminiModel = "gemini-3.5-flash-lite";
+const secondaryGeminiModel = "gemini-2.5-flash-lite";
 const fallbackGeminiModel = "gemini-3.6-flash";
 
 export async function POST(request: Request) {
@@ -137,15 +140,18 @@ export async function POST(request: Request) {
     const configuredModel = process.env.GEMINI_MODEL?.trim();
     const models = [
       ...new Set(
-        [configuredModel, defaultGeminiModel, fallbackGeminiModel].filter(
-          (model): model is string => Boolean(model),
-        ),
+        [
+          configuredModel,
+          defaultGeminiModel,
+          secondaryGeminiModel,
+          fallbackGeminiModel,
+        ].filter((model): model is string => Boolean(model)),
       ),
     ];
     // Budget attempts so the worst case (every model, every attempt, all failures)
     // stays comfortably under maxDuration (90s): 3x20s solo, 2x15s with two models to
-    // try, or 1x15s each when a GEMINI_MODEL override adds a third model ahead of the
-    // two built-in tiers.
+    // try, or 1x15s each with three or more models (the three built-in tiers, or a
+    // GEMINI_MODEL override adding a fourth ahead of them).
     const attempts = models.length >= 3 ? 1 : models.length === 2 ? 2 : 3;
     const perCallTimeout = models.length > 1 ? 15000 : 20000;
     const outcome = await generateLetterWithGemini({
