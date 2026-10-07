@@ -182,13 +182,30 @@ function fromJsonLd(html: string): Partial<ExtractedJob> | null {
   return found;
 }
 
+// LinkedIn doesn't serve its JobPosting JSON-LD to a bare (unauthenticated) fetch, so
+// extraction falls through to the page's generic og:title, which LinkedIn always renders
+// as "{Company} hiring {Title} in {Location} | LinkedIn" - and og:site_name is just
+// "LinkedIn", not the employer. Split that one well-known pattern back into its parts
+// before falling back to the fully generic (and here, wrong) meta handling.
+const linkedInTitlePattern =
+  /^(.+?)\s+hiring\s+(.+?)\s+in\s+(.+?)\s*\|\s*LinkedIn\s*$/i;
+function fromLinkedInTitle(rawTitle: string): Partial<ExtractedJob> | null {
+  const match = linkedInTitlePattern.exec(rawTitle);
+  if (!match) return null;
+  const [, company, title, location] = match;
+  return { company: company.trim(), title: title.trim(), location: location.trim() };
+}
+
 function fromMeta(html: string): ExtractedJob {
   const dom = load(html);
   dom("script, style, noscript, nav, header, footer, svg").remove();
   const meta = (name: string) =>
     dom(`meta[property='${name}'], meta[name='${name}']`).first().attr("content")?.trim() ?? "";
-  const title = meta("og:title") || dom("title").first().text().trim() || dom("h1").first().text().trim();
-  const company = meta("og:site_name");
+  const rawTitle = meta("og:title") || dom("title").first().text().trim() || dom("h1").first().text().trim();
+  const linkedIn = fromLinkedInTitle(rawTitle);
+  const title = linkedIn?.title || rawTitle;
+  const company = linkedIn?.company || meta("og:site_name");
+  const location = linkedIn?.location ?? "";
   const main = dom("main, article").first();
   const bodyText = convert((main.length ? main : dom("body")).html() ?? "", {
     wordwrap: false,
@@ -196,7 +213,7 @@ function fromMeta(html: string): ExtractedJob {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
   const description = bodyText || meta("og:description") || meta("description");
-  return { title, company, location: "", description };
+  return { title, company, location, description };
 }
 
 export function parseJobHtml(html: string): ExtractedJob {

@@ -71,6 +71,17 @@ test("parseJobHtml falls back to meta tags and body text when no JSON-LD is pres
   assert.match(job.description, /We build robots in Berlin/);
 });
 
+test("parseJobHtml splits LinkedIn's combined og:title into title/company/location", () => {
+  const html = `<html><head>
+    <title>NEURA Robotics hiring Robotics Training Engineer - Python &amp; AI (Human) in Riederich, Baden-W&uuml;rttemberg, Germany | LinkedIn</title>
+    <meta property="og:site_name" content="LinkedIn" />
+  </head><body><main>We build humanoid robots.</main></body></html>`;
+  const job = parseJobHtml(html);
+  assert.equal(job.title, "Robotics Training Engineer - Python & AI (Human)");
+  assert.equal(job.company, "NEURA Robotics");
+  assert.equal(job.location, "Riederich, Baden-Württemberg, Germany");
+});
+
 test("parseJobHtml throws when the page has no usable title or description", () => {
   assert.throws(() => parseJobHtml("<html><body></body></html>"));
 });
