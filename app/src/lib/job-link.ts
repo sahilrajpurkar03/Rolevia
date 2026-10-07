@@ -216,13 +216,34 @@ function fromMeta(html: string): ExtractedJob {
   return { title, company, location, description };
 }
 
+// Some sites (LinkedIn's og:title among them) double-escape their own markup, e.g.
+// literal "&amp;amp;" in the HTML source - the parser's own single decode pass then
+// only recovers "&amp;", not "&". A second, narrow decode pass over the short title/
+// company/location fields (not the long description) fixes that without risking a
+// mis-decode of an already-correct single-escaped string, since re-decoding a literal
+// "&" that was never an entity is a no-op (it simply doesn't match these patterns).
+function decodeDoubleEscapedEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0*39;|&apos;/g, "'");
+}
+
 export function parseJobHtml(html: string): ExtractedJob {
   const structured = fromJsonLd(html);
   const fallback = fromMeta(html);
   const job: ExtractedJob = {
-    title: (structured?.title || fallback.title || "").slice(0, 200),
-    company: (structured?.company || fallback.company || "").slice(0, 200),
-    location: (structured?.location || fallback.location || "").slice(0, 500),
+    title: decodeDoubleEscapedEntities(
+      (structured?.title || fallback.title || "").slice(0, 200),
+    ),
+    company: decodeDoubleEscapedEntities(
+      (structured?.company || fallback.company || "").slice(0, 200),
+    ),
+    location: decodeDoubleEscapedEntities(
+      (structured?.location || fallback.location || "").slice(0, 500),
+    ),
     description: (structured?.description || fallback.description || "").slice(0, 20000),
   };
   if (!job.title && !job.description) throw new Error("empty");

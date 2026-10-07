@@ -82,6 +82,17 @@ test("parseJobHtml splits LinkedIn's combined og:title into title/company/locati
   assert.equal(job.location, "Riederich, Baden-Württemberg, Germany");
 });
 
+test("parseJobHtml recovers a literal & from LinkedIn's double-escaped title", () => {
+  // LinkedIn's actual page source has "&amp;amp;" (the ampersand escaped twice), so a
+  // single HTML-decode pass over the <title> text only recovers "&amp;", not "&".
+  const html = `<html><head>
+    <title>NEURA Robotics hiring Robotics Training Engineer - Python &amp;amp; AI (Human) in Riederich, Germany | LinkedIn</title>
+    <meta property="og:site_name" content="LinkedIn" />
+  </head><body><main>We build humanoid robots.</main></body></html>`;
+  const job = parseJobHtml(html);
+  assert.equal(job.title, "Robotics Training Engineer - Python & AI (Human)");
+});
+
 test("parseJobHtml throws when the page has no usable title or description", () => {
   assert.throws(() => parseJobHtml("<html><body></body></html>"));
 });
