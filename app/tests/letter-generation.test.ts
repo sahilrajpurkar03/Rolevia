@@ -330,7 +330,7 @@ test("Groq succeeds on the first attempt and posts the exact prompt text unchang
   }) as typeof fetch;
   const outcome = await generateLetterWithGroq(
     {
-      model: "llama-3.3-70b-versatile",
+      models: ["openai/gpt-oss-120b"],
       apiKey: "key",
       prompt,
       candidateText,
@@ -354,7 +354,7 @@ test("a transient Groq 503 is retried before succeeding, and a non-429 4xx moves
       : groqResponse(200, validGroqBody());
   }) as typeof fetch;
   const retried = await generateLetterWithGroq(
-    { model: "m", apiKey: "key", prompt, candidateText, attempts: 2, perCallTimeout: 5000 },
+    { models: ["m"], apiKey: "key", prompt, candidateText, attempts: 2, perCallTimeout: 5000 },
     retryFetcher,
   );
   assert.equal(retried.ok, true);
@@ -366,9 +366,33 @@ test("a transient Groq 503 is retried before succeeding, and a non-429 4xx moves
     return groqResponse(400, { error: { message: "bad request" } });
   }) as typeof fetch;
   const outcome = await generateLetterWithGroq(
-    { model: "m", apiKey: "key", prompt, candidateText, attempts: 3, perCallTimeout: 5000 },
+    { models: ["m"], apiKey: "key", prompt, candidateText, attempts: 3, perCallTimeout: 5000 },
     badRequestFetcher,
   );
   assert.equal(outcome.ok, false);
   assert.equal(badRequestCalls, 1);
+});
+
+test("a Groq model that fails outright (e.g. 404 unavailable) falls through to the next model", async () => {
+  const calls: string[] = [];
+  const fetcher = (async (url, init) => {
+    const body = JSON.parse(String((init as RequestInit).body));
+    calls.push(body.model);
+    return body.model === "backup"
+      ? groqResponse(200, validGroqBody())
+      : groqResponse(404, { error: { message: "does not exist" } });
+  }) as typeof fetch;
+  const outcome = await generateLetterWithGroq(
+    {
+      models: ["primary", "backup"],
+      apiKey: "key",
+      prompt,
+      candidateText,
+      attempts: 1,
+      perCallTimeout: 5000,
+    },
+    fetcher,
+  );
+  assert.equal(outcome.ok, true);
+  assert.deepEqual(calls, ["primary", "backup"]);
 });

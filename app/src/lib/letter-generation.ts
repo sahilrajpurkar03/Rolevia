@@ -218,7 +218,7 @@ export async function generateLetterWithGemini(
 // only the transport and response shape differ from generateLetterWithGemini.
 export async function generateLetterWithGroq(
   options: {
-    model: string;
+    models: string[];
     apiKey: string;
     prompt: { system: string; data: string };
     candidateText: string;
@@ -227,87 +227,97 @@ export async function generateLetterWithGroq(
   },
   fetcher: typeof fetch = fetch,
 ): Promise<GeminiOutcome> {
-  const { model, apiKey, prompt, candidateText, attempts, perCallTimeout } = options;
+  const { models, apiKey, prompt, candidateText, attempts, perCallTimeout } = options;
   const backoff = (attempt: number) =>
     new Promise((resolve) =>
       setTimeout(resolve, 700 * 2 ** attempt + Math.random() * 300),
     );
-  let lastError: Error = new Error("Groq returned no response.");
-  for (let attempt = 0; attempt < attempts; attempt++) {
-    let response: Response;
-    try {
-      response = await fetcher("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        signal: AbortSignal.timeout(perCallTimeout),
-        cache: "no-store",
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: "system", content: prompt.system },
-            { role: "user", content: prompt.data },
-          ],
-          response_format: { type: "json_object" },
-          temperature: 0.3,
-          max_tokens: 4096,
-        }),
-      });
-    } catch (error) {
-      lastError = new Error(
-        `Groq request failed (${error instanceof Error ? error.message : "network error"}). Your draft is unchanged.`,
-      );
-      if (attempt < attempts - 1) await backoff(attempt);
-      continue;
-    }
-    if (!response.ok) {
-      let providerDetail = "";
+  const generateWithModel = async (model: string): Promise<GeminiOutcome> => {
+    let lastError: Error = new Error("Groq returned no response.");
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      let response: Response;
       try {
-        const body = (await response.json()) as { error?: { message?: string } };
-        providerDetail = body.error?.message ? ` ${body.error.message.slice(0, 240)}` : "";
-      } catch {
-        // Keep the user-facing error stable when the provider body is not JSON.
-      }
-      lastError =
-        response.status === 429
-          ? new Error("Groq's free-tier quota is exhausted. Your draft is unchanged.")
-          : new Error(
-              `Groq returned HTTP ${response.status}.${providerDetail} Your draft is unchanged.`,
-            );
-      if (response.status >= 400 && response.status < 500 && response.status !== 429)
-        return { ok: false, error: lastError };
-      if (attempt < attempts - 1) await backoff(attempt);
-      continue;
-    }
-    try {
-      const output = await response.json();
-      const choice = output.choices?.[0];
-      if (choice?.finish_reason !== "stop")
-        throw new Error(
-          `Groq stopped early (${choice?.finish_reason ?? "unknown reason"}) instead of finishing the draft.`,
+        response = await fetcher("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          signal: AbortSignal.timeout(perCallTimeout),
+          cache: "no-store",
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: "system", content: prompt.system },
+              { role: "user", content: prompt.data },
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.3,
+            max_tokens: 4096,
+          }),
+        });
+      } catch (error) {
+        lastError = new Error(
+          `Groq request failed (${error instanceof Error ? error.message : "network error"}). Your draft is unchanged.`,
         );
-      const text: string = choice.message?.content ?? "";
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        throw new Error("Groq returned text that was not valid JSON instead of a draft.");
+        if (attempt < attempts - 1) await backoff(attempt);
+        continue;
       }
-      const result = verifyGeneratedLetter(parsed, candidateText);
-      return { ok: true, result };
-    } catch (error) {
-      lastError =
-        error instanceof z.ZodError
-          ? new Error(
-              `Groq returned a draft that didn't match the expected format (${error.issues[0] ? `${error.issues[0].path.join(".")}: ${error.issues[0].message}` : "invalid shape"}).`,
-            )
-          : error instanceof Error
-            ? error
-            : new Error("Groq returned an invalid draft.");
-      if (attempt < attempts - 1) await backoff(attempt);
+      if (!response.ok) {
+        let providerDetail = "";
+        try {
+          const body = (await response.json()) as { error?: { message?: string } };
+          providerDetail = body.error?.message ? ` ${body.error.message.slice(0, 240)}` : "";
+        } catch {
+          // Keep the user-facing error stable when the provider body is not JSON.
+        }
+        lastError =
+          response.status === 429
+            ? new Error("Groq's free-tier quota is exhausted. Your draft is unchanged.")
+            : new Error(
+                `Groq returned HTTP ${response.status}.${providerDetail} Your draft is unchanged.`,
+              );
+        // A 4xx other than 429 (e.g. an unavailable model) will not succeed on retry
+        // against this model at all - move straight to the next one.
+        if (response.status >= 400 && response.status < 500 && response.status !== 429)
+          return { ok: false, error: lastError };
+        if (attempt < attempts - 1) await backoff(attempt);
+        continue;
+      }
+      try {
+        const output = await response.json();
+        const choice = output.choices?.[0];
+        if (choice?.finish_reason !== "stop")
+          throw new Error(
+            `Groq stopped early (${choice?.finish_reason ?? "unknown reason"}) instead of finishing the draft.`,
+          );
+        const text: string = choice.message?.content ?? "";
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          throw new Error("Groq returned text that was not valid JSON instead of a draft.");
+        }
+        const result = verifyGeneratedLetter(parsed, candidateText);
+        return { ok: true, result };
+      } catch (error) {
+        lastError =
+          error instanceof z.ZodError
+            ? new Error(
+                `Groq returned a draft that didn't match the expected format (${error.issues[0] ? `${error.issues[0].path.join(".")}: ${error.issues[0].message}` : "invalid shape"}).`,
+              )
+            : error instanceof Error
+              ? error
+              : new Error("Groq returned an invalid draft.");
+        if (attempt < attempts - 1) await backoff(attempt);
+      }
     }
+    return { ok: false, error: lastError };
+  };
+  let outcome: GeminiOutcome | undefined;
+  for (const model of models) {
+    outcome = await generateWithModel(model);
+    if (outcome.ok) break;
   }
-  return { ok: false, error: lastError };
+  return outcome ?? { ok: false, error: new Error("Groq generation failed.") };
 }

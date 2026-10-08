@@ -29,9 +29,22 @@ const fallbackGeminiModel = "gemini-3.6-flash";
 // operator should watch its real-world success rate before relying on it.
 // Both llama-3.3-70b-versatile and llama-3.1-8b-instant 404'd live despite being listed
 // in Groq's docs - this account's actual model catalog (confirmed via the Playground
-// dropdown) has no Llama chat models at all. openai/gpt-oss-120b is what's verified
-// available there; override with GROQ_MODEL if the account's access changes.
-const groqModel = process.env.GROQ_MODEL?.trim() || "openai/gpt-oss-120b";
+// dropdown) has no Llama chat models at all, only these three general-purpose chat
+// models (the rest of the catalog is TTS, speech-to-text or moderation-only models,
+// unsuitable for drafting a letter). openai/gpt-oss-120b is the primary, confirmed
+// working live; the other two are backups from the same confirmed-available list, in
+// case the primary becomes unavailable or rate-limited. Override/prepend with
+// GROQ_MODEL if the account's access changes.
+const groqModels = [
+  ...new Set(
+    [
+      process.env.GROQ_MODEL?.trim(),
+      "openai/gpt-oss-120b",
+      "openai/gpt-oss-20b",
+      "qwen/qwen3.8-27b",
+    ].filter((model): model is string => Boolean(model)),
+  ),
+];
 
 export async function POST(request: Request) {
   const reply = (body: unknown, status = 200) =>
@@ -183,13 +196,16 @@ export async function POST(request: Request) {
       perCallTimeout,
     });
     if (!outcome.ok && process.env.GROQ_API_KEY) {
+      // Worst case here (no retry per model, straight to the next) stays small enough
+      // that even 3-4 models fit comfortably in what's left of the maxDuration budget
+      // after the Gemini chain above.
       outcome = await generateLetterWithGroq({
-        model: groqModel,
+        models: groqModels,
         apiKey: process.env.GROQ_API_KEY,
         prompt,
         candidateText: candidate,
-        attempts: 2,
-        perCallTimeout: 6000,
+        attempts: 1,
+        perCallTimeout: 5000,
       });
     }
     if (!outcome.ok) throw outcome.error;
