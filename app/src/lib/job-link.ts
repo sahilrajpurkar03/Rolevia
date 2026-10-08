@@ -183,17 +183,36 @@ function fromJsonLd(html: string): Partial<ExtractedJob> | null {
 }
 
 // LinkedIn doesn't serve its JobPosting JSON-LD to a bare (unauthenticated) fetch, so
-// extraction falls through to the page's generic og:title, which LinkedIn always renders
-// as "{Company} hiring {Title} in {Location} | LinkedIn" - and og:site_name is just
-// "LinkedIn", not the employer. Split that one well-known pattern back into its parts
-// before falling back to the fully generic (and here, wrong) meta handling.
+// extraction falls through to the page's generic og:title - but which exact title
+// LinkedIn renders depends on how it classifies the requester. A browser-looking request
+// gets "{Company} hiring {Title} in {Location} | LinkedIn"; this server's own
+// bot-identifying User-Agent instead gets "{Title} at {Company} — {Location} | LinkedIn Jobs"
+// (confirmed by fetching a real listing with each UA), and og:site_name is absent or just
+// "LinkedIn" either way, never the employer. Try both known patterns before falling back
+// to the fully generic (and here, wrong) meta handling.
 const linkedInTitlePattern =
   /^(.+?)\s+hiring\s+(.+?)\s+in\s+(.+?)\s*\|\s*LinkedIn\s*$/i;
+const linkedInJobsTitlePattern =
+  /^(.+?)\s+at\s+(.+?)\s*[—–-]\s*(.+?)\s*\|\s*LinkedIn(?:\s+Jobs)?\s*$/i;
+const linkedInJobsTitlePatternNoLocation =
+  /^(.+?)\s+at\s+(.+?)\s*\|\s*LinkedIn(?:\s+Jobs)?\s*$/i;
 function fromLinkedInTitle(rawTitle: string): Partial<ExtractedJob> | null {
-  const match = linkedInTitlePattern.exec(rawTitle);
-  if (!match) return null;
-  const [, company, title, location] = match;
-  return { company: company.trim(), title: title.trim(), location: location.trim() };
+  const hiringMatch = linkedInTitlePattern.exec(rawTitle);
+  if (hiringMatch) {
+    const [, company, title, location] = hiringMatch;
+    return { company: company.trim(), title: title.trim(), location: location.trim() };
+  }
+  const jobsMatch = linkedInJobsTitlePattern.exec(rawTitle);
+  if (jobsMatch) {
+    const [, title, company, location] = jobsMatch;
+    return { title: title.trim(), company: company.trim(), location: location.trim() };
+  }
+  const jobsMatchNoLocation = linkedInJobsTitlePatternNoLocation.exec(rawTitle);
+  if (jobsMatchNoLocation) {
+    const [, title, company] = jobsMatchNoLocation;
+    return { title: title.trim(), company: company.trim() };
+  }
+  return null;
 }
 
 function fromMeta(html: string): ExtractedJob {

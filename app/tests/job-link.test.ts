@@ -82,6 +82,28 @@ test("parseJobHtml splits LinkedIn's combined og:title into title/company/locati
   assert.equal(job.location, "Riederich, Baden-Württemberg, Germany");
 });
 
+test("parseJobHtml splits LinkedIn's bot-served title (Title at Company — Location | LinkedIn Jobs)", () => {
+  // Confirmed live: this server's own User-Agent gets a different LinkedIn title format
+  // than a browser does ("{Company} hiring {Title} in {Location} | LinkedIn").
+  const html = `<html><head>
+    <title>Robotics Modelling &amp; Simulation Engineer at Vesoma — Munich, Bavaria, Germany | LinkedIn Jobs</title>
+  </head><body><main>Vesoma builds underwater robots.</main></body></html>`;
+  const job = parseJobHtml(html);
+  assert.equal(job.title, "Robotics Modelling & Simulation Engineer");
+  assert.equal(job.company, "Vesoma");
+  assert.equal(job.location, "Munich, Bavaria, Germany");
+});
+
+test("parseJobHtml splits the bot-served LinkedIn title even without a location segment", () => {
+  const html = `<html><head>
+    <title>Robotics Engineer at Vesoma | LinkedIn Jobs</title>
+  </head><body><main>Vesoma builds underwater robots.</main></body></html>`;
+  const job = parseJobHtml(html);
+  assert.equal(job.title, "Robotics Engineer");
+  assert.equal(job.company, "Vesoma");
+  assert.equal(job.location, "");
+});
+
 test("parseJobHtml recovers a literal & from LinkedIn's double-escaped title", () => {
   // LinkedIn's actual page source has "&amp;amp;" (the ampersand escaped twice), so a
   // single HTML-decode pass over the <title> text only recovers "&amp;", not "&".
