@@ -556,6 +556,9 @@ export function buildLetterPdf(document: LetterDocument): Promise<Blob> {
           </Text>
           <View wrap={false}>
             <Text>{document.closing}</Text>
+            {document.fullName && (
+              <Text style={{ marginTop: 10 }}>{document.fullName}</Text>
+            )}
           </View>
         </Page>
       </Document>,

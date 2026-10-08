@@ -164,7 +164,8 @@ test("CVs and letters work before onboarding and retain drafts across tabs", asy
         const text = (await parser.getText()).text;
         expect(text).toContain("Independent Person");
         expect(text).toContain("developed software");
-        expect(text.match(/Independent Person/g)?.length).toBe(1);
+        // Once in the header, once as the signature below the closing line.
+        expect(text.match(/Independent Person/g)?.length).toBe(2);
       } finally {
         await parser.destroy();
       }
