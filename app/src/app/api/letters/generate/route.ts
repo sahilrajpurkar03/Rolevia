@@ -27,7 +27,11 @@ const fallbackGeminiModel = "gemini-3.6-flash";
 // operator has configured GROQ_API_KEY; unset, behavior is unchanged. Not yet
 // empirically verified for reliability the way the Gemini models above were - the
 // operator should watch its real-world success rate before relying on it.
-const groqModel = process.env.GROQ_MODEL?.trim() || "llama-3.3-70b-versatile";
+// llama-3.3-70b-versatile returned a live 404 ("does not exist or you do not have
+// access") despite being listed in Groq's docs as a production model - likely gated
+// behind a paid tier. llama-3.1-8b-instant is a smaller, more universally-available
+// free-tier model; override with GROQ_MODEL if this also turns out to be restricted.
+const groqModel = process.env.GROQ_MODEL?.trim() || "llama-3.1-8b-instant";
 
 export async function POST(request: Request) {
   const reply = (body: unknown, status = 200) =>
