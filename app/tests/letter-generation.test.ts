@@ -54,6 +54,53 @@ test("AI generation requires consent and uses supplied facts without invented av
   assert.ok(prompt.system.includes("untrusted"));
 });
 
+test("unsolicited applications don't require a job title or description, but a normal application still does", () => {
+  const base = { company: "Example", consent: true as const };
+  assert.equal(generationInputSchema.safeParse(base).success, false);
+  assert.equal(
+    generationInputSchema.safeParse({ ...base, unsolicited: true }).success,
+    true,
+  );
+  const parsed = generationInputSchema.parse({
+    ...base,
+    unsolicited: true,
+    companyContext: "Example builds humanoid robots for logistics.",
+  });
+  assert.equal(parsed.title, "");
+  assert.equal(parsed.description, "");
+});
+
+test("the unsolicited prompt never claims job-specific facts and only grounds on a supplied company excerpt", () => {
+  const withExcerpt = letterPrompt(
+    generationInputSchema.parse({
+      company: "Example",
+      unsolicited: true,
+      companyContext: "Example builds humanoid robots for logistics.",
+      consent: true,
+    }),
+    candidateText,
+  );
+  assert.ok(withExcerpt.system.includes("UNSOLICITED"));
+  assert.ok(withExcerpt.system.includes("never claim to know"));
+  const withExcerptData = JSON.parse(withExcerpt.data);
+  assert.equal(withExcerptData.company, "Example");
+  assert.equal(
+    withExcerptData.companyWebsiteExcerpt,
+    "Example builds humanoid robots for logistics.",
+  );
+  assert.equal(withExcerptData.job, undefined);
+
+  const withoutExcerpt = letterPrompt(
+    generationInputSchema.parse({
+      company: "Example",
+      unsolicited: true,
+      consent: true,
+    }),
+    candidateText,
+  );
+  assert.equal(JSON.parse(withoutExcerpt.data).companyWebsiteExcerpt, "");
+});
+
 test("three-paragraph letters reject fabricated evidence and invalid output", () => {
   const result = {
     requirements: ["ROS2"],

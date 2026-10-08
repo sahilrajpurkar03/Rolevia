@@ -288,11 +288,16 @@ export function LetterEditor({
             )
           )
             return;
+          const subject = input.unsolicited
+            ? input.language === "German"
+              ? "Initiativbewerbung"
+              : "Unsolicited application"
+            : input.title;
           const next = {
             ...(document ?? newLetter(profile, email, contact)),
-            title: `${input.company} / ${input.title}`.slice(0, 180),
+            title: `${input.company} / ${subject}`.slice(0, 180),
             recipient: input.company,
-            subject: input.title,
+            subject,
             salutation:
               input.language === "German"
                 ? "Sehr geehrtes Recruiting-Team,"

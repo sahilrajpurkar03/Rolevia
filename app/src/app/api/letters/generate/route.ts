@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     return reply(
       {
         error:
-          "Add the job title, company and description (80-20,000 characters), then confirm consent.",
+          "Add the company name and confirm consent; for a specific role, also add the job title and description (80-20,000 characters).",
       },
       400,
     );

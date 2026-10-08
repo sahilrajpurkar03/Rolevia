@@ -33,6 +33,8 @@ export function LetterGenerator({
     title: job?.title ?? "",
     company: job?.company ?? "",
     description: job?.description ?? "",
+    unsolicited: false,
+    companyContext: "",
     availability: initialAvailability,
     location: initialLocation,
     language: "English",
@@ -81,18 +83,33 @@ export function LetterGenerator({
       });
       const body = await response.json();
       if (!response.ok)
-        throw new Error(body.error ?? "Could not import that job link.");
-      setInput((current) => ({
-        ...current,
-        title: body.job.title || current.title,
-        company: body.job.company || current.company,
-        description: body.job.description || current.description,
-      }));
+        throw new Error(
+          body.error ??
+            (input.unsolicited
+              ? "Could not import that company link."
+              : "Could not import that job link."),
+        );
+      setInput((current) =>
+        current.unsolicited
+          ? {
+              ...current,
+              company: body.job.company || body.job.title || current.company,
+              companyContext: body.job.description || current.companyContext,
+            }
+          : {
+              ...current,
+              title: body.job.title || current.title,
+              company: body.job.company || current.company,
+              description: body.job.description || current.description,
+            },
+      );
     } catch (reason) {
       setLinkError(
         reason instanceof Error
           ? reason.message
-          : "Could not import that job link.",
+          : input.unsolicited
+            ? "Could not import that company link."
+            : "Could not import that job link.",
       );
     } finally {
       setLinkBusy(false);
@@ -103,7 +120,9 @@ export function LetterGenerator({
     const parsed = generationInputSchema.safeParse(input);
     if (!parsed.success) {
       setError(
-        "Enter title, company and at least 80 characters of job description, then confirm consent.",
+        input.unsolicited
+          ? "Enter the company name and confirm consent."
+          : "Enter title, company and at least 80 characters of job description, then confirm consent.",
       );
       return;
     }
@@ -148,15 +167,39 @@ export function LetterGenerator({
     >
       <h3>Generate Cover Letter</h3>
       <fieldset disabled={busy || disabled} className="generator-fields">
+        <label className="generator-consent">
+          <input
+            type="checkbox"
+            checked={input.unsolicited}
+            onChange={(event) =>
+              setInput({
+                ...input,
+                unsolicited: event.target.checked,
+                title: "",
+                description: "",
+              })
+            }
+          />
+          <span>
+            Unsolicited application (no specific posted role - just the
+            company)
+          </span>
+        </label>
         <div className="job-link-import">
           <label htmlFor={`${prefix}-link`}>
-            Paste a job posting link (optional)
+            {input.unsolicited
+              ? "Paste the company's website link (optional)"
+              : "Paste a job posting link (optional)"}
           </label>
           <div className="job-link-row">
             <input
               id={`${prefix}-link`}
               type="url"
-              placeholder="https://company.com/careers/job-id"
+              placeholder={
+                input.unsolicited
+                  ? "https://company.com"
+                  : "https://company.com/careers/job-id"
+              }
               value={linkUrl}
               disabled={linkBusy}
               onChange={(event) => setLinkUrl(event.target.value)}
@@ -181,7 +224,7 @@ export function LetterGenerator({
             </p>
           )}
         </div>
-        {jobs.length > 0 && (
+        {!input.unsolicited && jobs.length > 0 && (
           <label htmlFor={`${prefix}-job`}>
             Matched or logged job
             <select
@@ -205,17 +248,19 @@ export function LetterGenerator({
           </label>
         )}
         <div className="form-grid">
-          <label htmlFor={`${prefix}-title`}>
-            Job title
-            <input
-              id={`${prefix}-title`}
-              value={input.title}
-              maxLength={180}
-              onChange={(event) =>
-                setInput({ ...input, title: event.target.value })
-              }
-            />
-          </label>
+          {!input.unsolicited && (
+            <label htmlFor={`${prefix}-title`}>
+              Job title
+              <input
+                id={`${prefix}-title`}
+                value={input.title}
+                maxLength={180}
+                onChange={(event) =>
+                  setInput({ ...input, title: event.target.value })
+                }
+              />
+            </label>
+          )}
           <label htmlFor={`${prefix}-company`}>
             Company
             <input
@@ -228,7 +273,24 @@ export function LetterGenerator({
             />
           </label>
         </div>
-        {showDescription && <div className="cv-field">
+        {input.unsolicited && (
+          <div className="cv-field">
+            <label htmlFor={`${prefix}-company-context`}>
+              Company website excerpt (optional, from the link above)
+            </label>
+            <textarea
+              id={`${prefix}-company-context`}
+              rows={5}
+              maxLength={8000}
+              value={input.companyContext}
+              placeholder="Import the company's website above, or paste a short excerpt yourself. Left blank, the letter stays general and won't guess at the company's current work."
+              onChange={(event) =>
+                setInput({ ...input, companyContext: event.target.value })
+              }
+            />
+          </div>
+        )}
+        {showDescription && !input.unsolicited && <div className="cv-field">
           <label htmlFor={`${prefix}-description`}>Job description</label>
           <textarea
             id={`${prefix}-description`}
