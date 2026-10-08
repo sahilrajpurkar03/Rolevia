@@ -87,7 +87,9 @@ test("CVs and letters work before onboarding and retain drafts across tabs", asy
     .getByRole("button", { name: "Generate with AI", exact: true })
     .click();
   await expect(generator.getByRole("alert")).toContainText("confirm consent");
-  await generator.getByRole("checkbox").check();
+  await generator
+    .getByRole("checkbox", { name: "I consent to sending my saved" })
+    .check();
   await generator
     .getByRole("button", { name: "Generate with AI", exact: true })
     .click();
