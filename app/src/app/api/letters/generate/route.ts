@@ -154,11 +154,14 @@ export async function POST(request: Request) {
       ),
     ];
     // Budget attempts so the worst case (every model, every attempt, all failures)
-    // stays comfortably under maxDuration (90s): 3x20s solo, 2x15s with two models to
-    // try, or 1x15s each with three or more models (the three built-in tiers, or a
-    // GEMINI_MODEL override adding a fourth ahead of them).
-    const attempts = models.length >= 3 ? 1 : models.length === 2 ? 2 : 3;
-    const perCallTimeout = models.length > 1 ? 15000 : 20000;
+    // stays comfortably under maxDuration (90s): 1 model gets 3x20s, 2 models get 2x15s
+    // each, 3 models (the built-in tiers) get 2x12s each, and a GEMINI_MODEL override
+    // adding a 4th gets 2x9s each - every tier keeps two attempts per model with a real
+    // backoff between them (see generateLetterWithGemini), since a single attempt gives
+    // a brief demand spike no chance to clear before giving up on that model entirely.
+    const attempts = models.length === 1 ? 3 : 2;
+    const perCallTimeout =
+      models.length >= 4 ? 9000 : models.length === 3 ? 12000 : models.length === 2 ? 15000 : 20000;
     const outcome = await generateLetterWithGemini({
       models,
       apiKey: process.env.GEMINI_API_KEY!,
