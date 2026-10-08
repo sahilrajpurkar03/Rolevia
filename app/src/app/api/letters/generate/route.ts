@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/supabase/server";
 import {
   generateLetterWithGemini,
+  generateLetterWithGroq,
   generationInputSchema,
   letterPrompt,
 } from "@/lib/letter-generation";
@@ -20,6 +21,13 @@ export const maxDuration = 90;
 const defaultGeminiModel = "gemini-3.5-flash-lite";
 const secondaryGeminiModel = "gemini-2.5-flash-lite";
 const fallbackGeminiModel = "gemini-3.6-flash";
+// Final fallback for a Gemini-wide outage (confirmed to happen - see the "high demand"
+// 503 reports on Google's own AI Developers Forum), where every Gemini model fails
+// together and no amount of model-hopping within Gemini helps. Only activates when the
+// operator has configured GROQ_API_KEY; unset, behavior is unchanged. Not yet
+// empirically verified for reliability the way the Gemini models above were - the
+// operator should watch its real-world success rate before relying on it.
+const groqModel = process.env.GROQ_MODEL?.trim() || "llama-3.3-70b-versatile";
 
 export async function POST(request: Request) {
   const reply = (body: unknown, status = 200) =>
@@ -162,7 +170,7 @@ export async function POST(request: Request) {
     const attempts = models.length === 1 ? 3 : 2;
     const perCallTimeout =
       models.length >= 4 ? 9000 : models.length === 3 ? 12000 : models.length === 2 ? 15000 : 20000;
-    const outcome = await generateLetterWithGemini({
+    let outcome = await generateLetterWithGemini({
       models,
       apiKey: process.env.GEMINI_API_KEY!,
       prompt,
@@ -170,6 +178,16 @@ export async function POST(request: Request) {
       attempts,
       perCallTimeout,
     });
+    if (!outcome.ok && process.env.GROQ_API_KEY) {
+      outcome = await generateLetterWithGroq({
+        model: groqModel,
+        apiKey: process.env.GROQ_API_KEY,
+        prompt,
+        candidateText: candidate,
+        attempts: 2,
+        perCallTimeout: 6000,
+      });
+    }
     if (!outcome.ok) throw outcome.error;
     await client
       .from("check_runs")
@@ -182,11 +200,11 @@ export async function POST(request: Request) {
       .eq("user_id", user.id);
     return reply({ result: outcome.result, retryAfter });
   } catch (error) {
-    // Every error constructed above starts with "Gemini" or "AI returned" (mirroring
-    // verifyGeneratedLetter's own message); anything else is unexpected (e.g. a
-    // database error) and must not leak raw detail to the client.
+    // Every error constructed above starts with "Gemini", "Groq" or "AI returned"
+    // (mirroring verifyGeneratedLetter's own message); anything else is unexpected
+    // (e.g. a database error) and must not leak raw detail to the client.
     const message =
-      error instanceof Error && /^(Gemini|AI returned)/.test(error.message)
+      error instanceof Error && /^(Gemini|Groq|AI returned)/.test(error.message)
         ? error.message
         : "AI generation failed or returned an invalid draft. Your existing letter is unchanged.";
     await client

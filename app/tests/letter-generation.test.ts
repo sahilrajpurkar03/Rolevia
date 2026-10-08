@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   generateLetterWithGemini,
+  generateLetterWithGroq,
   generationInputSchema,
   letterPrompt,
   verifyGeneratedLetter,
@@ -305,4 +306,69 @@ test("a network failure (fetch throws) is retried like a transient error", async
   );
   assert.equal(outcome.ok, true);
   assert.equal(call, 2);
+});
+
+function groqResponse(status: number, body: unknown) {
+  return new Response(JSON.stringify(body), { status });
+}
+function validGroqBody() {
+  return {
+    choices: [
+      { finish_reason: "stop", message: { content: JSON.stringify(validLetter) } },
+    ],
+  };
+}
+
+test("Groq succeeds on the first attempt and posts the exact prompt text unchanged", async () => {
+  let sentBody: {
+    messages: { role: string; content: string }[];
+    response_format: unknown;
+  } | undefined;
+  const fetcher = (async (url, init) => {
+    sentBody = JSON.parse(String((init as RequestInit).body));
+    return groqResponse(200, validGroqBody());
+  }) as typeof fetch;
+  const outcome = await generateLetterWithGroq(
+    {
+      model: "llama-3.3-70b-versatile",
+      apiKey: "key",
+      prompt,
+      candidateText,
+      attempts: 2,
+      perCallTimeout: 5000,
+    },
+    fetcher,
+  );
+  assert.equal(outcome.ok, true);
+  assert.equal(sentBody?.messages[0]?.content, prompt.system);
+  assert.equal(sentBody?.messages[1]?.content, prompt.data);
+  assert.deepEqual(sentBody?.response_format, { type: "json_object" });
+});
+
+test("a transient Groq 503 is retried before succeeding, and a non-429 4xx moves on without retry", async () => {
+  let call = 0;
+  const retryFetcher = (async () => {
+    call++;
+    return call === 1
+      ? groqResponse(503, { error: { message: "overloaded" } })
+      : groqResponse(200, validGroqBody());
+  }) as typeof fetch;
+  const retried = await generateLetterWithGroq(
+    { model: "m", apiKey: "key", prompt, candidateText, attempts: 2, perCallTimeout: 5000 },
+    retryFetcher,
+  );
+  assert.equal(retried.ok, true);
+  assert.equal(call, 2);
+
+  let badRequestCalls = 0;
+  const badRequestFetcher = (async () => {
+    badRequestCalls++;
+    return groqResponse(400, { error: { message: "bad request" } });
+  }) as typeof fetch;
+  const outcome = await generateLetterWithGroq(
+    { model: "m", apiKey: "key", prompt, candidateText, attempts: 3, perCallTimeout: 5000 },
+    badRequestFetcher,
+  );
+  assert.equal(outcome.ok, false);
+  assert.equal(badRequestCalls, 1);
 });
