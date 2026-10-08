@@ -84,10 +84,15 @@ export async function POST(request: Request) {
       { error: "Save your profile before generating a letter." },
       400,
     );
+  // Only successful generations count toward the daily cap - a claim row is inserted
+  // before every attempt (including ones that go on to fail with a Gemini 503/429/5xx),
+  // so counting all states would let provider-side outages silently burn the user's own
+  // quota on top of the failure they already hit.
   const recent = await client
     .from("check_runs")
     .select("id", { count: "exact", head: true })
     .eq("user_id", user.id)
+    .eq("state", "completed")
     .like("run_key", "ai-letter:%")
     .gte("created_at", new Date(Date.now() - 86400000).toISOString());
   if (recent.error)
