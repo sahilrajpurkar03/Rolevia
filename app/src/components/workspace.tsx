@@ -2058,7 +2058,10 @@ function MatchLetterEditor({
       language === "German" ? "Sehr geehrtes Recruiting-Team," : "Dear Hiring Team,";
     const closing =
       language === "German" ? "Mit freundlichen Gruessen," : "Kind regards,";
-    setLetter([greeting, ...result.paragraphs, closing, profile.fullName].join("\n\n"));
+    // The sender's name is NOT appended here: buildLetterPdf (and buildLetterWord)
+    // already render document.fullName as a signature line below the closing text, so
+    // embedding it in the body too would print it twice.
+    setLetter([greeting, ...result.paragraphs, closing].join("\n\n"));
     setMessage({ success: "Draft ready. Review and edit it before exporting." });
   }
   function exportLetter() {
