@@ -2106,6 +2106,7 @@ function MatchLetterEditor({
         initialAvailability={profile.availability}
         initialLocation={profile.regions.join(", ")}
         showDescription
+        allowUnsolicited={false}
         onUse={(result, input) => applyDraft(result, input.language)}
       />
       <label>

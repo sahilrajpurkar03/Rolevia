@@ -15,6 +15,10 @@ export function LetterGenerator({
   initialAvailability = "",
   initialLocation = "",
   showDescription = true,
+  // The per-job shortcut (opened directly from a specific match/application) already
+  // has a known job and company, so there's nothing to paste a link for and no reason
+  // to offer "no specific role" mode; only the standalone Cover Letters tab needs these.
+  allowUnsolicited = true,
   demo,
   disabled,
   onUse,
@@ -24,6 +28,7 @@ export function LetterGenerator({
   initialAvailability?: string;
   initialLocation?: string;
   showDescription?: boolean;
+  allowUnsolicited?: boolean;
   demo?: boolean;
   disabled?: boolean;
   onUse: (result: GeneratedLetter, input: GenerationInput) => void;
@@ -56,7 +61,10 @@ export function LetterGenerator({
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, [cooldownUntil]);
-  const cooldownRemaining = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
+  const cooldownRemaining = Math.max(
+    0,
+    Math.ceil((cooldownUntil - now) / 1000),
+  );
   async function importLink() {
     setLinkError("");
     let parsedUrl: string | null = null;
@@ -167,63 +175,67 @@ export function LetterGenerator({
     >
       <h3>Generate Cover Letter</h3>
       <fieldset disabled={busy || disabled} className="generator-fields">
-        <label className="generator-consent">
-          <input
-            type="checkbox"
-            checked={input.unsolicited}
-            onChange={(event) =>
-              setInput({
-                ...input,
-                unsolicited: event.target.checked,
-                title: "",
-                description: "",
-              })
-            }
-          />
-          <span>
-            Unsolicited application (no specific posted role - just the
-            company)
-          </span>
-        </label>
-        <div className="job-link-import">
-          <label htmlFor={`${prefix}-link`}>
-            {input.unsolicited
-              ? "Paste the company's website link (optional)"
-              : "Paste a job posting link (optional)"}
-          </label>
-          <div className="job-link-row">
+        {allowUnsolicited && (
+          <label className="generator-consent">
             <input
-              id={`${prefix}-link`}
-              type="url"
-              placeholder={
-                input.unsolicited
-                  ? "https://company.com"
-                  : "https://company.com/careers/job-id"
+              type="checkbox"
+              checked={input.unsolicited}
+              onChange={(event) =>
+                setInput({
+                  ...input,
+                  unsolicited: event.target.checked,
+                  title: "",
+                  description: "",
+                })
               }
-              value={linkUrl}
-              disabled={linkBusy}
-              onChange={(event) => setLinkUrl(event.target.value)}
             />
-            <button
-              type="button"
-              className="button"
-              disabled={linkBusy || !linkUrl.trim()}
-              onClick={() => void importLink()}
-            >
-              {linkBusy ? (
-                <LoaderCircle size={16} className="spin" />
-              ) : (
-                <Link2 size={16} />
-              )}
-              {linkBusy ? "Importing..." : "Import details"}
-            </button>
+            <span>
+              Unsolicited application (no specific posted role - just the
+              company)
+            </span>
+          </label>
+        )}
+        {allowUnsolicited && (
+          <div className="job-link-import">
+            <label htmlFor={`${prefix}-link`}>
+              {input.unsolicited
+                ? "Paste the company's website link (optional)"
+                : "Paste a job posting link (optional)"}
+            </label>
+            <div className="job-link-row">
+              <input
+                id={`${prefix}-link`}
+                type="url"
+                placeholder={
+                  input.unsolicited
+                    ? "https://company.com"
+                    : "https://company.com/careers/job-id"
+                }
+                value={linkUrl}
+                disabled={linkBusy}
+                onChange={(event) => setLinkUrl(event.target.value)}
+              />
+              <button
+                type="button"
+                className="button"
+                disabled={linkBusy || !linkUrl.trim()}
+                onClick={() => void importLink()}
+              >
+                {linkBusy ? (
+                  <LoaderCircle size={16} className="spin" />
+                ) : (
+                  <Link2 size={16} />
+                )}
+                {linkBusy ? "Importing..." : "Import details"}
+              </button>
+            </div>
+            {linkError && (
+              <p role="alert" className="notice error">
+                {linkError}
+              </p>
+            )}
           </div>
-          {linkError && (
-            <p role="alert" className="notice error">
-              {linkError}
-            </p>
-          )}
-        </div>
+        )}
         {!input.unsolicited && jobs.length > 0 && (
           <label htmlFor={`${prefix}-job`}>
             Matched or logged job
@@ -290,18 +302,20 @@ export function LetterGenerator({
             />
           </div>
         )}
-        {showDescription && !input.unsolicited && <div className="cv-field">
-          <label htmlFor={`${prefix}-description`}>Job description</label>
-          <textarea
-            id={`${prefix}-description`}
-            rows={5}
-            maxLength={20000}
-            value={input.description}
-            onChange={(event) =>
-              setInput({ ...input, description: event.target.value })
-            }
-          />
-        </div>}
+        {showDescription && !input.unsolicited && (
+          <div className="cv-field">
+            <label htmlFor={`${prefix}-description`}>Job description</label>
+            <textarea
+              id={`${prefix}-description`}
+              rows={5}
+              maxLength={20000}
+              value={input.description}
+              onChange={(event) =>
+                setInput({ ...input, description: event.target.value })
+              }
+            />
+          </div>
+        )}
         <div className="form-grid">
           <label htmlFor={`${prefix}-availability`}>
             Availability (optional)
