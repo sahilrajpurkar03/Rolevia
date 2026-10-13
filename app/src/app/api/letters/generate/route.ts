@@ -196,14 +196,28 @@ export async function POST(request: Request) {
       perCallTimeout,
     });
     if (!outcome.ok && process.env.GROQ_API_KEY) {
+      // Groq's free-tier input-tokens-per-minute budget (observed: as low as 7000 for
+      // some models) is far smaller than Gemini's - a full CV/profile easily exceeds it,
+      // and since every Groq model gets the identical payload, a 413 here fails the same
+      // way on all of them (trying more models doesn't help a prompt-size problem).
+      // Trim the candidate text and job/company context specifically for this fallback;
+      // it's a last resort, so a shorter, less detailed draft beats no draft at all.
+      const groqCandidate =
+        candidate.length > 6000 ? `${candidate.slice(0, 6000)}...` : candidate;
+      const groqInput = {
+        ...input,
+        description: input.description.slice(0, 2000),
+        companyContext: input.companyContext.slice(0, 2000),
+      };
+      const groqPrompt = letterPrompt(groqInput, groqCandidate);
       // Worst case here (no retry per model, straight to the next) stays small enough
       // that even 3-4 models fit comfortably in what's left of the maxDuration budget
       // after the Gemini chain above.
       outcome = await generateLetterWithGroq({
         models: groqModels,
         apiKey: process.env.GROQ_API_KEY,
-        prompt,
-        candidateText: candidate,
+        prompt: groqPrompt,
+        candidateText: groqCandidate,
         attempts: 1,
         perCallTimeout: 5000,
       });
