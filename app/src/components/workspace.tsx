@@ -313,6 +313,9 @@ export function Workspace(props: Props) {
     {},
   );
   const [editing, setEditing] = useState<ApplicationRecord | null>(null);
+  // Set only when the editor opens because the status just changed to interview, so the
+  // interview-date prompt appears once at that moment, not on every later open.
+  const [promptInterviewFor, setPromptInterviewFor] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const latest = props.checks[0];
@@ -514,7 +517,10 @@ export function Workspace(props: Props) {
       setSampleApplications((current) =>
         current.map((item) => (item.id === application.id ? updated : item)),
       );
-      if (status === "interview") setEditing(updated);
+      if (status === "interview") {
+        setPromptInterviewFor(updated.id);
+        setEditing(updated);
+      }
       return;
     }
     setOptimisticApplications((current) =>
@@ -544,7 +550,10 @@ export function Workspace(props: Props) {
       setMessage(result);
       if (result.error) setOptimisticApplications(null);
     });
-    if (status === "interview") setEditing(updated);
+    if (status === "interview") {
+        setPromptInterviewFor(updated.id);
+        setEditing(updated);
+      }
   }
   function applicationMatch(application: ApplicationRecord): MatchRecord {
     return {
@@ -1800,8 +1809,12 @@ export function Workspace(props: Props) {
         <ApplicationEditor
           key={editing.id}
           application={editing}
+          promptInterview={promptInterviewFor === editing.id}
           demo={props.demo}
-          onClose={() => setEditing(null)}
+          onClose={() => {
+            setEditing(null);
+            setPromptInterviewFor(null);
+          }}
           onSaved={(updated) => {
             if (props.demo)
               setSampleApplications((current) =>
@@ -2175,45 +2188,78 @@ function ApplicationRoadmap({ application }: { application: ApplicationRecord })
   );
 }
 
-function ApplicationEditor({
-  application,
-  demo,
-  onClose,
-  onSaved,
-}: {
-  application: ApplicationRecord;
-  demo?: boolean;
-  onClose: () => void;
-  onSaved: (application: ApplicationRecord) => void;
-}) {
-  const [draft, setDraft] = useState(application);
-  const [message, setMessage] = useState<ActionResult>({});
-  const [pending, startTransition] = useTransition();
-  const interviews: InterviewRecord[] = draft.interview_history?.length
-    ? draft.interview_history
-    : draft.interview_date
-      ? [{
+function interviewList(draft: ApplicationRecord): InterviewRecord[] {
+  if (draft.interview_history?.length) return draft.interview_history;
+  return draft.interview_date
+    ? [
+        {
           id: "legacy-interview",
           date: draft.interview_date,
           round: draft.interview_round ?? "",
           notes: draft.interview_notes ?? "",
           completed: draft.interview_completed ?? false,
-        }]
-      : [];
+        },
+      ]
+    : [];
+}
+function withInterviews(
+  draft: ApplicationRecord,
+  next: InterviewRecord[],
+): ApplicationRecord {
+  const first = next[0];
+  return {
+    ...draft,
+    interview_history: next,
+    interview_date: first?.date || null,
+    interview_round: first?.round ?? "",
+    interview_notes: first?.notes ?? "",
+    interview_completed: first?.completed ?? false,
+  };
+}
+function blankInterview(): InterviewRecord {
+  return {
+    id: `interview-${Date.now()}`,
+    date: "",
+    round: "",
+    notes: "",
+    completed: false,
+  };
+}
+// Moving an application into "interview" is the moment the user knows an interview is
+// coming, so start the entry for them (date first) instead of making them find "Add
+// interview". If an interview is still upcoming/uncompleted there's nothing new to ask,
+// so this never stacks blank entries; later rounds are added with the button.
+function withInterviewPrompt(draft: ApplicationRecord): ApplicationRecord {
+  const list = interviewList(draft);
+  if (list.some((interview) => !interview.completed)) return draft;
+  return withInterviews(draft, [...list, blankInterview()]);
+}
+
+function ApplicationEditor({
+  application,
+  promptInterview,
+  demo,
+  onClose,
+  onSaved,
+}: {
+  application: ApplicationRecord;
+  promptInterview?: boolean;
+  demo?: boolean;
+  onClose: () => void;
+  onSaved: (application: ApplicationRecord) => void;
+}) {
+  const [draft, setDraft] = useState(() =>
+    promptInterview ? withInterviewPrompt(application) : application,
+  );
+  const [message, setMessage] = useState<ActionResult>({});
+  const [pending, startTransition] = useTransition();
+  const interviews = interviewList(draft);
   // Expand whichever interview still needs attention (the next upcoming one), not
   // whichever happens to be first in the list - a completed intro round shouldn't stay
   // open while the pending final round sits collapsed.
   const defaultOpenIndex = interviews.findIndex((interview) => !interview.completed);
   function updateInterviews(next: InterviewRecord[]) {
-    const first = next[0];
-    setDraft({
-      ...draft,
-      interview_history: next,
-      interview_date: first?.date || null,
-      interview_round: first?.round ?? "",
-      interview_notes: first?.notes ?? "",
-      interview_completed: first?.completed ?? false,
-    });
+    setDraft(withInterviews(draft, next));
   }
   function save() {
     startTransition(async () => {
@@ -2308,11 +2354,16 @@ function ApplicationEditor({
             value={draft.status}
             onChange={(event) => {
               const status = event.target.value as ApplicationRecord["status"];
-              setDraft({
+              const next = {
                 ...draft,
                 status,
                 status_history: nextStatusHistory(draft.status_history, status),
-              });
+              };
+              setDraft(
+                status === "interview" && draft.status !== "interview"
+                  ? withInterviewPrompt(next)
+                  : next,
+              );
             }}
           >
             {statuses.map((status) => (
@@ -2340,21 +2391,18 @@ function ApplicationEditor({
               type="button"
               className="button small"
               onClick={() =>
-                updateInterviews([
-                  ...interviews,
-                  {
-                    id: `interview-${Date.now()}`,
-                    date: "",
-                    round: "",
-                    notes: "",
-                    completed: false,
-                  },
-                ])
+                updateInterviews([...interviews, blankInterview()])
               }
             >
               <Plus size={14} /> Add interview
             </button>
           </div>
+          {interviews.some((interview) => !interview.date && !interview.completed) && (
+            <p className="field-note">
+              When is the interview? Add the date so it shows on your calendar and
+              you get a reminder.
+            </p>
+          )}
           {interviews.map((interview, index) => (
             <details
               className="interview-entry"
